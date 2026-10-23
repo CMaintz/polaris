@@ -21,7 +21,7 @@ export interface SeriesPoint {
   observedDays: number;
 }
 
-export function periodKey(day: string, granularity: Granularity): string {
+function periodKey(day: string, granularity: Granularity): string {
   if (granularity === "day") return day;
   if (granularity === "week") return weekStart(day);
   return `${day.slice(0, 7)}-01`;
@@ -82,7 +82,7 @@ export function rollingAverage(points: readonly SeriesPoint[], window: number): 
   });
 }
 
-export interface PeriodSummary {
+interface PeriodSummary {
   from: string;
   to: string;
   value: number | null;

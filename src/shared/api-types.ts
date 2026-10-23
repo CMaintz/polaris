@@ -6,7 +6,7 @@ export interface UserDto {
   createdAt: string;
 }
 
-export type JobStatusDto = "queued" | "running" | "completed" | "failed" | "retrying";
+type JobStatusDto = "queued" | "running" | "completed" | "failed" | "retrying";
 
 export interface JobDto {
   id: string;
@@ -26,9 +26,8 @@ export interface ApiErrorBody {
   error: { code: string; message: string };
 }
 
-export type ContentTypeDto =
-  "text" | "image" | "video" | "document" | "article" | "link" | "unknown";
-export type BandDto = "top" | "middle" | "bottom" | "unrated";
+type ContentTypeDto = "text" | "image" | "video" | "document" | "article" | "link" | "unknown";
+type BandDto = "top" | "middle" | "bottom" | "unrated";
 
 /** Null means the source did not report the value; it is never a stand-in for zero. */
 export interface MetricsDto {
@@ -41,7 +40,7 @@ export interface MetricsDto {
   engagementRate: number | null;
 }
 
-export interface PeriodDto {
+interface PeriodDto {
   from: string;
   to: string;
 }

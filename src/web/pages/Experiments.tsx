@@ -3,7 +3,7 @@ import { del, patch, post } from "../lib/api";
 import { formatChange, formatDate, formatNumber, formatPercent, formatPeriod } from "../lib/format";
 import { inDays, today, useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
-import { Empty, ErrorBox, Field, Loading, PageHead } from "../components/ui";
+import { DateRangeFields, Empty, ErrorBox, Field, Loading, PageHead } from "../components/ui";
 
 interface ExperimentView {
   id: string;
@@ -94,12 +94,7 @@ export function ExperimentsPage() {
           <Field label="Baseline (blank = the period before)">
             <input type="number" step="any" {...form.field("baseline")} />
           </Field>
-          <Field label="Start">
-            <input required type="date" {...form.field("startDate")} />
-          </Field>
-          <Field label="End">
-            <input required type="date" {...form.field("endDate")} />
-          </Field>
+          <DateRangeFields start={form.field("startDate")} end={form.field("endDate")} />
         </div>
         <Field label="Hypothesis">
           <textarea

@@ -19,7 +19,7 @@ export interface GoalInputs {
   posts: DatedValue[];
 }
 
-export type GoalStatus = "not_started" | "no_data" | "on_track" | "behind" | "achieved" | "missed";
+type GoalStatus = "not_started" | "no_data" | "on_track" | "behind" | "achieved" | "missed";
 
 export interface GoalProgress {
   current: number | null;
