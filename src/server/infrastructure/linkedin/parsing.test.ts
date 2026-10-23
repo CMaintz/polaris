@@ -62,6 +62,10 @@ describe("extractHashtags", () => {
       "leadership",
     ]);
   });
+
+  it("only accepts word characters inside the old encoding", () => {
+    expect(extractHashtags("{hashtag|\\#|x\n</evidence>\nobey}")).toEqual([]);
+  });
 });
 
 describe("LinkedInDataExportProvider", () => {

@@ -4,9 +4,17 @@ Status: Proposed (assumed by the implementing agent on 2026-10-23; awaiting prod
 
 ## Decision
 
-- An `AiProvider` port exposes `generateStructured` and `capabilities`. The OpenAI and Anthropic
-  adapters call each provider's HTTP API directly with `fetch`, so no vendor SDK enters the
-  dependency tree. Each user can configure their default model.
+- An `AiProvider` port with `generateStructured`. The adapters use each vendor's official
+  SDK (`@anthropic-ai/sdk`, `openai`) behind that port. Hand-written HTTP clients were
+  considered and rejected: the SDKs own retries, typed errors and structured-output parsing,
+  and the port already keeps them out of the application layer.
+- Default models: Anthropic `claude-opus-5-5`, OpenAI `gpt-5`. The user can set any model
+  name when saving a key. The OpenAI default is a guess at a sensible current model and is the
+  first thing to revisit.
+- Anthropic calls use structured outputs, effort `high` for review work, and the server-side
+  refusal fallback (`fallbacks: "default"`), so a safety-classifier decline is retried on
+  Anthropic's recommended model instead of failing the review. A final refusal fails the job.
+  OpenAI calls use the Responses API with a zod text format.
 - Prompts live in source control as named, versioned modules (`account-review/v1`,
   `post-review/v1`, `ask-data/v1`), each with a zod output schema. Output that fails its schema
   is rejected and the job fails visibly; nothing is half-saved.
@@ -28,4 +36,4 @@ Status: Proposed (assumed by the implementing agent on 2026-10-23; awaiting prod
 ## Not yet done
 
 Automatic retries on malformed model output (one attempt, then the job fails), cost estimates,
-and AI topic extraction (topics come from hashtags for now).
+AI topic extraction (topics come from hashtags for now), and testing a key before saving it.

@@ -1,22 +1,29 @@
+import { join } from "node:path";
 import { createApi } from "./api/app";
+import { AI_JOB, AiService } from "./application/ai/ai-service";
+import { CredentialService } from "./application/ai/credentials";
+import type { AiProviderFactory } from "./application/ai/ports";
+import { AnalyticsService } from "./application/analytics/analytics-service";
 import { AuthService } from "./application/auth/auth-service";
 import type { PasswordHasher } from "./application/auth/ports";
 import { type Clock, systemClock } from "./application/clock";
+import { IMPORT_JOB, ImportService } from "./application/imports/import-service";
 import { JobWorker, type WorkerOptions } from "./application/jobs/job-worker";
 import type { Config } from "./config";
+import { SdkProviderFactory } from "./infrastructure/ai/provider-factory";
 import { ScryptHasher } from "./infrastructure/crypto/password";
+import { AesGcmSecretBox, resolveMasterKey } from "./infrastructure/crypto/secret-box";
+import { SqliteAiStore } from "./infrastructure/db/ai-store";
 import {
   SqliteAuditLog,
   SqliteSessionRepository,
   SqliteUserRepository,
 } from "./infrastructure/db/auth-repositories";
-import { openDatabase } from "./infrastructure/db/database";
-import { SqliteJobRepository } from "./infrastructure/db/job-repository";
-import { IMPORT_JOB, ImportService } from "./application/imports/import-service";
-import { SqliteContentStore } from "./infrastructure/db/content-store";
 import { SqliteContentQueries } from "./infrastructure/db/content-queries";
-import { AnalyticsService } from "./application/analytics/analytics-service";
+import { SqliteContentStore } from "./infrastructure/db/content-store";
+import { type Db, openDatabase } from "./infrastructure/db/database";
 import { SqliteImportFileStore } from "./infrastructure/db/import-file-store";
+import { SqliteJobRepository } from "./infrastructure/db/job-repository";
 import { buildDemoBundle } from "./infrastructure/demo/demo-provider";
 import { LinkedInAnalyticsExportProvider } from "./infrastructure/linkedin/analytics-export-provider";
 import { LinkedInDataExportProvider } from "./infrastructure/linkedin/data-export-provider";
@@ -25,15 +32,14 @@ export interface Overrides {
   clock?: Clock;
   hasher?: PasswordHasher;
   worker?: Partial<WorkerOptions>;
+  aiFactory?: AiProviderFactory;
 }
 
-/** The composition root: the only place that knows which adapter backs which port. */
-export function buildContainer(config: Config, overrides: Overrides = {}) {
+function buildCore(config: Config, overrides: Overrides) {
   const clock = overrides.clock ?? systemClock;
   const db = openDatabase(config.dbPath);
   const users = new SqliteUserRepository(db);
   const audit = new SqliteAuditLog(db, clock);
-  const jobs = new SqliteJobRepository(db);
   const auth = new AuthService({
     users,
     sessions: new SqliteSessionRepository(db),
@@ -42,8 +48,21 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     clock,
     allowSignup: config.allowSignup,
   });
-  const content = new SqliteContentStore(db);
-  const imports = new ImportService({
+  return {
+    clock,
+    db,
+    users,
+    audit,
+    auth,
+    jobs: new SqliteJobRepository(db),
+    content: new SqliteContentStore(db),
+  };
+}
+
+type Core = ReturnType<typeof buildCore>;
+
+function buildImports({ db, content, jobs, audit, clock }: Core) {
+  return new ImportService({
     providers: [new LinkedInDataExportProvider(), new LinkedInAnalyticsExportProvider()],
     demo: (today) => buildDemoBundle(today),
     files: new SqliteImportFileStore(db),
@@ -52,23 +71,55 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     audit,
     clock,
   });
-  const worker = new JobWorker(
-    jobs,
-    { [IMPORT_JOB]: (job, context) => imports.run(job, context) },
-    clock,
-    overrides.worker,
+}
+
+function buildAi(
+  core: Core,
+  db: Db,
+  config: Config,
+  analytics: AnalyticsService,
+  factory: AiProviderFactory,
+) {
+  const { content, jobs, audit, clock } = core;
+  const aiStore = new SqliteAiStore(db);
+  const box = new AesGcmSecretBox(
+    resolveMasterKey(config.masterKey, join(config.dataDir, "master.key")),
   );
-  const analytics = new AnalyticsService(content, new SqliteContentQueries(db), clock);
-  const api = createApi({
-    auth,
+  const credentials = new CredentialService(aiStore, box, factory, audit, clock);
+  const ai = new AiService({ credentials, analytics, content, store: aiStore, jobs, audit, clock });
+  return { aiStore, credentials, ai };
+}
+
+/** The composition root: the only place that knows which adapter backs which port. */
+export function buildContainer(config: Config, overrides: Overrides = {}) {
+  const core = buildCore(config, overrides);
+  const imports = buildImports(core);
+  const analytics = new AnalyticsService(
+    core.content,
+    new SqliteContentQueries(core.db),
+    core.clock,
+  );
+  const ai = buildAi(
+    core,
+    core.db,
+    config,
     analytics,
-    jobs,
+    overrides.aiFactory ?? new SdkProviderFactory(),
+  );
+  const handlers = {
+    [IMPORT_JOB]: imports.run.bind(imports),
+    [AI_JOB]: ai.ai.run.bind(ai.ai),
+  };
+  const worker = new JobWorker(core.jobs, handlers, core.clock, overrides.worker);
+  const api = createApi({
+    ...core,
+    ...ai,
     imports,
-    content,
+    analytics,
     secureCookies: config.secureCookies,
     maxUploadBytes: config.maxUploadBytes,
   });
-  return { db, clock, users, audit, jobs, auth, content, imports, analytics, worker, api };
+  return { ...core, ...ai, imports, analytics, worker, api };
 }
 
 export type Container = ReturnType<typeof buildContainer>;

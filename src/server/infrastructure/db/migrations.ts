@@ -144,6 +144,67 @@ export const MIGRATIONS: readonly string[] = [
     created_at TEXT NOT NULL
   );
   `,
+  `
+  CREATE TABLE ai_credentials (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL CHECK (provider IN ('anthropic', 'openai')),
+    model TEXT NOT NULL,
+    sealed_key TEXT NOT NULL,
+    key_hint TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, provider)
+  );
+
+  CREATE TABLE ai_interactions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    job_id TEXT,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    prompt_name TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('succeeded', 'failed')),
+    input_summary TEXT NOT NULL,
+    output TEXT,
+    error TEXT,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX ai_interactions_user ON ai_interactions(user_id, created_at);
+
+  CREATE TABLE ai_insights (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    interaction_id TEXT NOT NULL REFERENCES ai_interactions(id) ON DELETE CASCADE,
+    scope TEXT NOT NULL,
+    post_id TEXT REFERENCES posts(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    observation TEXT NOT NULL,
+    interpretation TEXT NOT NULL,
+    action TEXT NOT NULL,
+    signal TEXT NOT NULL,
+    confidence TEXT NOT NULL,
+    evidence TEXT NOT NULL,
+    based_on_demo INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE recommendations (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    interaction_id TEXT NOT NULL REFERENCES ai_interactions(id) ON DELETE CASCADE,
+    recommendation TEXT NOT NULL,
+    rationale TEXT NOT NULL,
+    evidence TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('open', 'accepted', 'dismissed', 'done')),
+    based_on_demo INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  `,
 ];
 
 export function migrate(db: Db): void {
