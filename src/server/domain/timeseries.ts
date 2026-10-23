@@ -140,3 +140,27 @@ function changeBetween(previous: PeriodSummary, current: PeriodSummary, aggregat
   const absolute = comparable ? growth(previous.value, current.value).absolute : null;
   return { absolute, percent };
 }
+
+function daysInPeriod(period: string, granularity: Granularity): number {
+  if (granularity === "day") return 1;
+  if (granularity === "week") return 7;
+  const [year, month] = period.split("-").map(Number);
+  return new Date(Date.UTC(year ?? 1970, month ?? 1, 0)).getUTCDate();
+}
+
+/**
+ * A summed week or month at the edge of the range usually covers only part of the period
+ * (the range starts mid-week, or the export ends mid-month), and its smaller total would read
+ * as a drop. Such edge buckets become unknown; incomplete buckets inside the range stay, as
+ * those are real gaps in the source.
+ */
+export function dropPartialEdges(
+  points: readonly SeriesPoint[],
+  granularity: Granularity,
+): SeriesPoint[] {
+  if (granularity === "day") return [...points];
+  const partial = (p: SeriesPoint | undefined) =>
+    p !== undefined && p.observedDays < daysInPeriod(p.period, granularity);
+  const last = points.length - 1;
+  return points.map((p, i) => ((i === 0 || i === last) && partial(p) ? { ...p, value: null } : p));
+}
