@@ -2,9 +2,11 @@
 
 This file is intentionally explicit so coding agents do not guess.
 
+The first build had to pick an answer for each of these to ship a working app. Every pick is recorded as a **Proposed** ADR and stays open for product review. ADRs 0014 to 0016 record further assumptions that had no entry here.
+
 ## OD-001 - Database for the web version
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0007](../adr/0007-sqlite-for-web.md).
 
 SQLite was previously selected when Polaris was a local Windows/macOS application.
 
@@ -20,7 +22,7 @@ Recommendation for investigation: preserve a repository abstraction so the domai
 
 ## OD-002 - Frontend/backend technology
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0006](../adr/0006-web-stack.md).
 
 The prior project context does not contain a final web stack decision.
 
@@ -37,7 +39,7 @@ Do not claim a stack is already decided.
 
 ## OD-003 - Authentication
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0009](../adr/0009-authentication.md).
 
 Need to decide:
 
@@ -49,13 +51,13 @@ Need to decide:
 
 ## OD-004 - LinkedIn data acquisition
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0010](../adr/0010-linkedin-data-acquisition.md).
 
 Need to determine the exact set of data available through permitted official APIs versus other user-authorized mechanisms.
 
 ## OD-005 - Deployment model
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0008](../adr/0008-deployment-model.md).
 
 Potential modes:
 
@@ -65,13 +67,13 @@ Potential modes:
 
 ## OD-006 - Secret storage
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0011](../adr/0011-byok-secret-storage.md).
 
 Need a concrete design for BYOK keys and provider credentials.
 
 ## OD-007 - Job infrastructure
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0012](../adr/0012-job-infrastructure.md).
 
 Need to select between:
 
@@ -84,6 +86,6 @@ Avoid introducing Redis solely because it is familiar.
 
 ## OD-008 - Vector storage
 
-**Status:** Open
+**Status:** Assumed, awaiting review. See [ADR 0013](../adr/0013-vector-storage-deferred.md).
 
 The semantic-search layer may use PostgreSQL/pgvector or another vector store. Do not add a separate vector database before the need is demonstrated.
