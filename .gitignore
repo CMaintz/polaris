@@ -9,3 +9,9 @@ data/
 *.sqlite
 *.sqlite-*
 *.db
+
+# Foundry loop telemetry (local observability)
+.foundry/
+
+# Claude Code worktrees: full repo copies that habit-hooks --branch would scan as duplicates
+.claude/worktrees/
