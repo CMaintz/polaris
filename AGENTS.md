@@ -97,3 +97,21 @@ Never commit:
 - production secrets
 
 Use `.env.example` with placeholders.
+
+## Quality gate (Foundry)
+
+This repo follows the [Foundry](https://github.com/CMaintz/foundry) verb contract. Run verbs,
+never the underlying tools:
+
+```bash
+mise install        # toolchain + pinned habit-hooks + cached Foundry scripts
+mise run fix        # prettier + eslint --fix
+mise run gate       # lint -> typecheck -> test -> audit; the only definition of done
+```
+
+Accepted debt (`eslint-suppressions.json`, `.habit-hooks/snooze.json`, `.audit-allowlist.json`)
+may only shrink. Loosening a rule or a threshold is its own PR with the `ruleset-change` label.
+
+Standing guidance: [code standards](docs/agent/code-standards.md),
+[collaboration](docs/agent/collaboration.md), [agent loop](docs/agent/agent-loop.md) and the
+[ticket schema](docs/agent/ticket-schema.md).
