@@ -1,28 +1,28 @@
 # The loop - how you converge on "done"
 
 Copy the relevant lines into your repo's `AGENTS.md` / `CLAUDE.md`, or `@`-include
-this file. Language-agnostic. This is the *working loop* every change runs through;
+this file. Language-agnostic. This is the _working loop_ every change runs through;
 `code-standards.md` is what "good" looks like, this is how you get there.
 
 ## The one idea
 
 You are in a loop with a **deterministic oracle**. The oracle (`mise run gate`,
-plus the Stop hook's smell coaching) decides *done*; you propose. Run it, read the
+plus the Stop hook's smell coaching) decides _done_; you propose. Run it, read the
 feedback, fix the real cause, run it again - until it's green **and** the change is
 genuinely right. **"Done" is a green exit code from a clean tree, never your own
 say-so.** A claim that you fixed something is not evidence; the oracle is.
 
 ## The inner loop (every change)
 
-1. **Observe.** Run the oracle. Read the *specific* feedback - the failing verb, the
+1. **Observe.** Run the oracle. Read the _specific_ feedback - the failing verb, the
    named smell and its guide - not just "it failed."
-2. **Diagnose.** A failure/smell is a *symptom*. Fix the thing it points at (the
+2. **Diagnose.** A failure/smell is a _symptom_. Fix the thing it points at (the
    missing abstraction, the actual bug), not the symptom. If you can't name the
    cause, you're not ready to fix it - investigate first (fan out a sub-agent to
    read the surrounding code).
 3. **Act.** The smallest change that addresses the cause.
-4. **Verify.** Re-run the oracle from a clean tree. Then self-check: *could I defend
-   this as one genuine fix, or is it a dodge?* If it's a dodge, it isn't done.
+4. **Verify.** Re-run the oracle from a clean tree. Then self-check: _could I defend
+   this as one genuine fix, or is it a dodge?_ If it's a dodge, it isn't done.
 5. **Repeat** until green **and** honest.
 
 ## Done, and when to stop
@@ -32,7 +32,7 @@ say-so.** A claim that you fixed something is not evidence; the oracle is.
   without disabling a check, lowering a threshold, or growing a baseline, that's a
   deliberate, labelled human decision (`ruleset-guard`), not a fix. Say so and stop.
 - **Weakening a check is never silent.** `ruleset-guard` runs on every PR and blocks
-  any of these unless you label the PR *and* explain it in the description:
+  any of these unless you label the PR _and_ explain it in the description:
   - an in-source **suppression** (`eslint-disable`, `@ts-ignore`, `@SuppressWarnings`,
     `# noqa`, `#pragma warning disable`, a coverage-exclusion),
   - a **config demotion** (`.editorconfig` `severity = none/suggestion`, `tsconfig`
@@ -41,10 +41,11 @@ say-so.** A claim that you fixed something is not evidence; the oracle is.
   - an **edited ratchet baseline** (eslint-suppressions / snooze / arch store) that grows.
 
   If one is genuinely warranted, add the **`suppression`** label (or `ruleset-change`
-  for a baseline/threshold change) and write *why* in the PR body: which test is gone
+  for a baseline/threshold change) and write _why_ in the PR body: which test is gone
   and why coverage is still sound, which rule is suppressed and why the exception is
   safe. A label with no explanation is not acceptable - the reviewer needs the reason.
   Default to not suppressing: fix the cause, and only suppress a proven false positive.
+
 - **Don't spin.** If two rounds make no real progress, or the only remaining path is
   to weaken a rule, stop and report what's blocking - looping past that wastes work.
 
@@ -61,7 +62,7 @@ Same rules in each - no "passes locally, fails in CI."
 
 ### Fast iterative runs - `FOUNDRY_SINCE`
 
-While you're *iterating* - running the oracle over and over on one change - scope the
+While you're _iterating_ - running the oracle over and over on one change - scope the
 file-local verbs to what you touched so each round is fast. Set `FOUNDRY_SINCE` to your
 branch base:
 
@@ -81,13 +82,13 @@ back to whole-tree on its own.
 
 Paying down debt is the same discipline, scaled - but **bounded**: pick a target up
 front (one file, one module, a small related surface), then pick a slice → inner
-loop → **adversarially review** the fix → ship → prune → repeat until *that target*
+loop → **adversarially review** the fix → ship → prune → repeat until _that target_
 is clean, no safe slice remains in it, or a guardrail trips. Stop there; don't grind
 the whole repo baseline in one run.
 
 ## Never game the metric
 
-Every check is a *proxy* for "code that's safe to change." A change that satisfies
+Every check is a _proxy_ for "code that's safe to change." A change that satisfies
 the proxy while defeating its purpose - split at line 200, `any`-cast, a 5-parameter
 helper, snooze-to-pass - is **worse** than the smell it clears, because it hides it.
 The coaching argues against mechanical compliance on purpose; the deep fix is the
