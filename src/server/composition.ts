@@ -12,6 +12,12 @@ import {
 } from "./infrastructure/db/auth-repositories";
 import { openDatabase } from "./infrastructure/db/database";
 import { SqliteJobRepository } from "./infrastructure/db/job-repository";
+import { IMPORT_JOB, ImportService } from "./application/imports/import-service";
+import { SqliteContentStore } from "./infrastructure/db/content-store";
+import { SqliteImportFileStore } from "./infrastructure/db/import-file-store";
+import { buildDemoBundle } from "./infrastructure/demo/demo-provider";
+import { LinkedInAnalyticsExportProvider } from "./infrastructure/linkedin/analytics-export-provider";
+import { LinkedInDataExportProvider } from "./infrastructure/linkedin/data-export-provider";
 
 export interface Overrides {
   clock?: Clock;
@@ -34,9 +40,31 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     clock,
     allowSignup: config.allowSignup,
   });
-  const worker = new JobWorker(jobs, {}, clock, overrides.worker);
-  const api = createApi({ auth, jobs, secureCookies: config.secureCookies });
-  return { db, clock, users, audit, jobs, auth, worker, api };
+  const content = new SqliteContentStore(db);
+  const imports = new ImportService({
+    providers: [new LinkedInDataExportProvider(), new LinkedInAnalyticsExportProvider()],
+    demo: (today) => buildDemoBundle(today),
+    files: new SqliteImportFileStore(db),
+    content,
+    jobs,
+    audit,
+    clock,
+  });
+  const worker = new JobWorker(
+    jobs,
+    { [IMPORT_JOB]: (job, context) => imports.run(job, context) },
+    clock,
+    overrides.worker,
+  );
+  const api = createApi({
+    auth,
+    jobs,
+    imports,
+    content,
+    secureCookies: config.secureCookies,
+    maxUploadBytes: config.maxUploadBytes,
+  });
+  return { db, clock, users, audit, jobs, auth, content, imports, worker, api };
 }
 
 export type Container = ReturnType<typeof buildContainer>;

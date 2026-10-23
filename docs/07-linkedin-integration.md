@@ -59,3 +59,18 @@ For example:
 `LinkedInProviderMetric.impressions` -> `PostMetricSnapshot.impressions`
 
 The domain should not contain LinkedIn-specific field names where a generic concept exists.
+
+## Implemented adapters
+
+See ADR 0010 for the decision and the assumed file layouts.
+
+| Provider id                 | Reads                                                        | Produces                                                                                                                                                             |
+| --------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `linkedin-data-export`      | the member data archive ZIP, or `Shares.csv` / `Profile.csv` | posts (text, date and time, link, media type), profile name and headline                                                                                             |
+| `linkedin-analytics-export` | the creator analytics `.xlsx`                                | per-post engagements and impressions for the export window, daily impressions, engagements, new followers and back-calculated follower totals, audience demographics |
+| `demo`                      | nothing (generated)                                          | a labelled synthetic dataset (ADR 0015)                                                                                                                              |
+
+Both LinkedIn adapters identify a post by the URN in its URL, decoded first, so the URL-encoded
+form in `Shares.csv` and the plain form in the analytics export match. Every stored post lists
+the providers that contributed to it, and every metric snapshot records its provider, observed
+day, covered period and import job.
