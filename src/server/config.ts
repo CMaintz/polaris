@@ -11,6 +11,8 @@ export interface Config {
   /** Base64 32-byte key for encrypting stored AI keys; generated on first start when unset. */
   masterKey: string | undefined;
   webDistDir: string;
+  /** Largest accepted import request, checked before the body is buffered. */
+  maxUploadBytes: number;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -24,5 +26,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     allowSignup: env.POLARIS_ALLOW_SIGNUP === "true",
     masterKey: env.POLARIS_MASTER_KEY || undefined,
     webDistDir: env.POLARIS_WEB_DIST ?? "./dist/web",
+    maxUploadBytes: Number(env.POLARIS_MAX_UPLOAD_MB ?? 100) * 1024 * 1024,
   };
 }

@@ -159,3 +159,23 @@ Do not treat unavailable metrics as zero.
 Important derived records should be traceable to source records and/or source observations.
 
 Avoid a generic JSON-only database. Structured fields should exist for queryable facts; JSON can hold provider-specific extensions.
+
+## As implemented (first release)
+
+The SQLite schema lives in `src/server/infrastructure/db/migrations.ts`. Differences from the
+logical model above:
+
+- `accounts` has one row per user (ADR 0015). It holds only display name, headline and profile
+  URL.
+- `posts.dataset` is `linkedin` or `demo`, so demo data can never be mistaken for real data.
+  `posts.time_known` records whether the publish time is real or only a date.
+  `posts.providers` lists which adapters contributed to the post.
+- `post_metric_snapshots` is keyed by (post, observed day, provider). Re-importing updates the
+  row instead of adding one, and a missing value never overwrites a known one. `period_from` and
+  `period_to` hold the window the figures cover.
+- `account_metric_days` replaces `AccountMetricSnapshot` with one row per day and provider.
+  Profile views are not available from any supported source yet, so there is no column for them.
+- `audience_segments` stores demographic shares (fractions) per observed day.
+- `post_topics.source` is `hashtag` for now (ADR 0015).
+- `import_files` keeps the raw uploads and their SHA-256 for retry and audit.
+- `jobs` and `audit_log` support background work and security-relevant events.
