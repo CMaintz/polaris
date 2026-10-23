@@ -93,6 +93,7 @@ export interface PeriodSummary {
 export interface PeriodComparison {
   current: PeriodSummary;
   previous: PeriodSummary;
+  /** For flows, `percent` compares averages per observed day (see changeBetween). */
   change: Growth;
 }
 
@@ -123,5 +124,19 @@ export function comparePeriods(
   const previousTo = addDays(currentFrom, -1);
   const current = summarise(values, currentFrom, end, aggregation);
   const previous = summarise(values, addDays(previousTo, -(days - 1)), previousTo, aggregation);
-  return { current, previous, change: growth(previous.value, current.value) };
+  return { current, previous, change: changeBetween(previous, current, aggregation) };
+}
+
+/**
+ * For flows, compares the average per observed day, so a period with half its days missing
+ * is not read as a halving. Equal to comparing totals when both periods are fully covered.
+ */
+function changeBetween(previous: PeriodSummary, current: PeriodSummary, aggregation: Aggregation) {
+  if (aggregation === "last") return growth(previous.value, current.value);
+  const perDay = (p: PeriodSummary) => (p.value === null ? null : p.value / p.observedDays);
+  const { percent } = growth(perDay(previous), perDay(current));
+  // A difference of totals only means something when both cover the same number of days.
+  const comparable = previous.observedDays === current.observedDays;
+  const absolute = comparable ? growth(previous.value, current.value).absolute : null;
+  return { absolute, percent };
 }

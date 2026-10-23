@@ -77,6 +77,18 @@ describe("comparePeriods", () => {
     expect(result.previous.totalDays).toBe(3);
   });
 
+  it("compares daily averages, so a half-covered period is not read as a halving", () => {
+    const uneven = [
+      { day: "2026-03-01", value: 10 },
+      { day: "2026-03-02", value: 10 },
+      { day: "2026-03-03", value: 10 },
+      { day: "2026-03-04", value: 10 },
+    ];
+    const result = comparePeriods(uneven, "2026-03-06", 3, "sum");
+    expect(result.current.value).toBe(10); // only 3/4 observed
+    expect(result.change.percent).toBe(0);
+  });
+
   it("returns no percentage when the previous period has no data", () => {
     const result = comparePeriods(values, "2026-03-12", 3, "sum");
     expect(result.current.value).toBeNull();

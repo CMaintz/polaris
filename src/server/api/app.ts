@@ -7,6 +7,8 @@ import type { JobRepository } from "../application/jobs/ports";
 import type { ContentStore } from "../application/content/ports";
 import type { ImportService } from "../application/imports/import-service";
 import { importRoutes } from "./routes/imports";
+import { analyticsRoutes } from "./routes/analytics";
+import type { AnalyticsService } from "../application/analytics/analytics-service";
 import { type AppEnv, errorResponse } from "./http";
 import { SESSION_COOKIE, authRoutes } from "./routes/auth";
 import { jobRoutes } from "./routes/jobs";
@@ -15,6 +17,7 @@ export interface AppDeps {
   auth: AuthService;
   jobs: JobRepository;
   imports: ImportService;
+  analytics: AnalyticsService;
   content: ContentStore;
   secureCookies: boolean;
   maxUploadBytes: number;
@@ -35,5 +38,6 @@ export function createApi(deps: AppDeps) {
   api.route("/auth", authRoutes(deps.auth, deps.secureCookies));
   api.route("/jobs", jobRoutes(deps.jobs));
   api.route("/imports", importRoutes(deps.imports, deps.content, deps.maxUploadBytes));
+  api.route("/", analyticsRoutes(deps.analytics));
   return api;
 }
