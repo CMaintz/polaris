@@ -1,7 +1,7 @@
 # Collaboration - how agents share a repo
 
 Copy the relevant lines into your repo's `AGENTS.md` / `CLAUDE.md`, or `@`-include
-this file. Language-agnostic. This is about *working discipline*, not code style
+this file. Language-agnostic. This is about _working discipline_, not code style
 (that's `code-standards.md`).
 
 ## Branch hygiene (parallel sessions)
@@ -24,20 +24,20 @@ git switch -c <type>/<short-desc> origin/main   # feat/… fix/… chore/… doc
   unmerged work, confirm it's actually merged first (a squash-merge leaves the
   source branch's commits orphaned - the branch looks "ahead", but its work is in).
 - **Rebase, don't merge main in.** When your branch falls behind, `git rebase
-  origin/main` - keep history linear and the PR diff honest.
+origin/main` - keep history linear and the PR diff honest.
 
 ## Delegate to sub-agents - don't do everything in one thread
 
 Default to spinning up sub-agents for work that is independent, read-heavy, or
 parallelisable. Most agents under-use this and grind through it serially.
 
-- **Explore / read-many** → an exploration sub-agent returns the *conclusion*, not
+- **Explore / read-many** → an exploration sub-agent returns the _conclusion_, not
   twenty file dumps in your context. Use it whenever answering means sweeping many
   files or you're hunting for where something lives.
 - **Independent slices** → fan out one agent per slice/file when they don't touch
   the same code; run them in a single batch so they go concurrently (give each its
   own git worktree if they'll edit in parallel).
-- **Verify / adversarial** → a fresh agent prompted to *refute* a finding catches
+- **Verify / adversarial** → a fresh agent prompted to _refute_ a finding catches
   what the authoring thread has already rationalised away.
 
 Keep the main thread as the orchestrator that decides and integrates; push the
