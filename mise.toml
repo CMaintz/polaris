@@ -1,0 +1,322 @@
+# Foundry verb interface - TypeScript / Node template.
+# Copy to a repo's mise.toml and adjust the tool versions. See CONTRACT.md.
+
+[tools]
+node = "22.23.3"
+# deno = "2.9.7"  # uncomment if the repo has Deno code (see FOUNDRY_DENO_PATHS below)
+
+[env]
+# habit-hooks (structural-smell detector) is a pinned, mise-managed dependency, so the
+# SAME version runs in-loop (Stop hook), pre-push (`gate`) and in CI. It's a pip tool,
+# not a clean [tools] entry, so it's provisioned into a per-plugin venv by setup:habit-hooks
+# (postinstall) whose bin goes on PATH below - mirroring how java.toml pins PMD. The core
+# and its language plugin ship in lockstep, so both pin to this one version. Renovate bumps
+# it (presets/renovate.json has the mise.toml customManager); keep it == the reusable
+# workflow's `habit_hooks_version` default (1.5.0).
+HABIT_HOOKS_VERSION = "1.5.0"
+HABIT_HOOKS_PLUGIN = "habit-hooks-typescript"
+# The Foundry scripts (foundry-verb-wrap, foundry-flaky, npm-audit-ratchet.mjs,
+# codemap-check) are provisioned by setup:foundry-scripts into a cache dir at this ref, not
+# vendored into the repo (see that task for why). Renovate tracks the pin via the comment
+# above it.
+# renovate: datasource=github-tags depName=CMaintz/foundry
+FOUNDRY_SCRIPTS_REF = "v2.13.0"
+
+# Put local binaries on PATH so tasks call `eslint`, not `npx eslint`; the habit-hooks venv
+# bin (Linux `bin/`, Windows `Scripts/` - a missing one on PATH is harmless); the Foundry
+# scripts cached by setup:foundry-scripts (so the gate runs `foundry-verb-wrap` by
+# name); and the repo's own scripts/ last.
+_.path = [
+    "./node_modules/.bin",
+    "{{env.HOME}}/.local/opt/{{env.HABIT_HOOKS_PLUGIN}}-{{env.HABIT_HOOKS_VERSION}}/bin",
+    "{{env.HOME}}/.local/opt/{{env.HABIT_HOOKS_PLUGIN}}-{{env.HABIT_HOOKS_VERSION}}/Scripts",
+    "{{env.HOME}}/.local/opt/foundry-scripts-{{env.FOUNDRY_SCRIPTS_REF}}",
+    "{{config_root}}/scripts",
+]
+
+# Loop telemetry: each gate verb appends one JSONL line here (see designs/loop-telemetry.md).
+# Gitignore `.foundry/`. Read it with the `foundry:loop-report` skill. The gate calls
+# `foundry-verb-wrap` (cached by setup:foundry-scripts, on PATH above).
+FOUNDRY_TELEMETRY = "{{config_root}}/.foundry/telemetry.jsonl"
+
+# Deno code to type-check with `deno check` in `typecheck` (space-separated dirs/files,
+# relative to this file), e.g. Supabase Edge Functions incl. their _shared/ modules.
+# FOUNDRY_DENO_PATHS = "supabase/functions"
+
+# ── FOUNDRY_SINCE - changed-scope for the fast placements ────────────────────
+# A git ref (empty ⇒ origin/main). When SET, the file-local verbs (`lint`, `test`)
+# restrict work to files changed since its merge-base with HEAD - for the in-loop
+# Stop hook and pre-push, where speed matters. When UNSET (CI, and the final
+# `/ship` gate), they run whole-tree. Whole-program checks (`typecheck`) ignore it
+# and always run whole-tree - a changed file can break an unchanged one. This is
+# execute-scope, safe only because whole-tree CI is the authoritative backstop.
+# See designs/changed-scope-gate.md. An unresolvable ref falls back to whole-tree
+# (never skips). The signal is opt-in per verb; callers MUST NOT require it.
+
+# -- Jev (advisory layer; opt-in, OFF unless set) --------------------------
+# Foundry's near-free System One layer (see docs/FEATURES.md, the "jev/" entry):
+# it only routes review and triages turns on the proposer side, never the gate.
+# All of it stays off unless a key is present, so this whole block is optional.
+#
+# The key is NEVER committed: export JEV_API_KEY in your shell, not here. The
+# lines below are the safe, non-secret knobs at their defaults; uncomment to
+# change one. mise [env] reaches only processes under `mise run`/`mise exec` or
+# a mise-activated shell, so a Claude Code hook sees these only when the editor
+# was launched from such a shell.
+#
+# JEV_PROVIDER = "typesafe"           # or "cloudflare" (then set CLOUDFLARE_ACCOUNT_ID)
+# JEV_MODEL = "jev-latest"            # pin to a version to freeze behavior
+# TYPESAFE_AI_BASE_URL = "https://api.typesafe.ai/v1"   # a self-host, proxy, or mock
+# JEV_REVIEW_MIN_FILES = "0"          # skip review routing on diffs at or under N files
+# JEV_TOOLCALL_TRIAGE = "0"           # 1 warns on risky tool calls (repos with that hook)
+# JEV_FEATURE_PRECHECK = "0"          # 1 pre-checks a feature ticket (repos with that hook)
+# LEASH_ENABLED = "0"                 # 1 runs Leash turn checks (repos with the leash.sh hook)
+
+[hooks]
+# Provision the pinned tools on `mise install` (local and CI alike). Array form runs them
+# in order; each no-ops on a warm install.
+postinstall = ["mise run setup:habit-hooks", "mise run setup:foundry-scripts"]
+
+# Fetch the pinned Foundry scripts into a cache dir, rather than vendoring copies into
+# the repo. Why: these are agent/CI plumbing, not the repo's own code; a vendored copy
+# drifts from Foundry and has to be re-synced on every bump. Pinned to FOUNDRY_SCRIPTS_REF
+# and provisioned once (postinstall / `mise install`), exactly like setup:habit-hooks and
+# setup:pmd. Offline-safe: when every script is already cached at this ref it makes no
+# network call, so the gate hot path never depends on the network. A ref bump needs the
+# network once (same contract as any pinned-tool bump).
+[tasks."setup:foundry-scripts"]
+description = "Fetch the pinned Foundry scripts into a cache dir (de-vendored)"
+run = '''
+set -eu
+dst="$HOME/.local/opt/foundry-scripts-$FOUNDRY_SCRIPTS_REF"
+scripts="foundry-verb-wrap foundry-flaky npm-audit-ratchet.mjs codemap-check"
+need=""
+for s in $scripts; do [ -f "$dst/$s" ] || need="$need $s"; done
+[ -z "$need" ] && exit 0
+mkdir -p "$dst"
+base="https://raw.githubusercontent.com/CMaintz/foundry/$FOUNDRY_SCRIPTS_REF/scripts"
+for s in $need; do
+  if ! curl -fsSL "$base/$s" -o "$dst/$s.part"; then
+    echo "setup:foundry-scripts: cannot fetch $s at $FOUNDRY_SCRIPTS_REF (network needed once per ref)" >&2
+    rm -f "$dst/$s.part"; exit 1
+  fi
+  mv "$dst/$s.part" "$dst/$s"
+  case "$s" in *.mjs) : ;; *) chmod +x "$dst/$s" 2>/dev/null || true ;; esac
+done
+'''
+
+[tasks.fix]
+description = "Auto-fix what is mechanically fixable; never opinionated"
+# The prune pass drops suppressions whose violation no longer exists, which is
+# what makes the baseline a one-way ratchet: fix an `any`, and it can never be
+# silently re-suppressed.
+run = [
+    "prettier --write .",
+    "eslint . --fix",
+    "eslint . --prune-suppressions",
+]
+
+# Provision the pinned habit-hooks (core + language plugin, same version) into a
+# per-plugin venv. Auxiliary (tier c), like setup:pmd - not a contract verb, not in
+# `gate` directly; it runs via the postinstall hook on `mise install`. Per-plugin dir
+# so a multi-stack machine never reuses the ts venv for a java repo (wrong plugin).
+[tasks."setup:habit-hooks"]
+description = "Install the pinned habit-hooks + language plugin into a venv (smell detector)"
+run = '''
+set -eu
+dst="$HOME/.local/opt/$HABIT_HOOKS_PLUGIN-$HABIT_HOOKS_VERSION"
+py=""
+for c in python3 python; do
+  if command -v "$c" >/dev/null 2>&1 && "$c" --version >/dev/null 2>&1; then py="$c"; break; fi
+done
+if [ -z "$py" ]; then echo "setup:habit-hooks: no working python3/python on PATH; skipping (install Python to run smells)"; exit 0; fi
+bin="$dst/bin"; [ -d "$bin" ] || bin="$dst/Scripts"
+if "$bin/habit-hooks" --version >/dev/null 2>&1; then exit 0; fi
+echo "Installing $HABIT_HOOKS_PLUGIN + habit-hooks $HABIT_HOOKS_VERSION -> $dst"
+rm -rf "$dst"
+"$py" -m venv "$dst"
+bin="$dst/bin"; [ -d "$bin" ] || bin="$dst/Scripts"
+"$bin/pip" install --disable-pip-version-check "habit-hooks==$HABIT_HOOKS_VERSION" "$HABIT_HOOKS_PLUGIN==$HABIT_HOOKS_VERSION"
+'''
+
+# Structural smells, folded into `lint` below (tier b - verb composition, like novar).
+# This is the same check CI's habits job runs; running it in `lint` makes `gate` the
+# same oracle locally as in CI. It calls the pinned venv binary by its full path (not
+# `habit-hooks` from PATH): mise APPENDS _.path, so an unpinned global install would
+# otherwise shadow the pin - calling the venv directly is what makes the version pin real.
+# --branch scopes to files changed vs the ratchet base (FOUNDRY_BASE_REF, default
+# origin/main; CI sets the PR base SHA) - unchanged files are already covered by the snooze
+# baseline. Degrades gracefully: skip when there's no .habit-hooks config or snooze
+# baseline, or the base can't be resolved. It only FAILS hard when a config + baseline
+# exist but the pinned habit-hooks is missing - a broken setup (run `mise install`), and
+# CONTRACT says divergence is a bug, not a thing to skip.
+[tasks.smells]
+description = "Structural smells on changed files (habit-hooks --branch); folded into lint"
+depends = ["setup:habit-hooks"]
+run = '''
+set -eu
+dst="$HOME/.local/opt/$HABIT_HOOKS_PLUGIN-$HABIT_HOOKS_VERSION"
+hh="$dst/bin/habit-hooks"; [ -x "$hh" ] || hh="$dst/Scripts/habit-hooks.exe"
+if [ ! -f .habit-hooks/config.toml ]; then echo "smells: no .habit-hooks/config.toml; skipping"; exit 0; fi
+if [ ! -f .habit-hooks/snooze.json ]; then m="smells: no snooze baseline yet (run bootstrap); structural smells are NOT being checked"; echo "$m"; if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::warning::$m"; fi; exit 0; fi
+mb=$(git merge-base "${FOUNDRY_BASE_REF:-origin/main}" HEAD 2>/dev/null || true)
+if [ -z "$mb" ]; then echo "smells: cannot resolve base '${FOUNDRY_BASE_REF:-origin/main}'; skipping"; exit 0; fi
+[ -x "$hh" ] || { echo "smells: pinned habit-hooks not found at $dst (run 'mise install')" >&2; exit 1; }
+echo "smells: $("$hh" --version) --branch base=$mb"
+"$hh" --branch "$mb"
+'''
+
+[tasks.lint]
+description = "Formatting, style and smells; non-mutating"
+# Fails on new violations AND on stale suppressions, so the baseline cannot rot.
+# eslint-suppressions.json holds the accepted debt - it is committed, and it may
+# only ever shrink. Never add to it by hand; never delete it to make lint pass.
+# prettier --check fails on any unformatted file, so drift can't reach main and later
+# leak into an unrelated branch through `mise run fix`.
+# Honours FOUNDRY_SINCE (see [env]): scoped to changed files at the fast placements,
+# whole-tree in CI. Both checks are file-local, so scoping is safe; the whole-tree CI
+# run still catches stale suppressions repo-wide. prettier gets every changed file
+# (--ignore-unknown skips types it can't format), eslint only the JS/TS ones.
+# Array form: the eslint/prettier block + the structural-smell check (`mise run smells`),
+# each a separate command run in order.
+run = ['''
+set -eu
+whole() { eslint .; prettier --check .; }
+if [ -z "${FOUNDRY_SINCE+x}" ]; then whole; exit 0; fi
+base="${FOUNDRY_SINCE:-origin/main}"
+mb=$(git merge-base "$base" HEAD 2>/dev/null || true)
+if [ -z "$mb" ]; then echo "changed-scope lint: cannot resolve '$base'; whole-tree"; whole; exit 0; fi
+changed=$(git diff --name-only --diff-filter=ACMR "$mb" 2>/dev/null || true)
+untracked=$(git ls-files --others --exclude-standard 2>/dev/null || true)
+files=$(printf '%s\n%s\n' "$changed" "$untracked" | sort -u | sed '/^$/d')
+if [ -z "$files" ]; then echo "changed-scope lint: nothing changed since $mb"; exit 0; fi
+js=$(printf '%s\n' "$files" | grep -E '\.(ts|tsx|js|cjs|mjs)$' || true)
+if [ -n "$js" ]; then printf '%s\n' "$js" | xargs -d '\n' eslint; fi
+printf '%s\n' "$files" | xargs -d '\n' prettier --check --ignore-unknown
+''', "mise run smells"]
+
+[tasks.typecheck]
+description = "Static types (tsc over tsconfig.json; deno check over Deno code)"
+# Works as a pure check when the tsconfigs set noEmit. If yours emit, use
+# `tsc --noEmit -p tsconfig.json` instead. On a framework, swap `tsc -b` for its
+# checker (`astro check`, `vue-tsc --noEmit`, `svelte-check`), but keep the tsconfig
+# guard: without a tsconfig those checkers still exit 0 after checking only their own
+# file types, so plain .ts files and tests are never type-checked.
+# presets/typecheck/tsconfig.json is the starting point (foundry-init copies it).
+#
+# Deno code (Supabase Edge Functions, Deno scripts) is outside the tsconfig program:
+# it has Deno's globals and npm:/jsr:/URL imports. List its directories in
+# FOUNDRY_DENO_PATHS (see [env]) and pin `deno` in [tools]; it is checked with
+# `deno check`. If Deno code is found and FOUNDRY_DENO_PATHS is unset, the verb fails
+# rather than silently skipping it.
+run = '''
+set -eu
+if [ ! -f tsconfig.json ]; then
+  echo "typecheck: no tsconfig.json in $(pwd), so no TypeScript would be checked." >&2
+  echo "  Copy presets/typecheck/tsconfig.json from Foundry (or extend your framework's strict preset)." >&2
+  exit 1
+fi
+tsc -b
+if [ -n "${FOUNDRY_DENO_PATHS:-}" ]; then
+  # Unquoted on purpose: a space-separated list of directories/files.
+  exec deno check $FOUNDRY_DENO_PATHS
+fi
+deno_code=$(git ls-files -- 'supabase/functions/*.ts' '*deno.json' '*deno.jsonc' 2>/dev/null | head -n 1)
+if [ -n "$deno_code" ]; then
+  echo "typecheck: Deno code found ($deno_code) but FOUNDRY_DENO_PATHS is unset, so it is not type-checked." >&2
+  echo "  Set FOUNDRY_DENO_PATHS in mise.toml [env] (e.g. \"supabase/functions\") and pin deno in [tools]." >&2
+  exit 1
+fi
+'''
+
+[tasks.test]
+description = "Tests with coverage floor"
+# FOUNDRY_SINCE unset (CI / final gate): full suite + coverage floor - the oracle.
+# FOUNDRY_SINCE set (in-loop / pre-push): only tests affected by the changeset, via
+# vitest's module graph, and WITHOUT the coverage floor - coverage is a whole-tree
+# property, so it's enforced on the unset path only. Unresolvable ref ⇒ full suite.
+run = '''
+set -eu
+if [ -z "${FOUNDRY_SINCE+x}" ]; then exec vitest run --coverage; fi
+base="${FOUNDRY_SINCE:-origin/main}"
+mb=$(git merge-base "$base" HEAD 2>/dev/null || true)
+if [ -z "$mb" ]; then echo "changed-scope test: cannot resolve '$base'; full suite"; exec vitest run --coverage; fi
+exec vitest run --changed "$mb"
+'''
+
+[tasks.audit]
+description = "Dependency vulnerabilities. Local subset; CI security.yml adds gitleaks + SAST"
+# Ratcheted npm audit: fails on any critical NOT in .audit-allowlist.json, and on stale
+# allowlist entries - so accepted CVE debt can only shrink, exactly like eslint
+# suppressions or the habit-hooks snooze baseline. npm audit has no native per-advisory
+# ignore, so this is how you accept ONE genuinely-unfixable critical with justification
+# without silencing the whole check. With no allowlist file it behaves like plain
+# `npm audit --audit-level=critical` (fails on any critical). Prefer fixing (npm audit
+# fix, or a targeted `overrides` entry) over accepting. The ratchet script is cached by
+# setup:foundry-scripts; address it through $HOME in plain shell, NOT a mise `{{...}}`
+# template, because on Windows a templated path carries backslashes bash would strip.
+# The pipe hands the script npm's JSON so `npm` resolves in the shell.
+run = 'npm audit --json | node "$HOME/.local/opt/foundry-scripts-$FOUNDRY_SCRIPTS_REF/npm-audit-ratchet.mjs" --level=critical --allowlist=.audit-allowlist.json'
+
+# Architecture fitness (opt-in, tier-c auxiliary until you adopt it). Enforces YOUR
+# layer map + no cycles via dependency-cruiser (needs `dependency-cruiser` installed).
+# Whole-graph, so NOT changed-scoped - a cycle can be formed by an unrelated edge.
+# To adopt: fill the layer map in .dependency-cruiser.cjs (from presets/arch/), generate
+# the shrink-only baseline once, then fold `mise run arch` into `lint`. Walkthrough:
+# presets/arch/SETUP.md; design: docs/designs/arch-fitness.md. Architecture-agnostic -
+# hexagonal is just the default map.
+[tasks.arch]
+description = "Architecture fitness: no cross-layer imports, no cycles (dependency-cruiser)"
+run = '''
+set -eu
+cfg=".dependency-cruiser.cjs"
+base=".dependency-cruiser-known-violations.json"
+if [ ! -f "$cfg" ]; then echo "arch: no $cfg yet - copy presets/arch/ and fill your layer map"; exit 0; fi
+if [ -f "$base" ]; then
+  exec depcruise src --config "$cfg" --ignore-known "$base"
+fi
+exec depcruise src --config "$cfg"
+'''
+
+# Flaky-test triage (opt-in, tier-c auxiliary). Runs tests emitting a machine report,
+# then lets `foundry-flaky` drop QUARANTINED flakes (flaky-baseline.json) from the gate
+# decision while still printing them - a real failure still fails. Fold into `test` when
+# adopted; keep coverage on the main `test`. See designs/flake-triager.md. `foundry-flaky`
+# is on PATH via the setup:foundry-scripts cache dir.
+[tasks."test:flaky"]
+description = "Tests, with quarantined flakes reported but not gating (flaky-baseline.json)"
+run = '''
+set -eu
+mkdir -p .foundry
+rep=".foundry/vitest-report.json"
+vitest run --reporter=json --outputFile="$rep" || true
+foundry-flaky gate "$rep" flaky-baseline.json
+'''
+
+# Codemap drift check (advisory auxiliary, deliberately not in `gate` or `lint`): every
+# citation in docs/codemap/*.md must still resolve, and each slice prints how many commits
+# touched its cited files since its `sha:`. Exits 0 with a notice when there is no map.
+# `codemap-check` is a python3 script on PATH via the setup:foundry-scripts cache dir.
+[tasks."codemap:check"]
+description = "Advisory: codemap citations still resolve, and how stale each slice is"
+run = "codemap-check"
+
+[tasks.gate]
+description = "The authoritative composite - the oracle. Nothing merges without this green."
+# The one setup:foundry-scripts dep provisions the cached gate scripts first (idempotent,
+# ordered-first, like smells' setup:habit-hooks dep) - a safety net for a ref bump not yet
+# followed by `mise install`. Do NOT add the VERBS as `depends`: mise runs dependencies in
+# parallel with no ordering guarantee, which makes gate output unreadable and hides which
+# check failed first. The verbs stay in the sequential array below.
+depends = ["setup:foundry-scripts"]
+# Each verb is wrapped by `foundry-verb-wrap`, which times it, appends one JSONL line
+# to FOUNDRY_TELEMETRY, then propagates the verb's exit code unchanged - telemetry
+# never changes the outcome, and a failing verb still stops the sequence. Read the log
+# with the `foundry:loop-report` skill. The wrapper is required (foundry-init installs it, on
+# PATH via scripts/ - see [env]); it is NOT on the six-verb contract.
+run = [
+    "foundry-verb-wrap lint      -- mise run lint",
+    "foundry-verb-wrap typecheck -- mise run typecheck",
+    "foundry-verb-wrap test      -- mise run test",
+    "foundry-verb-wrap audit     -- mise run audit",
+]

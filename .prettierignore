@@ -1,0 +1,6 @@
+package-lock.json
+dist
+coverage
+.foundry
+.habit-hooks/snooze.json
+eslint-suppressions.json
