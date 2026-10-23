@@ -205,6 +205,54 @@ export const MIGRATIONS: readonly string[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  `
+  CREATE TABLE goals (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    target REAL NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE experiments (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    goal_id TEXT REFERENCES goals(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    hypothesis TEXT NOT NULL,
+    variable TEXT NOT NULL DEFAULT '',
+    metric TEXT NOT NULL,
+    baseline REAL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('planned', 'running', 'completed', 'abandoned')),
+    result TEXT NOT NULL DEFAULT '',
+    conclusion TEXT NOT NULL DEFAULT '',
+    follow_up TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE plan_items (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    concept TEXT NOT NULL DEFAULT '',
+    target_topic TEXT NOT NULL DEFAULT '',
+    planned_date TEXT,
+    status TEXT NOT NULL CHECK (status IN ('idea', 'drafting', 'planned', 'published', 'dropped')),
+    draft TEXT NOT NULL DEFAULT '',
+    post_id TEXT REFERENCES posts(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  `,
 ];
 
 export function migrate(db: Db): void {

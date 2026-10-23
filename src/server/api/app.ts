@@ -9,6 +9,10 @@ import type { ImportService } from "../application/imports/import-service";
 import { importRoutes } from "./routes/imports";
 import { analyticsRoutes } from "./routes/analytics";
 import { aiRoutes } from "./routes/ai";
+import { accountRoutes } from "./routes/account";
+import { planningRoutes } from "./routes/planning";
+import type { AccountService } from "../application/account/account-service";
+import type { PlanningService } from "../application/planning/planning-service";
 import type { AiService } from "../application/ai/ai-service";
 import type { CredentialService } from "../application/ai/credentials";
 import type { AiStore } from "../application/ai/store";
@@ -25,6 +29,8 @@ export interface AppDeps {
   ai: AiService;
   credentials: CredentialService;
   aiStore: AiStore;
+  planning: PlanningService;
+  account: AccountService;
   content: ContentStore;
   secureCookies: boolean;
   maxUploadBytes: number;
@@ -46,6 +52,11 @@ export function createApi(deps: AppDeps) {
   api.route("/jobs", jobRoutes(deps.jobs));
   api.route("/imports", importRoutes(deps.imports, deps.content, deps.maxUploadBytes));
   api.route("/ai", aiRoutes(deps.ai, deps.credentials, deps.aiStore, deps.content));
+  const planning = planningRoutes(deps.planning);
+  api.route("/goals", planning.goals);
+  api.route("/experiments", planning.experiments);
+  api.route("/plan", planning.plan);
+  api.route("/me", accountRoutes(deps.account));
   api.route("/", analyticsRoutes(deps.analytics));
   return api;
 }

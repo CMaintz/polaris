@@ -179,3 +179,9 @@ logical model above:
 - `post_topics.source` is `hashtag` for now (ADR 0015).
 - `import_files` keeps the raw uploads and their SHA-256 for retry and audit.
 - `jobs` and `audit_log` support background work and security-relevant events.
+- `goals`, `experiments` and `plan_items` are the user's own records. "Delete imported data" keeps
+  them; deleting the account removes them. Goal progress and experiment results are computed when
+  read, never stored, so they always reflect the latest import (ADR 0015 items 5 and 6).
+- `ai_credentials` holds sealed keys (ADR 0011). `ai_interactions`, `ai_insights` and
+  `recommendations` record AI calls and their grounded output (ADR 0014). Insights and
+  recommendations count as derived from imported data, so they are deleted along with it.

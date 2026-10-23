@@ -74,6 +74,16 @@ export class AuthService {
     return this.deps.users.findById(session.userId);
   }
 
+  /** Re-checks the password of a signed-in user before a destructive action. */
+  async confirmPassword(userId: string, password: string): Promise<void> {
+    const user = await this.deps.users.findById(userId);
+    const stored = user ? await this.deps.users.findByEmail(user.email) : null;
+    if (!stored || !(await this.deps.hasher.verify(password, stored.passwordHash))) {
+      await this.deps.audit.record(userId, "user.confirm_failed");
+      throw new UnauthorizedError("The password is incorrect");
+    }
+  }
+
   async logout(token: string): Promise<void> {
     await this.deps.sessions.delete(hashToken(token));
   }
