@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import type { InsightDto, JobDto, PostDetailDto } from "../../shared/api-types";
-import { post, tzOffset } from "../lib/api";
+import type { InsightDto, PostDetailDto } from "../../shared/api-types";
 import {
   contentTypeLabel,
   formatDate,
@@ -9,7 +7,7 @@ import {
   formatPercent,
   formatPeriod,
 } from "../lib/format";
-import { useJob, useResource } from "../lib/hooks";
+import { useResource, useStartJob } from "../lib/hooks";
 import { linkedInUrl } from "../lib/links";
 import { InsightCard, PostTable } from "../components/content";
 import { ErrorBox, JobLine, Loading, PageHead } from "../components/ui";
@@ -158,21 +156,16 @@ function PostReview({
   insights: InsightDto[];
   onDone: () => void;
 }) {
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const job = useJob(jobId, onDone);
-  const start = () => {
-    setError(null);
-    post<{ job: JobDto }>(`/ai/reviews/posts/${postId}`, { tz: tzOffset() })
-      .then((r) => setJobId(r.job.id))
-      .catch(setError);
-  };
-  const running = job !== null && !["completed", "failed"].includes(job.status);
+  const { job, error, start, running } = useStartJob(onDone);
   return (
     <div className="card">
       <header>
         <h2>AI review</h2>
-        <button className="btn primary" onClick={start} disabled={running}>
+        <button
+          className="btn primary"
+          onClick={() => start(`/ai/reviews/posts/${postId}`, {})}
+          disabled={running}
+        >
           Review this post
         </button>
       </header>

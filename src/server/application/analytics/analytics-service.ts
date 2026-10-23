@@ -2,7 +2,6 @@ import { type Clock } from "../clock";
 import type { ContentStore } from "../content/ports";
 import { NotFoundError } from "../errors";
 import { addDays, dayOf, todayUtc } from "../../domain/dates";
-import { ruleInsights } from "../../domain/insights";
 import { postMetricValue } from "../../domain/metrics";
 import {
   type PostRecord,
@@ -11,34 +10,25 @@ import {
   segmentPerformance,
   summarisePosts,
 } from "../../domain/posts";
-import {
-  type Aggregation,
-  type Granularity,
-  aggregate,
-  comparePeriods,
-  dropPartialEdges,
-  fillPeriods,
-  rollingAverage,
-} from "../../domain/timeseries";
+import type { Granularity } from "../../domain/timeseries";
 import type {
   AudienceDto,
   BreakdownsDto,
   DashboardDto,
   DataStatusDto,
-  KpiDto,
   PostDetailDto,
   PostPageDto,
-  SeriesPointDto,
 } from "../../../shared/api-types";
 import type { ContentQueries } from "./ports";
 import {
   type Loaded,
-  SERIES,
   type SeriesMetric,
+  accountKpis,
+  accountRuleInsights,
+  accountSeries,
   dailyValues,
   latestDay,
   providersOf,
-  rateKpi,
 } from "./account-series";
 import {
   type PostQuery,
@@ -80,9 +70,21 @@ export class AnalyticsService {
     return {
       status,
       periodDays,
-      kpis: this.kpis(data, asOf, periodDays),
-      impressionsTrend: this.series(data, "impressions", "day", addDays(asOf, -89), asOf, 7),
-      followersTrend: this.series(data, "followers", "day", addDays(asOf, -89), asOf, 0),
+      kpis: accountKpis(data, asOf, periodDays),
+      impressionsTrend: accountSeries(
+        data,
+        "impressions",
+        "day",
+        { from: addDays(asOf, -89), to: asOf },
+        7,
+      ),
+      followersTrend: accountSeries(
+        data,
+        "followers",
+        "day",
+        { from: addDays(asOf, -89), to: asOf },
+        0,
+      ),
       recentPosts: data.posts.slice(0, 5).map(summary),
       topPosts: ranked.slice(0, 5).map(summary),
       bottomPosts: ranked.length >= 8 ? ranked.slice(-3).reverse().map(summary) : [],
@@ -90,7 +92,7 @@ export class AnalyticsService {
         .filter((s) => s.posts >= 2)
         .slice(0, 6)
         .map(toSegmentDto),
-      insights: this.insightsFor(data, asOf, tzOffsetMinutes).map((i) =>
+      insights: accountRuleInsights(data, asOf, tzOffsetMinutes).map((i) =>
         ruleInsightDto(i, status.hasDemoData),
       ),
     };
@@ -100,7 +102,7 @@ export class AnalyticsService {
     const data = await this.load(userId);
     const status = await this.status(data);
     if (!data.asOf) return [];
-    return this.insightsFor(data, data.asOf, tzOffsetMinutes).map((i) =>
+    return accountRuleInsights(data, data.asOf, tzOffsetMinutes).map((i) =>
       ruleInsightDto(i, status.hasDemoData),
     );
   }
@@ -165,7 +167,7 @@ export class AnalyticsService {
       from,
       to,
       source: sourceLabel(metric === "posts" ? "linkedin-data-export" : providersOf(data.days)),
-      points: this.series(data, metric, granularity, from, to, rollingWindow),
+      points: accountSeries(data, metric, granularity, { from, to }, rollingWindow),
     };
   }
 
@@ -214,8 +216,14 @@ export class AnalyticsService {
         dimension,
         segments,
       })),
-      followers: this.series(data, "followers", "week", addDays(to, -364), to, 0),
-      newFollowers: this.series(data, "new_followers", "week", addDays(to, -364), to, 0),
+      followers: accountSeries(data, "followers", "week", { from: addDays(to, -364), to }, 0),
+      newFollowers: accountSeries(
+        data,
+        "new_followers",
+        "week",
+        { from: addDays(to, -364), to },
+        0,
+      ),
     };
   }
 
@@ -239,69 +247,5 @@ export class AnalyticsService {
       posts: data.posts.length,
       postsWithMetrics: data.posts.filter((p) => p.metricsObservedOn !== null).length,
     };
-  }
-
-  private insightsFor(data: Loaded, asOf: string, tzOffsetMinutes: number) {
-    const impressions = dailyValues(data, "impressions");
-    return ruleInsights({
-      posts: data.posts,
-      asOf,
-      impressions: impressions.length > 0 ? comparePeriods(impressions, asOf, 28, "sum") : null,
-      sources: { posts: "Your imported posts", account: sourceLabel(providersOf(data.days)) },
-      tzOffsetMinutes,
-    });
-  }
-
-  private kpis(data: Loaded, asOf: string, days: number): KpiDto[] {
-    const account = sourceLabel(providersOf(data.days));
-    const kpi = (
-      key: SeriesMetric,
-      label: string,
-      aggregation: Aggregation,
-      source: string,
-    ): KpiDto => {
-      const c = comparePeriods(dailyValues(data, key), asOf, days, aggregation);
-      return {
-        key,
-        label,
-        unit: "count",
-        value: c.current.value,
-        previous: c.previous.value,
-        change: c.change,
-        period: { from: c.current.from, to: c.current.to },
-        previousPeriod: { from: c.previous.from, to: c.previous.to },
-        coverage: { observedDays: c.current.observedDays, totalDays: c.current.totalDays },
-        source,
-      };
-    };
-    const impressions = kpi("impressions", "Impressions", "sum", account);
-    const engagements = kpi("engagements", "Engagements", "sum", account);
-    return [
-      kpi("followers", "Followers", "last", account),
-      impressions,
-      engagements,
-      rateKpi(data, impressions),
-      kpi("posts", "Posts published", "sum", sourceLabel("linkedin-data-export")),
-    ];
-  }
-
-  private series(
-    data: Loaded,
-    metric: SeriesMetric,
-    granularity: Granularity,
-    from: string,
-    to: string,
-    rollingWindow: number,
-  ): SeriesPointDto[] {
-    const inRange = dailyValues(data, metric).filter((v) => v.day >= from && v.day <= to);
-    const { aggregation } = SERIES[metric];
-    const filled = fillPeriods(aggregate(inRange, granularity, aggregation), from, to, granularity);
-    const points = aggregation === "sum" ? dropPartialEdges(filled, granularity) : filled;
-    const rolling = rollingWindow > 1 ? rollingAverage(points, rollingWindow) : null;
-    return points.map((p, i) => ({
-      period: p.period,
-      value: p.value,
-      rolling: rolling?.[i]?.value ?? null,
-    }));
   }
 }

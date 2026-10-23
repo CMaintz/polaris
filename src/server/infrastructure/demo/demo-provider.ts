@@ -2,7 +2,7 @@ import type { ImportBundle, ImportedPost, ImportedPostMetrics } from "../../doma
 import { emptyBundle } from "../../domain/content";
 import { addDays, parseDay } from "../../domain/dates";
 
-export const DEMO_PROVIDER = "demo";
+const DEMO_PROVIDER = "demo";
 
 const TOPICS = ["leadership", "ai", "careers", "productmanagement", "remotework", "startups"];
 const TYPES = ["text", "image", "video", "document", "article", "link"] as const;

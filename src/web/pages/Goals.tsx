@@ -2,7 +2,15 @@ import { del, post } from "../lib/api";
 import { formatDate, formatNumber, formatPercent } from "../lib/format";
 import { inDays, today, useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
-import { Empty, ErrorBox, Field, Loading, Meter, PageHead } from "../components/ui";
+import {
+  DateRangeFields,
+  Empty,
+  ErrorBox,
+  Field,
+  Loading,
+  Meter,
+  PageHead,
+} from "../components/ui";
 
 interface GoalView {
   id: string;
@@ -89,12 +97,7 @@ export function GoalsPage() {
           <Field label={isRate(form.values.metric) ? "Target (%)" : "Target"}>
             <input required type="number" min="0" step="any" {...form.field("target")} />
           </Field>
-          <Field label="Start">
-            <input required type="date" {...form.field("startDate")} />
-          </Field>
-          <Field label="End">
-            <input required type="date" {...form.field("endDate")} />
-          </Field>
+          <DateRangeFields start={form.field("startDate")} end={form.field("endDate")} />
         </div>
         <Field label="Notes">
           <textarea maxLength={5000} {...form.field("notes")} />

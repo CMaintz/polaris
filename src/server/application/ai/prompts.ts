@@ -20,16 +20,14 @@ const recommendationSchema = z.object({
   evidenceIds: z.array(z.string()),
 });
 
-export const analysisSchema = z.object({
+const analysisSchema = z.object({
   summary: z.string(),
   insights: z.array(insightSchema),
   recommendations: z.array(recommendationSchema),
 });
 export type Analysis = z.infer<typeof analysisSchema>;
-export type RawInsight = z.infer<typeof insightSchema>;
-export type RawRecommendation = z.infer<typeof recommendationSchema>;
 
-export const answerSchema = z.object({
+const answerSchema = z.object({
   answer: z.string(),
   evidenceIds: z.array(z.string()),
   caveats: z.array(z.string()),
@@ -89,7 +87,7 @@ Task: answer the owner's question from the evidence. If the evidence cannot answ
 };
 
 /** Escapes text so it cannot close or open the tags that fence it. */
-export function fence(text: string): string {
+function fence(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
@@ -101,7 +99,7 @@ function formatValue(value: number | null, unit: "count" | "ratio"): string {
 /** Labels can carry imported text (topic names come from hashtags), so they are fenced too. */
 const inline = (text: string) => fence(text).replace(/\s+/g, " ");
 
-export function renderEvidence(pack: EvidencePack): string {
+function renderEvidence(pack: EvidencePack): string {
   const lines = pack.items.map((item) => {
     const period = item.period ? `, ${item.period.from} to ${item.period.to}` : "";
     const value = formatValue(item.value, item.unit);

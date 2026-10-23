@@ -75,7 +75,6 @@ export class AiService {
     return this.enqueue(userId, { task: "ask", question: trimmed, tz, label: "Question" });
   }
 
-  /** Job handler: builds the evidence, calls the model, grounds and stores the result. */
   async run(job: Job): Promise<unknown> {
     const payload = job.payload as Payload;
     const provider = await this.deps.credentials.activeProvider(job.userId);

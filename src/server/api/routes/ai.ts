@@ -12,7 +12,7 @@ import { toJobDto } from "./jobs";
 const provider = z.enum(["anthropic", "openai"]);
 const tz = z.number().int().min(-840).max(840).default(0);
 
-export function toAiInsightDto(insight: AiInsight): InsightDto {
+function toAiInsightDto(insight: AiInsight): InsightDto {
   return {
     id: insight.id,
     origin: "ai",

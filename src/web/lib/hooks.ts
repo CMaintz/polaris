@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { JobDto } from "../../shared/api-types";
-import { api } from "./api";
+import { api, post, tzOffset } from "./api";
 
 export interface Resource<T> {
   data: T | null;
@@ -81,13 +81,19 @@ export function useJob(jobId: string | null, onDone?: (job: JobDto) => void): Jo
 }
 
 /**
- * Reads CSS custom properties (a comma-separated list) for chart libraries that take colours
- * as props, re-reading when the colour scheme changes.
+ * Resolves colour tokens (a comma-separated list) to concrete colours, for chart libraries that
+ * take colours as props. Reading a token directly would return the unresolved light-dark(...)
+ * text, so each is applied to a probe element and read back as a computed colour.
  */
 export function useCssVars(names: string): Record<string, string> {
   const read = useCallback(() => {
-    const style = getComputedStyle(document.documentElement);
-    return Object.fromEntries(names.split(",").map((n) => [n, style.getPropertyValue(n).trim()]));
+    const probe = document.body.appendChild(document.createElement("span"));
+    const resolved = names.split(",").map((name) => {
+      probe.style.color = `var(${name})`;
+      return [name, getComputedStyle(probe).color];
+    });
+    probe.remove();
+    return Object.fromEntries(resolved);
   }, [names]);
   const [vars, setVars] = useState(read);
   useEffect(() => {
@@ -97,4 +103,20 @@ export function useCssVars(names: string): Record<string, string> {
     return () => query.removeEventListener("change", update);
   }, [read]);
   return vars;
+}
+
+/** Starts a background job with a POST (sending the browser's timezone) and follows it to the end. */
+export function useStartJob(onDone: (job: JobDto) => void) {
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const job = useJob(jobId, onDone);
+  const start = (path: string, body: object) => {
+    setError(null);
+    setJobId(null);
+    post<{ job: JobDto }>(path, { ...body, tz: tzOffset() })
+      .then((r) => setJobId(r.job.id))
+      .catch(setError);
+  };
+  const running = job !== null && !["completed", "failed"].includes(job.status);
+  return { job, error, start, running: running || (jobId !== null && job === null) };
 }

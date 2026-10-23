@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Production entry points: the server process and the web app (loaded by index.html).
+  // knip calls them redundant outside --production, but that pass needs them marked.
+  "entry": ["src/server/main.ts!", "src/web/main.tsx!"],
+  // Test helpers are test code: only tests import them, so production reachability excludes them.
+  "project": ["src/**/*.{ts,tsx}!", "!src/server/test-support.ts!", "!src/server/testing/**!"],
+  // Run by the habit-hooks structural-smell sensors (mise run smells), never imported.
+  "ignoreDependencies": ["jscpd", "ts-morph"],
+}
