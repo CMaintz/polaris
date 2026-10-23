@@ -164,3 +164,12 @@ describe("timeseries", () => {
     expect(points.map((p) => p.value)).toEqual([null, 1, 0, 1, null]);
   });
 });
+
+describe("timeseries range", () => {
+  it("counts days back from the latest imported day, not from today", async () => {
+    const container = testContainer();
+    const client = await withFixtureData(container);
+    const response = await client.request("/analytics/timeseries?metric=impressions&days=7");
+    expect(await response.json()).toMatchObject({ from: "2026-03-01", to: "2026-03-07" });
+  });
+});
