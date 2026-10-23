@@ -180,6 +180,21 @@ export class AnalyticsService {
     };
   }
 
+  /** Raw daily measurements and posts, for goals and experiments to evaluate against. */
+  async measurements(userId: string) {
+    const data = await this.load(userId);
+    return {
+      asOf: data.asOf,
+      posts: data.posts,
+      inputs: {
+        impressions: dailyValues(data, "impressions"),
+        engagements: dailyValues(data, "engagements"),
+        followers: dailyValues(data, "followers"),
+        posts: dailyValues(data, "posts"),
+      },
+    };
+  }
+
   async audience(userId: string): Promise<AudienceDto> {
     const data = await this.load(userId);
     const snapshot = data.account ? await this.queries.latestAudience(data.account.id) : null;
