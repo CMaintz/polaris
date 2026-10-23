@@ -141,3 +141,32 @@ Imports should:
 - record failures
 - expose progress
 - preserve provenance
+
+## As implemented: analytics and rule insights
+
+- **Reference date.** Periods end at the latest day with imported data ("as of"), not today, so
+  an export downloaded last week is not shown as a week of zeros.
+- **KPIs** (followers, impressions, engagements, engagement rate, posts published) compare the
+  selected period with the equally long one before it. Each KPI states its period, its source and
+  how many days in the period had data.
+- **Posts published** counts only posts from the data archive (the analytics export lists only
+  top posts). Between the first and last archived post a day without posts counts as zero;
+  outside that range the count is unknown.
+- **Changes** between periods compare the average per day with data, so a period with missing
+  days is not read as a drop. The absolute difference is only shown when both periods have the
+  same number of days with data. Engagement rate counts only days that report both impressions
+  and engagements.
+- **Post metrics** fold every observation of a post, oldest first: a later export that omits a
+  figure keeps the earlier value.
+- **Posting times** shift every timed post by the browser's current UTC offset, so posts from the
+  other side of a daylight-saving change land an hour off.
+- **Rule insights** run without AI and each carries its evidence:
+  - impressions change of at least 10%, reported only when both periods have data for at least
+    half their days;
+  - the best content type, topic or weekday, when its median engagements are at least 1.2 times
+    the overall median, it has enough posts with metrics (3 for types and topics, 2 per weekday),
+    and enough groups exist to compare (2, or 3 for weekdays);
+  - a post from the last 90 days with at least twice the median engagements, once there are at
+    least 5 rated posts;
+  - a change of at least 50% in posting frequency (last 28 days against the 28 before, with at
+    least 4 earlier posts), only when the archive covers both windows.

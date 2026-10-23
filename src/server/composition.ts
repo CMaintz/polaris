@@ -14,6 +14,8 @@ import { openDatabase } from "./infrastructure/db/database";
 import { SqliteJobRepository } from "./infrastructure/db/job-repository";
 import { IMPORT_JOB, ImportService } from "./application/imports/import-service";
 import { SqliteContentStore } from "./infrastructure/db/content-store";
+import { SqliteContentQueries } from "./infrastructure/db/content-queries";
+import { AnalyticsService } from "./application/analytics/analytics-service";
 import { SqliteImportFileStore } from "./infrastructure/db/import-file-store";
 import { buildDemoBundle } from "./infrastructure/demo/demo-provider";
 import { LinkedInAnalyticsExportProvider } from "./infrastructure/linkedin/analytics-export-provider";
@@ -56,15 +58,17 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     clock,
     overrides.worker,
   );
+  const analytics = new AnalyticsService(content, new SqliteContentQueries(db), clock);
   const api = createApi({
     auth,
+    analytics,
     jobs,
     imports,
     content,
     secureCookies: config.secureCookies,
     maxUploadBytes: config.maxUploadBytes,
   });
-  return { db, clock, users, audit, jobs, auth, content, imports, worker, api };
+  return { db, clock, users, audit, jobs, auth, content, imports, analytics, worker, api };
 }
 
 export type Container = ReturnType<typeof buildContainer>;
