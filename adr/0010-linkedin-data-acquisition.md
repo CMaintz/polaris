@@ -54,6 +54,15 @@ adapter's header aliases need to change. Imports report sheets they do not recog
 - The per-post figures in `TOP POSTS` cover the export's date range, not the post's lifetime.
   The range is recorded on each snapshot.
 
+### Derived follower totals
+
+The `FOLLOWERS` sheet states one total and a daily count of new followers. Polaris
+back-calculates the total for each earlier day: the total at the end of day D is the stated
+total minus the new followers gained after D. This **assumes** the stated total is an end-of-day
+figure that includes that day's gains. A day with no new-follower count makes every earlier
+total unknown rather than guessed. If LinkedIn's total turns out to be start-of-day, every
+derived total is off by one day's gain.
+
 ## Consequences
 
 - Data is only as fresh as the user's last export. The import screen explains this.
