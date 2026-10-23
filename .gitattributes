@@ -2,3 +2,4 @@
 *.png binary
 *.xlsx binary
 *.zip binary
+eslint-suppressions.json text eol=lf
