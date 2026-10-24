@@ -8,7 +8,7 @@ import {
   DEFAULT_MODELS,
   type SecretBox,
 } from "./ports";
-import type { AiStore } from "./store";
+import type { CredentialStore } from "./store";
 
 /** What the API may reveal about a stored key: never the key itself. */
 export interface CredentialView {
@@ -28,7 +28,7 @@ const KEY_PATTERN = /^[A-Za-z0-9_\-.]{20,300}$/;
 
 export class CredentialService {
   constructor(
-    private readonly store: AiStore,
+    private readonly store: CredentialStore,
     private readonly box: SecretBox,
     private readonly factory: AiProviderFactory,
     private readonly audit: AuditLog,

@@ -2,13 +2,13 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { AiService } from "../../application/ai/ai-service";
 import type { CredentialService } from "../../application/ai/credentials";
-import type { AiInsight, AiStore } from "../../application/ai/store";
-import type { ContentStore } from "../../application/content/ports";
+import { AI_PROVIDERS } from "../../application/ai/ports";
+import type { AiInsight } from "../../application/ai/store";
 import type { InsightDto } from "../../../shared/api-types";
 import { type AppEnv, currentUser, readJson, readQuery, requireUser } from "../http";
 import { toJobDto } from "./jobs";
 
-const provider = z.enum(["anthropic", "openai"]);
+const provider = z.enum(AI_PROVIDERS);
 const tz = z.number().int().min(-840).max(840).default(0);
 
 function toAiInsightDto(insight: AiInsight): InsightDto {
@@ -28,13 +28,7 @@ function toAiInsightDto(insight: AiInsight): InsightDto {
   };
 }
 
-export function aiRoutes(
-  ai: AiService,
-  credentials: CredentialService,
-  store: AiStore,
-  content: ContentStore,
-) {
-  const accountId = async (userId: string) => (await content.findAccount(userId))?.id ?? null;
+export function aiRoutes(ai: AiService, credentials: CredentialService) {
   return new Hono<AppEnv>()
     .use(requireUser)
     .get("/credentials", async (c) =>
@@ -78,12 +72,11 @@ export function aiRoutes(
         c,
         z.object({ scope: z.enum(["account", "post"]).optional(), postId: z.string().optional() }),
       );
-      const id = await accountId(currentUser(c).id);
-      return c.json({ insights: id ? (await store.insights(id, filter)).map(toAiInsightDto) : [] });
+      const insights = await ai.insights(currentUser(c).id, filter);
+      return c.json({ insights: insights.map(toAiInsightDto) });
     })
     .get("/recommendations", async (c) => {
-      const id = await accountId(currentUser(c).id);
-      return c.json({ recommendations: id ? await store.recommendations(id) : [] });
+      return c.json({ recommendations: await ai.recommendations(currentUser(c).id) });
     })
     .patch("/recommendations/:id", async (c) => {
       const { status } = await readJson(
@@ -94,9 +87,6 @@ export function aiRoutes(
       return c.body(null, 204);
     })
     .get("/interactions", async (c) => {
-      const list = await store.interactions(currentUser(c).id, 50);
-      return c.json({
-        interactions: list.map(({ output: _output, userId: _user, ...rest }) => rest),
-      });
+      return c.json({ interactions: await ai.interactions(currentUser(c).id) });
     });
 }
