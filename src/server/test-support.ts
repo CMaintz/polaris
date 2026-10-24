@@ -89,3 +89,18 @@ export async function importAndWait(
   const done = await (await client.request(`/jobs/${job.id}`)).json();
   return (done as { job: { status: string; error: string | null; result: unknown } }).job;
 }
+
+/** Enqueues a job with a hand-written payload, drains the worker and returns the stored job. */
+export async function runRawJob(
+  container: TestContainer,
+  client: Client,
+  type: string,
+  payload: Record<string, unknown>,
+) {
+  const job = await container.jobs.enqueue(
+    { userId: client.userId, type, payload },
+    container.clock().toISOString(),
+  );
+  await container.worker.drain();
+  return container.jobs.findForUser(client.userId, job.id);
+}

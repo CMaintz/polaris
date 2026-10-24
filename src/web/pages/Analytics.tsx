@@ -1,12 +1,14 @@
 import { useState } from "react";
-import type { BreakdownsDto, SeriesDto, SeriesMetricDto } from "../../shared/api-types";
+import type { BreakdownsDto, SeriesDto, SeriesMetricDto } from "../../shared/analytics-types";
 import { tzOffset } from "../lib/api";
 import { WEEKDAYS, contentTypeLabel, formatPeriod } from "../lib/format";
-import { useResource } from "../lib/hooks";
+import { SegmentBars } from "../components/charts/segment-bars";
+import { TrendChart } from "../components/charts/trend-chart";
+import { Field } from "../components/common/fields";
+import { PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
+import { useResource } from "../lib/hooks/resource";
 import { metricLabel, metricOptions } from "../lib/metrics";
-import { SegmentBars, TrendChart } from "../components/charts";
-import { ResourceView } from "../components/resource";
-import { Field, PageHead } from "../components/ui";
 
 const METRICS = metricOptions([
   "impressions",

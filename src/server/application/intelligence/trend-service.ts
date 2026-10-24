@@ -12,7 +12,8 @@ import type {
 import { type PostSource, accountContext } from "./context";
 import { structuredCall } from "../ai/recorded-call";
 import { digestJob, digestPayload } from "./jobs";
-import type { DigestStore, FeedStore, InteractionRecorder, ProviderSource } from "./ports";
+import type { DigestStore, FeedStore } from "./feed-ports";
+import type { InteractionRecorder, ProviderSource } from "./ports";
 import { TREND_DIGEST, renderDigestPrompt } from "./prompts";
 
 const TREND_DAYS = 90;

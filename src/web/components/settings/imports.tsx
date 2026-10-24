@@ -1,11 +1,13 @@
 import { type FormEvent, useRef } from "react";
-import type { ImportFileReportDto, JobDto } from "../../../shared/api-types";
+import type { JobDto } from "../../../shared/core-types";
+import type { ImportFileReportDto } from "../../../shared/import-types";
 import { PLATFORM_NAMES } from "../../lib/accounts";
+import { useStartJob } from "../../lib/hooks/job";
+import { useResource } from "../../lib/hooks/resource";
+import { ErrorBox, JobLine } from "../common/feedback";
+import { ResourceView } from "../common/resource-view";
 import { formatDate } from "../../lib/format";
-import { useResource, useStartJob } from "../../lib/hooks";
 import { useSession } from "../../lib/session";
-import { ResourceView } from "../resource";
-import { ErrorBox, JobLine } from "../ui";
 
 export function Imports() {
   const { refreshStatus, status } = useSession();

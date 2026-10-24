@@ -1,4 +1,4 @@
-import type { EvidenceItem } from "../../domain/insights";
+import type { EvidenceItem } from "../../domain/insight-types";
 import type { EvidencePack } from "./evidence";
 import { adjustConfidence, ground } from "./grounding";
 import type { Intent } from "./intent";

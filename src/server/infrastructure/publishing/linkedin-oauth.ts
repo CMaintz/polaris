@@ -4,11 +4,11 @@ import { ValidationError } from "../../application/errors";
 // https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow
 // https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2
 
-export const AUTHORIZE_URL = "https://www.linkedin.com/oauth/v2/authorization";
+const AUTHORIZE_URL = "https://www.linkedin.com/oauth/v2/authorization";
 export const TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken";
 export const USERINFO_URL = "https://api.linkedin.com/v2/userinfo";
 /** Posting as the member needs w_member_social; openid and profile give the member id. */
-export const SCOPES = ["openid", "profile", "w_member_social"];
+const SCOPES = ["openid", "profile", "w_member_social"];
 
 export interface LinkedInAppConfig {
   clientId: string;
@@ -27,7 +27,7 @@ export interface MemberGrant {
 }
 
 /** Safe to show: it never carries LinkedIn's response body. */
-export class LinkedInAuthError extends ValidationError {}
+class LinkedInAuthError extends ValidationError {}
 
 export function authorizationUrl(config: LinkedInAppConfig, state: string): string {
   const params = new URLSearchParams({

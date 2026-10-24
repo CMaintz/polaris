@@ -1,49 +1,29 @@
 import { type Clock } from "../clock";
 import type { ContentStore } from "../content/ports";
 import { NotFoundError } from "../errors";
-import { RECENT_DAYS, addDays, lastDays, todayUtc } from "../../domain/dates";
-import {
-  type PostRecord,
-  listingProviders,
-  postingTimes,
-  segmentPerformance,
-} from "../../domain/posts";
+import { RECENT_DAYS, lastDays, todayUtc } from "../../domain/dates";
+import { listingProviders, postingTimes, segmentPerformance } from "../../domain/posts";
 import type { Granularity } from "../../domain/timeseries";
 import type {
   AudienceDto,
   BreakdownsDto,
   DashboardDto,
   DataStatusDto,
-  PostDetailDto,
-  PostPageDto,
-} from "../../../shared/api-types";
+} from "../../../shared/analytics-types";
+import type { PostDetailDto, PostPageDto } from "../../../shared/post-types";
 import type { ContentQueries } from "./ports";
 import {
   type Loaded,
   type SeriesMetric,
-  accountKpis,
   accountRuleInsights,
   accountSeries,
   dailyValues,
   providersOf,
 } from "./account-series";
 import { holdsDataset, loadAccountData } from "./account-data";
-import {
-  type PostQuery,
-  baselineFor,
-  byMetric,
-  byPublished,
-  comparablePosts,
-  matchesQuery,
-  rankedRecentPosts,
-} from "./post-selection";
-import {
-  ruleInsightDto,
-  sourceLabel,
-  toMetricsDto,
-  toPostSummary,
-  toSegmentDto,
-} from "./presenters";
+import { toAudience, toDashboard, toPostDetail } from "./page-views";
+import { type PostQuery, byMetric, byPublished, matchesQuery } from "./post-selection";
+import { ruleInsightDto, sourceLabel, toPostSummary, toSegmentDto } from "./presenters";
 
 export class AnalyticsService {
   constructor(
@@ -60,25 +40,7 @@ export class AnalyticsService {
     const data = await this.load(userId);
     const status = await this.status(data);
     const asOf = data.asOf ?? todayUtc(this.clock());
-    const summary = (p: PostRecord) => toPostSummary(p, data.bands.get(p.id) ?? "unrated");
-    const ranked = rankedRecentPosts(data.posts, asOf);
-    return {
-      status,
-      periodDays,
-      kpis: accountKpis(data, asOf, periodDays),
-      impressionsTrend: accountSeries(data, "impressions", "day", lastDays(asOf, RECENT_DAYS), 7),
-      followersTrend: accountSeries(data, "followers", "day", lastDays(asOf, RECENT_DAYS), 0),
-      recentPosts: data.posts.slice(0, 5).map(summary),
-      topPosts: ranked.top.map(summary),
-      bottomPosts: ranked.bottom.map(summary),
-      themes: segmentPerformance(data.posts, (p) => p.topics)
-        .filter((s) => s.posts >= 2)
-        .slice(0, 6)
-        .map(toSegmentDto),
-      insights: accountRuleInsights(data, asOf, tzOffsetMinutes).map((i) =>
-        ruleInsightDto(i, status.hasDemoData),
-      ),
-    };
+    return toDashboard(data, { status, asOf, periodDays, tzOffsetMinutes });
   }
 
   async insights(userId: string, tzOffsetMinutes: number) {
@@ -108,25 +70,7 @@ export class AnalyticsService {
     const data = await this.load(userId);
     const post = data.posts.find((p) => p.id === postId);
     if (!post || !data.account) throw new NotFoundError("Post");
-    const observations = await this.queries.observations(data.account.id, post.id);
-    return {
-      post: {
-        ...toPostSummary(post, data.bands.get(post.id) ?? "unrated"),
-        text: post.text,
-        providers: post.providers.map(sourceLabel),
-        externalId: post.externalId,
-      },
-      observations: observations.map((o) => ({
-        observedOn: o.observedOn,
-        source: sourceLabel(o.provider),
-        metrics: toMetricsDto(o.metrics),
-        period: o.period,
-      })),
-      baseline: toSegmentDto(baselineFor(post, data.posts)),
-      comparable: comparablePosts(post, data.posts).map((p) =>
-        toPostSummary(p, data.bands.get(p.id) ?? "unrated"),
-      ),
-    };
+    return toPostDetail(data, post, await this.queries.observations(data.account.id, post.id));
   }
 
   async timeseries(
@@ -180,30 +124,7 @@ export class AnalyticsService {
   async audience(userId: string): Promise<AudienceDto> {
     const data = await this.load(userId);
     const snapshot = data.account ? await this.queries.latestAudience(data.account.id) : null;
-    const to = data.asOf ?? todayUtc(this.clock());
-    const dimensions = new Map<string, { value: string; share: number | null }[]>();
-    for (const s of snapshot?.segments ?? []) {
-      dimensions.set(s.dimension, [
-        ...(dimensions.get(s.dimension) ?? []),
-        { value: s.value, share: s.share },
-      ]);
-    }
-    return {
-      observedOn: snapshot?.observedOn ?? null,
-      source: snapshot ? sourceLabel(snapshot.provider) : null,
-      dimensions: [...dimensions.entries()].map(([dimension, segments]) => ({
-        dimension,
-        segments,
-      })),
-      followers: accountSeries(data, "followers", "week", { from: addDays(to, -364), to }, 0),
-      newFollowers: accountSeries(
-        data,
-        "new_followers",
-        "week",
-        { from: addDays(to, -364), to },
-        0,
-      ),
-    };
+    return toAudience(data, snapshot, data.asOf ?? todayUtc(this.clock()));
   }
 
   private load(userId: string): Promise<Loaded> {

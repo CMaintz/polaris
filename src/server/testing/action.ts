@@ -1,5 +1,6 @@
 import { signedInClient, testContainer } from "../test-support";
-import { SqliteDraftStore, SqliteProposalStore } from "../infrastructure/db/action-store";
+import { SqliteDraftStore } from "../infrastructure/db/draft-store";
+import { SqliteProposalStore } from "../infrastructure/db/proposal-store";
 import { SqliteRecordTable } from "../infrastructure/db/record-table";
 import { SqliteContentQueries } from "../infrastructure/db/content-queries";
 import { AnalyticsEvidenceFacts } from "../application/analytics/evidence-facts";

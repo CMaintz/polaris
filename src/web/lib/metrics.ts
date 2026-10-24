@@ -1,4 +1,5 @@
-import type { GoalMetricDto, PostMetricDto, SeriesMetricDto } from "../../shared/api-types";
+import type { SeriesMetricDto } from "../../shared/analytics-types";
+import type { GoalMetricDto, PostMetricDto } from "../../shared/planning-types";
 import { formatNumber, formatPercent } from "./format";
 
 export type MetricKey = GoalMetricDto | PostMetricDto | SeriesMetricDto;

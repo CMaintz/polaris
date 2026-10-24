@@ -2,10 +2,11 @@ import { useState } from "react";
 import type { AccountSummaryDto, PlatformDto } from "../../../shared/account-types";
 import { del, patch, post } from "../../lib/api";
 import { PLATFORM_NAMES } from "../../lib/accounts";
-import { useForm } from "../../lib/forms";
-import { useMutation } from "../../lib/mutation";
+import { useForm } from "../../lib/hooks/form";
+import { useMutation } from "../../lib/hooks/mutation";
+import { ErrorBox } from "../common/feedback";
+import { Field } from "../common/fields";
 import { useSession } from "../../lib/session";
-import { ErrorBox, Field } from "../ui";
 
 export function Accounts() {
   const { accounts } = useSession();

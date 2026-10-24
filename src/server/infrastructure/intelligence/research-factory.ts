@@ -1,4 +1,5 @@
-import type { ActiveKey, WebResearchProvider } from "../../application/intelligence/ports";
+import type { ActiveKey } from "../../application/intelligence/ports";
+import type { WebResearchProvider } from "../../application/intelligence/research-ports";
 import { AnthropicWebResearch } from "./anthropic-research";
 import { OpenAiWebResearch } from "./openai-research";
 

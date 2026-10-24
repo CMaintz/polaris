@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { NotFoundError } from "../../application/errors";
 import type { Job, JobRepository } from "../../application/jobs/ports";
-import type { JobDto } from "../../../shared/api-types";
+import type { JobDto } from "../../../shared/core-types";
 import { type AppEnv, currentUser, requireUser } from "../http";
 
 export function toJobDto(job: Job): JobDto {

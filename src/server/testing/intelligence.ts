@@ -8,7 +8,7 @@ import type {
   WebResearchProvider,
   WebResearchRequest,
   WebResearchResult,
-} from "../application/intelligence/ports";
+} from "../application/intelligence/research-ports";
 
 export function addAccount(db: Db, now = "2026-03-15T12:00:00.000Z") {
   const userId = randomUUID();

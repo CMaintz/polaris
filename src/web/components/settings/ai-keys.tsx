@@ -1,10 +1,11 @@
 import { type FormEvent, useState } from "react";
-import type { CredentialDto } from "../../../shared/api-types";
+import type { CredentialDto } from "../../../shared/ai-types";
 import { del, put } from "../../lib/api";
-import { useResource } from "../../lib/hooks";
-import { useMutation } from "../../lib/mutation";
-import { ResourceView } from "../resource";
-import { ErrorBox, Field, LabelOptions } from "../ui";
+import { useMutation } from "../../lib/hooks/mutation";
+import { useResource } from "../../lib/hooks/resource";
+import { ErrorBox } from "../common/feedback";
+import { Field, LabelOptions } from "../common/fields";
+import { ResourceView } from "../common/resource-view";
 
 const PROVIDERS = { anthropic: "Anthropic (Claude)", openai: "OpenAI" };
 

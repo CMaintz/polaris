@@ -1,6 +1,7 @@
 import { strToU8 } from "fflate";
 import { describe, expect, it } from "vitest";
-import type { DashboardDto, PostDetailDto, PostPageDto } from "../../shared/api-types";
+import type { DashboardDto } from "../../shared/analytics-types";
+import type { PostDetailDto, PostPageDto } from "../../shared/post-types";
 import { ANALYTICS_SHEETS, POST_1, POST_2, POST_3, SHARES_CSV } from "../testing/linkedin-fixtures";
 import { buildXlsx } from "../testing/xlsx";
 import { type TestContainer, signedInClient, testContainer, uploadFiles } from "../test-support";

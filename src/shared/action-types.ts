@@ -1,4 +1,4 @@
-import type { EvidenceDto } from "./api-types";
+import type { EvidenceDto } from "./ai-types";
 
 export interface LengthDto {
   length: number;
@@ -29,7 +29,7 @@ export interface DraftVersionDto {
   createdAt: string;
 }
 
-export type PublicationStatusDto =
+type PublicationStatusDto =
   "scheduled" | "publishing" | "awaiting_confirmation" | "published" | "failed" | "cancelled";
 
 export interface PublicationDto {
@@ -53,7 +53,7 @@ export interface DraftDetailDto {
   publications: PublicationDto[];
 }
 
-export type ProposalStatusDto = "pending" | "approved" | "rejected" | "applied" | "failed";
+type ProposalStatusDto = "pending" | "approved" | "rejected" | "applied" | "failed";
 
 export interface ProposalDto {
   id: string;
@@ -78,12 +78,4 @@ export interface ConnectionDto {
   state: "connected" | "not_connected" | "expired" | "not_configured";
   displayName: string | null;
   expiresAt: string | null;
-}
-
-export interface DraftBriefRequest {
-  topic: string;
-  angle: string;
-  tone: string;
-  draftId: string | null;
-  planItemId: string | null;
 }

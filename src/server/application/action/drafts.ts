@@ -8,15 +8,9 @@ import {
 import type { AuditLog } from "../auth/ports";
 import { type Clock, nowIso } from "../clock";
 import { ConflictError, NotFoundError, ValidationError } from "../errors";
-import type {
-  Draft,
-  DraftStore,
-  DraftVersion,
-  NewVersion,
-  PlanItems,
-  Publication,
-  PublicationStore,
-} from "./ports";
+import type { Draft, DraftStore, DraftVersion, NewVersion } from "./draft-ports";
+import type { PlanItems } from "./ports";
+import type { Publication, PublicationStore } from "./publication-ports";
 
 export interface DraftView extends Draft {
   approved: boolean;
@@ -38,7 +32,7 @@ export interface DraftDeps {
   clock: Clock;
 }
 
-export function viewOf(draft: Draft): DraftView {
+function viewOf(draft: Draft): DraftView {
   return { ...draft, approved: isApproved(draft), length: checkPostLength(draft.text) };
 }
 
