@@ -1,7 +1,7 @@
 import { type FormEvent, useRef } from "react";
 import type { JobDto } from "../../../shared/core-types";
 import type { ImportFileReportDto } from "../../../shared/import-types";
-import { PLATFORM_NAMES } from "../../lib/accounts";
+import { accountName } from "../../lib/accounts";
 import { useStartJob } from "../../lib/hooks/job";
 import { useResource } from "../../lib/hooks/resource";
 import { ErrorBox, JobLine } from "../common/feedback";
@@ -38,13 +38,8 @@ function ImportTarget() {
   const account = status?.account;
   return (
     <p className="small">
-      Importing into{" "}
-      <strong>
-        {account
-          ? `${account.label} (${PLATFORM_NAMES[account.platform]})`
-          : "a new LinkedIn account"}
-      </strong>
-      . Files that fit: {status?.accepts.map((a) => `${a.label} (${a.files})`).join("; ")}.
+      Importing into <strong>{account ? accountName(account) : "a new LinkedIn account"}</strong>.
+      Files that fit: {status?.accepts.map((a) => `${a.label} (${a.files})`).join("; ")}.
     </p>
   );
 }
