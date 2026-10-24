@@ -76,6 +76,8 @@ const CONTENT_TYPES: Record<string, string> = {
 
 export const contentTypeLabel = (type: string) => CONTENT_TYPES[type] ?? type;
 
+export const contentTypes = (): string[] => Object.keys(CONTENT_TYPES);
+
 export const WEEKDAYS = [
   "Monday",
   "Tuesday",

@@ -36,4 +36,4 @@ Status: Proposed (assumed by the implementing agent on 2026-10-23; awaiting prod
 ## Not yet done
 
 Automatic retries on malformed model output (one attempt, then the job fails), cost estimates,
-AI topic extraction (topics come from hashtags for now), and testing a key before saving it.
+and testing a key before saving it. AI content themes are in ADR 0018.

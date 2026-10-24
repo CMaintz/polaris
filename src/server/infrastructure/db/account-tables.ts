@@ -14,6 +14,8 @@ interface AccountTable {
    */
   imported: boolean;
   dataset: DatasetScope;
+  /** Search indexes are rebuilt from posts, so an export leaves them out. */
+  exported?: false;
 }
 
 /** Every table keyed by `account_id`. A new account table belongs here, or wipes miss it. */
@@ -28,6 +30,10 @@ const ACCOUNT_TABLES: readonly AccountTable[] = [
   { name: "goals", imported: false, dataset: "none" },
   { name: "experiments", imported: false, dataset: "none" },
   { name: "plan_items", imported: false, dataset: "none" },
+  { name: "theme_runs", imported: true, dataset: "demo_flag" },
+  { name: "themes", imported: true, dataset: "none" },
+  { name: "knowledge_documents", imported: true, dataset: "none", exported: false },
+  { name: "post_embeddings", imported: true, dataset: "none", exported: false },
   { name: "campaigns", imported: false, dataset: "none" },
   { name: "content_pillars", imported: false, dataset: "none" },
 ];
@@ -39,12 +45,14 @@ const ACCOUNT_TABLES: readonly AccountTable[] = [
 const CHILD_TABLES: readonly { name: string; parent: string; key: string }[] = [
   { name: "post_metric_snapshots", parent: "posts", key: "post_id" },
   { name: "post_topics", parent: "posts", key: "post_id" },
+  { name: "post_themes", parent: "posts", key: "post_id" },
   { name: "campaign_posts", parent: "campaigns", key: "campaign_id" },
   { name: "campaign_plan_items", parent: "campaigns", key: "campaign_id" },
   { name: "campaign_goals", parent: "campaigns", key: "campaign_id" },
 ];
 
-export const accountTables = (): string[] => ACCOUNT_TABLES.map((t) => t.name);
+export const exportedTables = (): string[] =>
+  ACCOUNT_TABLES.filter((t) => t.exported !== false).map((t) => t.name);
 
 /** Selects one child table's rows for an account id. */
 export const childTableQueries = (): { name: string; sql: string }[] =>

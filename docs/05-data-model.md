@@ -188,3 +188,7 @@ logical model above:
 - `campaigns` and `content_pillars` are the user's own records and survive "delete imported
   data". `campaign_posts`, `campaign_plan_items` and `campaign_goals` link a campaign to its
   targets with real foreign keys, so deleting a post, plan item or goal drops the link.
+- `knowledge_documents`, `post_search` (FTS5) and `post_embeddings` are search indexes rebuilt
+  from posts, so the export leaves them out. `theme_runs`, `themes` and `post_themes` hold the
+  latest AI theme classification; themes cascade from their run, so wiping a demo run removes
+  them.

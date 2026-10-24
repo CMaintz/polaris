@@ -1,5 +1,5 @@
 import type { DataLifecycle } from "../../application/account/account-service";
-import { accountTables, childTableQueries, importedTables } from "./account-tables";
+import { exportedTables, childTableQueries, importedTables } from "./account-tables";
 import type { Db } from "./database";
 
 export class SqliteDataLifecycle implements DataLifecycle {
@@ -12,7 +12,7 @@ export class SqliteDataLifecycle implements DataLifecycle {
       { id: string } | undefined;
     const rows = (sql: string, ...params: unknown[]) => this.db.prepare(sql).all(...params);
     const byAccount = Object.fromEntries(
-      accountTables().map((t) => [
+      exportedTables().map((t) => [
         t,
         account ? rows(`SELECT * FROM ${t} WHERE account_id = ?`, account.id) : [],
       ]),

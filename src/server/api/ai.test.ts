@@ -208,6 +208,14 @@ describe("questions", () => {
     expect(factory.calls[0]?.prompt).not.toContain("<post_text");
   });
 
+  it("adds the posts that match the question, fenced, as citable evidence", async () => {
+    const { run, factory } = await setup(() => ({ answer: "Yes.", evidenceIds: [], caveats: [] }));
+    await run("/ai/questions", { question: "How did my remotework posts land?", tz: 0 });
+    const prompt = factory.calls[0]?.prompt ?? "";
+    expect(prompt).toMatch(/Related post 1 \(.*remotework.*\)/);
+    expect(prompt).toMatch(/<post_text evidence="E\d+">\n[^<]*#remotework/);
+  });
+
   it("classifies common questions", () => {
     expect(classifyQuestion("When should I post?")).toBe("timing");
     expect(classifyQuestion("Which hashtags work?")).toBe("topics");

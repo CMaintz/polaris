@@ -187,3 +187,19 @@ See ADR 0022 and ADR 0023 for the reasoning.
 - **Funnel** shows impressions, then engagements, then new followers, per week or month and per
   campaign window, with engagement rate and new followers per 1,000 impressions over paired days.
   Profile views are not in any supported export, so that stage is always shown as unavailable.
+
+## As implemented: search and themes
+
+See ADR 0017 and ADR 0018.
+
+- **Keyword search** (SQLite FTS5) covers post text and hashtags and needs no AI key. It filters
+  by content type, hashtag, theme and dates, and highlights matches. Query punctuation and
+  operator words are treated as plain words.
+- **Meaning search** embeds posts with the user's own OpenAI key and ranks keyword and meaning
+  matches together. With an Anthropic-only key, or before indexing, it falls back to keywords and
+  says so. Indexing re-embeds only posts whose text changed and runs after every import.
+- **Themes**: the AI groups up to the 150 newest posts into at most eight themes, kept apart from
+  hashtag topics. Ids the model invents are dropped. Each theme shows median performance, and
+  emerging themes compare the share of posts in the latest 90 covered days with the 90 before.
+- **Ask retrieval** (section 9 step 3): up to four posts that match the question are added to the
+  evidence, fenced like all post text, with the reason they matched.

@@ -1,4 +1,5 @@
 import type { Db } from "./database";
+import { KNOWLEDGE_SCHEMA } from "./knowledge-schema";
 import { STRATEGY_MIGRATIONS } from "./strategy-schema";
 
 // Append-only: each entry runs once, in order, tracked by PRAGMA user_version.
@@ -255,6 +256,7 @@ const MIGRATIONS: readonly string[] = [
   );
   `,
   ...STRATEGY_MIGRATIONS,
+  KNOWLEDGE_SCHEMA.join(";\n"),
 ];
 
 export function migrate(db: Db): void {
