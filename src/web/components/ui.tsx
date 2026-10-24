@@ -194,3 +194,12 @@ export function ContentTypeField(props: { value: string; onChange: (value: strin
     </Field>
   );
 }
+
+/** The options of a select, from a value-to-label map. */
+export function LabelOptions({ labels }: { labels: Record<string, string> }) {
+  return Object.entries(labels).map(([value, label]) => (
+    <option key={value} value={value}>
+      {label}
+    </option>
+  ));
+}

@@ -4,7 +4,7 @@ import { del, put } from "../../lib/api";
 import { useResource } from "../../lib/hooks";
 import { useMutation } from "../../lib/mutation";
 import { ResourceView } from "../resource";
-import { ErrorBox, Field } from "../ui";
+import { ErrorBox, Field, LabelOptions } from "../ui";
 
 const PROVIDERS = { anthropic: "Anthropic (Claude)", openai: "OpenAI" };
 
@@ -44,11 +44,7 @@ export function AiKeys() {
             value={provider}
             onChange={(e) => setProvider(e.target.value as keyof typeof PROVIDERS)}
           >
-            {Object.entries(PROVIDERS).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
+            <LabelOptions labels={PROVIDERS} />
           </select>
         </Field>
         <Field label="API key">
