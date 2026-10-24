@@ -35,7 +35,7 @@ export function PlannerPage() {
     <div className="stack">
       <PageHead
         title="Planner"
-        intro="Ideas, drafts and planned posts. Planning is not publishing: Polaris never posts to LinkedIn for you."
+        intro="Ideas and planned posts. Planning is not publishing: a post goes out only when you approve and schedule its draft in Studio."
       />
       <form className="card stack" onSubmit={form.submit}>
         <h2>New idea</h2>

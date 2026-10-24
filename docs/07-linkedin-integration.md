@@ -74,3 +74,10 @@ Both LinkedIn adapters identify a post by the URN in its URL, decoded first, so 
 form in `Shares.csv` and the plain form in the analytics export match. Every stored post lists
 the providers that contributed to it, and every metric snapshot records its provider, observed
 day, covered period and import job.
+
+## Publishing
+
+`publish` is implemented through the official Posts API with the member's own consent
+(three-legged OAuth, `w_member_social`), configured with the self-hoster's LinkedIn app. The
+assumed endpoint shapes are listed in ADR 0025; they have not been exercised against LinkedIn.
+Without a configured app, Polaris offers only manual posting: copyable text and a share link.

@@ -89,3 +89,11 @@ Avoid introducing Redis solely because it is familiar.
 **Status:** Assumed, awaiting review. See [ADR 0017](../adr/0017-search-and-embeddings-in-sqlite.md), which supersedes ADR 0013.
 
 The semantic-search layer may use PostgreSQL/pgvector or another vector store. Do not add a separate vector database before the need is demonstrated.
+
+## OD-009 - Posting as a member through the Posts API
+
+**Status:** Open. See [ADR 0025](../adr/0025-publishing-providers.md).
+
+LinkedIn's Posts API documentation only shows organization authors. Whether `w_member_social`
+lets a self-serve app post as `urn:li:person:{id}` through `/rest/posts`, and whether the
+3,000-character limit counts the escaped or the plain text, needs confirming against a real app.

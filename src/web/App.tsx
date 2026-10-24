@@ -17,7 +17,9 @@ import { OverviewPage } from "./pages/Overview";
 import { PlannerPage } from "./pages/Planner";
 import { PostDetailPage } from "./pages/PostDetail";
 import { SettingsPage } from "./pages/Settings";
+import { ApprovalsPage } from "./pages/Approvals";
 import { CampaignsPage } from "./pages/Campaigns";
+import { StudioPage } from "./pages/Studio";
 import { ResearchPage } from "./pages/Research";
 import { SearchPage } from "./pages/Search";
 import { TrendsPage } from "./pages/Trends";
@@ -50,7 +52,14 @@ const NAV: { title: string; links: [string, string][] }[] = [
       ["/experiments", "Experiments"],
     ],
   },
-  { title: "Action", links: [["/planner", "Planner"]] },
+  {
+    title: "Action",
+    links: [
+      ["/planner", "Planner"],
+      ["/studio", "Studio"],
+      ["/approvals", "Approvals"],
+    ],
+  },
   { title: "Polaris", links: [["/settings", "Settings"]] },
 ];
 
@@ -187,6 +196,8 @@ function Shell() {
           <Route path="/strategy" element={<StrategyPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/funnel" element={<FunnelPage />} />
+          <Route path="/studio" element={<StudioPage />} />
+          <Route path="/approvals" element={<ApprovalsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
