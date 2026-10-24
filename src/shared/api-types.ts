@@ -114,6 +114,21 @@ export interface InsightDto {
   basedOnDemoData: boolean;
 }
 
+interface AccountDto {
+  id: string;
+  userId: string;
+  displayName: string | null;
+  headline: string | null;
+  profileUrl: string | null;
+}
+
+/** GET /imports/status. */
+export interface ImportStatusDto {
+  account: AccountDto | null;
+  hasLinkedInData: boolean;
+  hasDemoData: boolean;
+}
+
 export interface DataStatusDto {
   asOf: string | null;
   hasLinkedInData: boolean;
@@ -167,4 +182,124 @@ export interface AudienceDto {
   dimensions: { dimension: string; segments: { value: string; share: number | null }[] }[];
   followers: SeriesPointDto[];
   newFollowers: SeriesPointDto[];
+}
+
+export type SeriesMetricDto =
+  "impressions" | "engagements" | "followers" | "new_followers" | "posts";
+
+export interface SeriesDto {
+  metric: SeriesMetricDto;
+  granularity: "day" | "week" | "month";
+  from: string;
+  to: string;
+  source: string;
+  points: SeriesPointDto[];
+}
+
+/** One file of a finished import job; `JobDto.result` is `{ files: ImportFileReportDto[] }`. */
+export interface ImportFileReportDto {
+  file: string;
+  provider: string;
+  postsCreated: number;
+  postsUpdated: number;
+  metricSnapshots: number;
+  accountDays: number;
+  audienceSegments: number;
+  warnings: string[];
+}
+
+export interface CredentialDto {
+  provider: "anthropic" | "openai";
+  model: string;
+  keyHint: string;
+  active: boolean;
+}
+
+export interface RecommendationDto {
+  id: string;
+  recommendation: string;
+  rationale: string;
+  evidence: EvidenceDto[];
+  status: "open" | "accepted" | "dismissed" | "done";
+  basedOnDemo: boolean;
+  createdAt: string;
+}
+
+/** `JobDto.result` of a finished question job. */
+export interface AnswerDto {
+  answer: string;
+  caveats: string[];
+  evidence: EvidenceDto[];
+  basedOnDemoData: boolean;
+}
+
+export type GoalMetricDto =
+  "followers" | "impressions" | "engagements" | "posts" | "engagement_rate";
+
+export interface GoalDto {
+  id: string;
+  name: string;
+  metric: GoalMetricDto;
+  /** A ratio (0.03) for engagement_rate, a count otherwise. */
+  target: number;
+  startDate: string;
+  endDate: string;
+  status: "active" | "archived";
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  progress: {
+    current: number | null;
+    baseline: number | null;
+    progress: number | null;
+    expected: number;
+    status: "not_started" | "no_data" | "on_track" | "behind" | "achieved" | "missed";
+    measuredUntil: string;
+  };
+}
+
+export type PostMetricDto =
+  "impressions" | "engagements" | "engagement_rate" | "reactions" | "comments" | "reposts";
+
+export interface ExperimentDto {
+  id: string;
+  goalId: string | null;
+  name: string;
+  hypothesis: string;
+  variable: string;
+  metric: PostMetricDto;
+  /** A ratio (0.03) for engagement_rate, a count otherwise; null means the period before. */
+  baseline: number | null;
+  startDate: string;
+  endDate: string;
+  status: "planned" | "running" | "completed" | "abandoned";
+  result: string;
+  conclusion: string;
+  followUp: string;
+  createdAt: string;
+  updatedAt: string;
+  evaluation: {
+    baseline: number | null;
+    observed: number | null;
+    change: { absolute: number | null; percent: number | null };
+    sampleSize: number;
+    baselineSampleSize: number | null;
+    baselinePeriod: PeriodDto | null;
+    verdict: "insufficient_data" | "higher" | "lower" | "no_clear_change";
+  };
+}
+
+export type PlanStatusDto = "idea" | "drafting" | "planned" | "published" | "dropped";
+
+export interface PlanItemDto {
+  id: string;
+  title: string;
+  concept: string;
+  targetTopic: string;
+  plannedDate: string | null;
+  status: PlanStatusDto;
+  draft: string;
+  postId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

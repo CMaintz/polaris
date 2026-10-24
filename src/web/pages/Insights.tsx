@@ -1,30 +1,18 @@
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
-import type { EvidenceDto, InsightDto } from "../../shared/api-types";
+import type {
+  AnswerDto as Answer,
+  EvidenceDto,
+  InsightDto,
+  RecommendationDto as Recommendation,
+} from "../../shared/api-types";
 import { patch } from "../lib/api";
-import { formatDate, formatPeriod, formatValue } from "../lib/format";
+import { formatDate } from "../lib/format";
 import { useResource, useStartJob } from "../lib/hooks";
 import { useMutation } from "../lib/mutation";
-import { InsightCard } from "../components/content";
+import { EvidenceList, InsightCard } from "../components/content";
 import { ResourceView } from "../components/resource";
 import { ErrorBox, JobLine, PageHead } from "../components/ui";
-
-interface Recommendation {
-  id: string;
-  recommendation: string;
-  rationale: string;
-  evidence: EvidenceDto[];
-  status: "open" | "accepted" | "dismissed" | "done";
-  basedOnDemo: boolean;
-  createdAt: string;
-}
-
-interface Answer {
-  answer: string;
-  caveats: string[];
-  evidence: EvidenceDto[];
-  basedOnDemoData: boolean;
-}
 
 export function InsightsPage() {
   const insights = useResource<{ insights: InsightDto[] }>("/ai/insights?scope=account");
@@ -129,34 +117,20 @@ function Ask({ disabled }: { disabled: boolean }) {
               ))}
             </ul>
           )}
-          <EvidenceList evidence={answer.evidence} />
+          <CitedEvidence evidence={answer.evidence} />
         </div>
       )}
     </form>
   );
 }
 
-function EvidenceList({ evidence }: { evidence: EvidenceDto[] }) {
-  if (evidence.length === 0)
-    return <p className="small muted">The answer cited no measured evidence.</p>;
+function CitedEvidence({ evidence }: { evidence: EvidenceDto[] }) {
+  const empty = "The answer cited no measured evidence.";
+  if (evidence.length === 0) return <EvidenceList evidence={evidence} empty={empty} />;
   return (
     <details open>
       <summary>Evidence</summary>
-      <ul className="small">
-        {evidence.map((e) => (
-          <li key={e.id}>
-            {e.label}: <strong>{formatValue(e.value, e.unit)}</strong>
-            {e.period && ` (${formatPeriod(e.period)})`}{" "}
-            <span className="muted">from {e.source}</span>
-            {e.postId && (
-              <>
-                {" "}
-                <Link to={`/content/${e.postId}`}>open post</Link>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      <EvidenceList evidence={evidence} empty={empty} />
     </details>
   );
 }
@@ -196,7 +170,7 @@ function RecommendationItem({ item: r, onChange }: { item: Recommendation; onCha
       {r.status === "accepted" && <span className="badge">Accepted</span>}
       {r.basedOnDemo && <span className="badge">Demo data</span>}
       <div className="small secondary">{r.rationale}</div>
-      <EvidenceList evidence={r.evidence} />
+      <CitedEvidence evidence={r.evidence} />
       <ErrorBox error={setStatus.error} />
       <div className="row" style={{ marginTop: 6 }}>
         {STATUS_ACTIONS.filter(([s]) => s !== r.status).map(([status, label]) => (
