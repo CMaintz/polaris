@@ -1,4 +1,4 @@
-import type { Confidence, EvidenceItem } from "../../domain/insights";
+import type { Confidence, EvidenceItem } from "../../domain/insight-types";
 import type { EvidencePack } from "./evidence";
 
 const LOWER: Record<Confidence, Confidence> = { high: "medium", medium: "low", low: "low" };

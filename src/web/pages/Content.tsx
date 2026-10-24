@@ -1,11 +1,12 @@
 import { useSearchParams } from "react-router-dom";
-import type { PostPageDto } from "../../shared/api-types";
+import type { PostPageDto } from "../../shared/post-types";
 import { PAGE_PARAM, withParam } from "../lib/filters";
-import { useResource } from "../lib/hooks";
+import { ContentTypeField, Field } from "../components/common/fields";
+import { PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
+import { PostTable } from "../components/content/post-table";
+import { useResource } from "../lib/hooks/resource";
 import { metricOptions } from "../lib/metrics";
-import { PostTable } from "../components/content";
-import { ResourceView } from "../components/resource";
-import { ContentTypeField, Field, PageHead } from "../components/ui";
 
 const PAGE_SIZE = 25;
 const SORTS: [string, string][] = [

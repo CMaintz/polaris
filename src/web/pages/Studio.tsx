@@ -1,13 +1,17 @@
 import { type FormEvent, useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { DraftDetailDto, DraftDto } from "../../shared/action-types";
-import { AiDraftForm, TextEditor, Versions } from "../components/action-editor";
-import { PublicationCard, ScheduleForm } from "../components/action-publish";
-import { ResourceView } from "../components/resource";
-import { Empty, ErrorBox, PageHead } from "../components/ui";
+import { AiDraftForm } from "../components/action/ai-draft-form";
+import { TextEditor } from "../components/action/draft-editor";
+import { PublicationCard } from "../components/action/publication-card";
+import { ScheduleForm } from "../components/action/schedule-form";
+import { Versions } from "../components/action/versions";
+import { ErrorBox } from "../components/common/feedback";
+import { Empty, PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
+import { useMutation } from "../lib/hooks/mutation";
+import { useResource } from "../lib/hooks/resource";
 import { post } from "../lib/api";
-import { useResource } from "../lib/hooks";
-import { useMutation } from "../lib/mutation";
 
 export function StudioPage() {
   const [params, setParams] = useSearchParams();

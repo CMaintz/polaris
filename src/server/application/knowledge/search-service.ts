@@ -4,36 +4,17 @@ import type {
   SearchMode,
   SearchResponseDto,
 } from "../../../shared/knowledge-types";
-import { type Clock, nowIso } from "../clock";
-import type {
-  Embedder,
-  EmbedderSource,
-  InteractionRecorder,
-  KeywordIndex,
-  LexicalHit,
-  SearchFilters,
-  TermMode,
-  VectorStore,
-} from "./ports";
+import { nowIso } from "../clock";
+import { type MeaningDeps, MeaningSearch } from "./meaning-search";
+import type { SearchFilters, TermMode } from "./ports";
+import { type Ranked, fuse, lexicalOnly } from "./ranking";
 import { segments } from "./snippets";
-import { type Neighbour, fuseRanks, nearest } from "./ranking";
-import { recordedEmbedding } from "./embedding-call";
 import { queryTerms } from "./terms";
 
 export const MAX_QUERY = 200;
 const CANDIDATES = 50;
-// text-embedding-3-small scores unrelated English text around 0.1 to 0.2; below this floor
-// a "match" is noise (ADR 0017).
-const SIMILARITY_FLOOR = 0.3;
-const KEYWORDS_SHOWN = "Showing keyword matches.";
 
-export interface SearchDeps {
-  index: KeywordIndex;
-  vectors: VectorStore;
-  embedders: EmbedderSource;
-  recorder: InteractionRecorder;
-  clock: Clock;
-}
+export type SearchDeps = MeaningDeps;
 
 export interface SearchQuery {
   q: string;
@@ -50,19 +31,11 @@ export interface ContextCandidate {
   reason: string;
 }
 
-interface Ranked {
-  postId: string;
-  lexical: LexicalHit | null;
-  similarity: number | null;
-}
-
 interface Ranking {
   ranked: Ranked[];
   used: SearchMode;
   notice: string | null;
 }
-
-type Meaning = { neighbours: Neighbour[]; notice: string | null } | { fallback: string };
 
 interface RankRequest {
   text: string;
@@ -73,7 +46,11 @@ interface RankRequest {
 }
 
 export class KnowledgeSearch {
-  constructor(private readonly deps: SearchDeps) {}
+  private readonly meaning: MeaningSearch;
+
+  constructor(private readonly deps: SearchDeps) {
+    this.meaning = new MeaningSearch(deps);
+  }
 
   async search(accountId: string, query: SearchQuery): Promise<SearchResponseDto> {
     const ranking = await this.rank(accountId, {
@@ -83,22 +60,7 @@ export class KnowledgeSearch {
       filters: query.filters,
       jobId: null,
     });
-    const top = ranking.ranked.slice(0, query.limit);
-    const details = new Map(
-      (
-        await this.deps.index.details(
-          accountId,
-          top.map((r) => r.postId),
-        )
-      ).map((d) => [d.postId, d]),
-    );
-    const results = top.flatMap((r): SearchHitDto[] => {
-      const d = details.get(r.postId);
-      if (!d) return [];
-      const { excerpt, ...rest } = d;
-      const snippet = r.lexical ? segments(r.lexical.marked) : [{ text: excerpt, hit: false }];
-      return [{ ...rest, snippet, matchedBy: kinds(r), similarity: r.similarity }];
-    });
+    const results = await this.hits(accountId, ranking.ranked.slice(0, query.limit));
     return { requested: query.mode, used: ranking.used, notice: ranking.notice, results };
   }
 
@@ -143,69 +105,26 @@ export class KnowledgeSearch {
     );
     if (!request.meaning)
       return { ranked: lexical.map(lexicalOnly), used: "lexical", notice: null };
-    const meaning = await this.meaning(accountId, request);
+    const meaning = await this.meaning.neighbours(accountId, { ...request, limit: CANDIDATES });
     if ("fallback" in meaning)
       return { ranked: lexical.map(lexicalOnly), used: "lexical", notice: meaning.fallback };
     return { ranked: fuse(lexical, meaning.neighbours), used: "semantic", notice: meaning.notice };
   }
 
-  private async meaning(accountId: string, request: RankRequest): Promise<Meaning> {
-    const owner = await this.deps.index.ownerOf(accountId);
-    if (!owner) return { fallback: "Meaning search is not available for this account." };
-    const { embedder, reason } = await this.deps.embedders.forUser(owner);
-    if (!embedder) return { fallback: `${reason} ${KEYWORDS_SHOWN}` };
-    const stored = await this.deps.vectors.vectors(accountId, embedder.model);
-    if (stored.length === 0)
-      return {
-        fallback: `No posts are indexed for meaning search yet. Run Re-index. ${KEYWORDS_SHOWN}`,
-      };
-    const query = await this.embedQuery(owner, embedder, request);
-    if (typeof query === "string") return { fallback: query };
-    const allowed = await this.deps.index.filteredIds(accountId, request.filters);
-    const options = { allowed, floor: SIMILARITY_FLOOR, limit: CANDIDATES };
-    const neighbours = nearest(query, stored, options);
-    return { neighbours, notice: await this.coverageNotice(accountId, stored.length) };
+  private async hits(accountId: string, top: Ranked[]): Promise<SearchHitDto[]> {
+    const found = await this.deps.index.details(
+      accountId,
+      top.map((r) => r.postId),
+    );
+    const details = new Map(found.map((d) => [d.postId, d]));
+    return top.flatMap((r): SearchHitDto[] => {
+      const d = details.get(r.postId);
+      if (!d) return [];
+      const { excerpt, ...rest } = d;
+      const snippet = r.lexical ? segments(r.lexical.marked) : [{ text: excerpt, hit: false }];
+      return [{ ...rest, snippet, matchedBy: kinds(r), similarity: r.similarity }];
+    });
   }
-
-  private async embedQuery(owner: string, embedder: Embedder, request: RankRequest) {
-    const context = {
-      userId: owner,
-      jobId: request.jobId,
-      promptName: "query-embedding",
-      promptVersion: "v1",
-      inputSummary: { purpose: "search", texts: 1, includesPostText: false },
-    };
-    try {
-      const [vector] = await recordedEmbedding(this.deps, embedder, context, [request.text]);
-      return vector as Float32Array;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return `Meaning search failed (${message}). ${KEYWORDS_SHOWN}`;
-    }
-  }
-
-  private async coverageNotice(accountId: string, embedded: number): Promise<string | null> {
-    const indexed = await this.deps.index.indexedCount(accountId);
-    if (embedded >= indexed) return null;
-    return `${embedded} of ${indexed} posts are indexed for meaning search. Run Re-index to include the rest.`;
-  }
-}
-
-const lexicalOnly = (hit: LexicalHit): Ranked => ({
-  postId: hit.postId,
-  lexical: hit,
-  similarity: null,
-});
-
-function fuse(lexical: LexicalHit[], neighbours: Neighbour[]): Ranked[] {
-  const byId = new Map(lexical.map((h) => [h.postId, h]));
-  const similarity = new Map(neighbours.map((n) => [n.postId, n.similarity]));
-  const order = fuseRanks([lexical.map((h) => h.postId), neighbours.map((n) => n.postId)]);
-  return order.map((postId) => ({
-    postId,
-    lexical: byId.get(postId) ?? null,
-    similarity: similarity.get(postId) ?? null,
-  }));
 }
 
 function kinds(r: Ranked): MatchKind[] {

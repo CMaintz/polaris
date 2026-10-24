@@ -82,7 +82,7 @@ export function rollingAverage(points: readonly SeriesPoint[], window: number): 
   });
 }
 
-interface PeriodSummary {
+export interface PeriodSummary {
   from: string;
   to: string;
   value: number | null;

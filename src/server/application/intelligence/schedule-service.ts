@@ -6,7 +6,8 @@ import type {
   ScheduleInput,
   ScheduleParams,
 } from "../../../shared/intelligence-types";
-import type { PeerStore, ScheduleStore } from "./ports";
+import type { PeerStore } from "./research-ports";
+import type { ScheduleStore } from "./schedule-ports";
 
 const MAX_SCHEDULES = 20;
 const MAX_QUESTION = 500;

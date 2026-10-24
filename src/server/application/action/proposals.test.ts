@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ConflictError, NotFoundError } from "../errors";
 import { planningAppliers } from "./appliers";
-import type { NewProposal, PlanningWriter, ProposalApplier } from "./ports";
+import type { PlanningWriter } from "./ports";
+import type { NewProposal, ProposalApplier } from "./proposal-ports";
 import { ProposalService } from "./proposals";
 import {
   actionKit,

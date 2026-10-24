@@ -8,7 +8,7 @@ import {
   postingTimes,
   segmentPerformance,
 } from "../../domain/posts";
-import type { KpiDto } from "../../../shared/api-types";
+import type { KpiDto } from "../../../shared/analytics-types";
 import { accountKpis } from "./account-series";
 import { holdsDataset, loadScopedData } from "./account-data";
 import type { ContentQueries } from "./ports";

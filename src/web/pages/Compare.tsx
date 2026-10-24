@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { ComparisonDto } from "../../shared/account-types";
-import type { KpiDto } from "../../shared/api-types";
+import type { KpiDto } from "../../shared/analytics-types";
+import { DataTable } from "../components/common/data-table";
+import { Empty, PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
 import { PLATFORM_NAMES } from "../lib/accounts";
+import { useResource } from "../lib/hooks/resource";
 import { formatDate, formatPeriod, formatValue } from "../lib/format";
-import { useResource } from "../lib/hooks";
-import { ResourceView } from "../components/resource";
-import { DataTable, Empty, PageHead } from "../components/ui";
 
 const PERIODS = [7, 28, 90];
 

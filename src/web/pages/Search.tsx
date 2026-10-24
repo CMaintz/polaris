@@ -2,10 +2,11 @@ import { type FormEvent, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { IndexStatusDto, SearchHitDto, SearchResponseDto } from "../../shared/knowledge-types";
 import { contentTypeLabel, formatDate } from "../lib/format";
-import { useResource } from "../lib/hooks";
-import { IndexStatusCard, Snippet } from "../components/knowledge";
-import { ResourceView } from "../components/resource";
-import { ContentTypeField, Field, PageHead } from "../components/ui";
+import { ContentTypeField, Field } from "../components/common/fields";
+import { PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
+import { IndexStatusCard, Snippet } from "../components/knowledge/search";
+import { useResource } from "../lib/hooks/resource";
 
 const FIELDS = ["q", "mode", "type", "topic", "theme", "from", "to"] as const;
 type Draft = Record<(typeof FIELDS)[number], string>;

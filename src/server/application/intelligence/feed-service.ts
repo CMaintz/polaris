@@ -6,7 +6,7 @@ import { addDays, todayUtc } from "../../domain/dates";
 import { dedupeKey } from "../../domain/trends";
 import type { FeedDto } from "../../../shared/intelligence-types";
 import { type FeedRefreshPayload, feedRefreshJob, feedRefreshPayload } from "./jobs";
-import type { Feed, FeedFetcher, FeedStore } from "./ports";
+import type { Feed, FeedFetcher, FeedStore } from "./feed-ports";
 
 const MAX_FEEDS = 50;
 const MAX_URL = 2000;

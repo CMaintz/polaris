@@ -1,13 +1,17 @@
-import type { GoalDto } from "../../shared/api-types";
+import type { GoalDto } from "../../shared/planning-types";
 import { del, post } from "../lib/api";
 import { formatDate, formatPercent } from "../lib/format";
-import { inDays, today, useForm } from "../lib/forms";
-import { useResource } from "../lib/hooks";
+import { ErrorBox } from "../components/common/feedback";
+import { DateRangeFields, Field } from "../components/common/fields";
+import { Empty, PageHead } from "../components/common/layout";
+import { Meter } from "../components/common/meter";
+import { MetricValueFields } from "../components/common/metric-fields";
+import { ResourceView } from "../components/common/resource-view";
+import { inDays, today } from "../lib/dates";
+import { useForm } from "../lib/hooks/form";
+import { useMutation } from "../lib/hooks/mutation";
+import { useResource } from "../lib/hooks/resource";
 import { GOAL_METRICS, formatMetric, goalMetricLabel, parseMetricInput } from "../lib/metrics";
-import { useMutation } from "../lib/mutation";
-import { MetricValueFields } from "../components/metric-fields";
-import { ResourceView } from "../components/resource";
-import { DateRangeFields, Empty, ErrorBox, Field, Meter, PageHead } from "../components/ui";
 
 const STATUS: Record<GoalDto["progress"]["status"], string> = {
   not_started: "Not started",

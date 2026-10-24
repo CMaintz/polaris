@@ -1,10 +1,10 @@
-import type { PublishingProvider } from "../../application/action/ports";
+import type { PublishingProvider } from "../../application/action/provider-ports";
 
 // LinkedIn's feed composer opens prefilled from this URL. It is not a documented API, which
 // is why it is only a convenience next to the copyable text (ADR 0025).
 const SHARE_URL = "https://www.linkedin.com/feed/?shareActive=true&text=";
 
-export function shareLink(text: string): string {
+function shareLink(text: string): string {
   return `${SHARE_URL}${encodeURIComponent(text)}`;
 }
 

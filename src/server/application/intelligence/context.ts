@@ -2,7 +2,7 @@ import type { ContentQueries } from "../analytics/ports";
 import { displayText } from "../../domain/content";
 import { totalEngagements } from "../../domain/metrics";
 
-export interface TopPost {
+interface TopPost {
   id: string;
   label: string;
   text: string;

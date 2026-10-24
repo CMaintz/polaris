@@ -1,17 +1,21 @@
 import { Link } from "react-router-dom";
-import type { DashboardDto, InsightDto } from "../../shared/api-types";
+import type { InsightDto } from "../../shared/ai-types";
+import type { DashboardDto } from "../../shared/analytics-types";
 import { tzOffset } from "../lib/api";
 import { formatDate, formatNumber } from "../lib/format";
-import { useResource } from "../lib/hooks";
-import { TrendChart } from "../components/charts";
-import { InsightCard, PostTable } from "../components/content";
-import { ErrorBox, KpiTile, Loading, NeedsData, PageHead } from "../components/ui";
+import { KpiTile } from "../components/charts/kpi-tile";
+import { TrendChart } from "../components/charts/trend-chart";
+import { ErrorBox, Pending } from "../components/common/feedback";
+import { NeedsData, PageHead } from "../components/common/layout";
+import { InsightCard } from "../components/content/insight-card";
+import { PostTable } from "../components/content/post-table";
+import { useResource } from "../lib/hooks/resource";
 
 export function OverviewPage() {
   const dashboard = useResource<DashboardDto>(`/dashboard?days=28&tz=${tzOffset()}`);
   const ai = useResource<{ insights: InsightDto[] }>("/ai/insights?scope=account");
   const data = dashboard.data;
-  if (!data) return dashboard.error ? <ErrorBox error={dashboard.error} /> : <Loading />;
+  if (!data) return <Pending error={dashboard.error} />;
   if (!data.status.asOf) {
     return (
       <>

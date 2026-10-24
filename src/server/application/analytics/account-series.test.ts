@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { KpiDto } from "../../../shared/api-types";
+import type { KpiDto } from "../../../shared/analytics-types";
 import { type Loaded, rateKpi } from "./account-series";
 
 const day = (d: string, impressions: number | null, engagements: number | null) => ({

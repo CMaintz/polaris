@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AI_JOB } from "../ai/ai-service";
 import type { NewJob } from "../jobs/ports";
-import type { DueSchedule } from "./ports";
+import type { DueSchedule } from "./schedule-ports";
 
 export const RESEARCH_JOB = "intelligence.research";
 export const FEED_REFRESH_JOB = "intelligence.feed_refresh";

@@ -15,7 +15,7 @@ export interface PillarSpec {
   targetShare: number;
 }
 
-export type PillarStatus = "under" | "over" | "on_target" | "too_few_posts" | "no_data";
+type PillarStatus = "under" | "over" | "on_target" | "too_few_posts" | "no_data";
 
 export interface PillarActual {
   pillarId: string;

@@ -5,6 +5,7 @@ import { buildXlsx } from "../testing/xlsx";
 import {
   type TestContainer,
   importAndWait,
+  runRawJob,
   signedInClient,
   testContainer,
   uploadFiles,
@@ -162,12 +163,7 @@ describe("import job payloads", () => {
   it("fails a job whose payload does not parse instead of guessing", async () => {
     const container = testContainer();
     const client = await signedInClient(container);
-    const job = await container.jobs.enqueue(
-      { userId: client.userId, type: "import", payload: { demo: "yes" } },
-      container.clock().toISOString(),
-    );
-    await container.worker.drain();
-    expect(await container.jobs.findForUser(client.userId, job.id)).toMatchObject({
+    expect(await runRawJob(container, client, "import", { demo: "yes" })).toMatchObject({
       status: "failed",
       retryCount: 0,
     });

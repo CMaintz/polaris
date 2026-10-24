@@ -3,7 +3,7 @@ import type {
   Publication,
   PublicationOutcome,
   PublicationStore,
-} from "../../application/action/ports";
+} from "../../application/action/publication-ports";
 import { ConflictError } from "../../application/errors";
 import type { PublicationStatus } from "../../domain/drafts";
 import type { Db } from "../db/database";

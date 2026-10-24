@@ -1,8 +1,9 @@
 import { GENERIC_CSV, LINKEDIN_DATA_EXPORT, displayText } from "../../domain/content";
-import type { Insight } from "../../domain/insights";
+import type { Insight } from "../../domain/insight-types";
 import { type PostMetrics, engagementRate, totalEngagements } from "../../domain/metrics";
 import type { Band, PostRecord, SegmentPerformance } from "../../domain/posts";
-import type { InsightDto, MetricsDto, PostSummaryDto, SegmentDto } from "../../../shared/api-types";
+import type { InsightDto } from "../../../shared/ai-types";
+import type { MetricsDto, PostSummaryDto, SegmentDto } from "../../../shared/post-types";
 
 const PROVIDER_LABELS: Record<string, string> = {
   [LINKEDIN_DATA_EXPORT]: "LinkedIn data archive",

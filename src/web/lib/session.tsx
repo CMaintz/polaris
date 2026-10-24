@@ -1,6 +1,7 @@
 import { type ReactNode, createContext, useContext } from "react";
 import type { AccountSummaryDto } from "../../shared/account-types";
-import type { ImportStatusDto, UserDto } from "../../shared/api-types";
+import type { UserDto } from "../../shared/core-types";
+import type { ImportStatusDto } from "../../shared/import-types";
 
 export interface Session {
   user: UserDto;

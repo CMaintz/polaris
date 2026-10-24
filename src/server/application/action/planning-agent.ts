@@ -9,13 +9,14 @@ import { type EvidencePack, accountEvidence, disclosure } from "../ai/evidence";
 import { ground } from "../ai/grounding";
 import { renderPrompt } from "../ai/prompts";
 import { type CallDeps, modelCall } from "./ai-call";
-import type { AccountFactsSource, NewProposal, PlanItems } from "./ports";
+import type { AccountFactsSource, PlanItems } from "./ports";
+import type { NewProposal } from "./proposal-ports";
 import { CONTENT_PLAN, type PlanOutput, renderPlanContext } from "./prompts";
 import type { ProposalService } from "./proposals";
 import { z } from "zod";
 
 export const PLAN_JOB = "action.plan";
-export const MAX_PLAN_WEEKS = 8;
+const MAX_PLAN_WEEKS = 8;
 const MAX_ITEMS = 12;
 
 const payloadSchema = z.object({
@@ -90,7 +91,7 @@ export class PlanningAgent {
  * ids are dropped; a proposal left with no real evidence, or dated outside the window, is
  * dropped entirely rather than shown as if it were grounded.
  */
-export function toProposals(
+function toProposals(
   plan: PlanOutput,
   pack: EvidencePack,
   window: { from: string; to: string },

@@ -4,7 +4,7 @@ import type {
   ResearchSourceDto,
 } from "../../../shared/intelligence-types";
 import type { AccountContext } from "./context";
-import type { WebSource } from "./ports";
+import type { WebSource } from "./research-ports";
 import type { ReportOutput } from "./prompts";
 
 const MAX_FINDINGS = 8;

@@ -10,7 +10,7 @@ import type { Config } from "../config";
 import { SdkProviderFactory } from "../infrastructure/ai/provider-factory";
 import { buildAction } from "./action";
 import { buildAiKeys, buildAiService } from "./ai";
-import { type Overrides, buildCore } from "./core";
+import { type Core, type Overrides, buildCore } from "./core";
 import { buildImports } from "./imports";
 import { buildIntelligence } from "./intelligence";
 import { buildKnowledge } from "./knowledge";
@@ -18,6 +18,9 @@ import { buildAccount, buildAccounts, buildPlanning } from "./planning";
 import { buildStrategy } from "./strategy";
 
 export type { Overrides } from "./core";
+
+type Intelligence = ReturnType<typeof buildIntelligence>;
+type Action = ReturnType<typeof buildAction>;
 
 // Meaning search needs embeddings of the new posts; keyword search syncs on its own.
 function reindexAfter(
@@ -29,6 +32,22 @@ function reindexAfter(
     await indexer.start(job.userId, result.accountId);
     return result;
   };
+}
+
+// The job queue has no due times, so each tick enqueues due schedules and publications.
+function buildWorker(
+  core: Core,
+  handlers: Record<string, JobHandler>,
+  due: { intelligence: Intelligence; action: Action },
+  overrides: Overrides,
+) {
+  return new JobWorker(core.jobs, handlers, core.clock, {
+    tick: async (now) => {
+      await due.intelligence.scheduler.tick(now);
+      await due.action.publishing.enqueueDue(now.toISOString());
+    },
+    ...overrides.worker,
+  });
 }
 
 /** The composition root: the only place that knows which adapter backs which port. */
@@ -59,13 +78,7 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     ...intelligence.handlers,
     ...action.handlers,
   };
-  const worker = new JobWorker(core.jobs, handlers, core.clock, {
-    tick: async (now) => {
-      await intelligence.scheduler.tick(now);
-      await action.publishing.enqueueDue(now.toISOString());
-    },
-    ...overrides.worker,
-  });
+  const worker = buildWorker(core, handlers, { intelligence, action }, overrides);
   const account = buildAccount(core);
   const strategy = buildStrategy(core);
   const services = {

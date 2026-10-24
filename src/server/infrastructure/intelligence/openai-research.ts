@@ -5,7 +5,7 @@ import type {
   WebResearchProvider,
   WebResearchRequest,
   WebResearchResult,
-} from "../../application/intelligence/ports";
+} from "../../application/intelligence/research-ports";
 import { translateOpenAiError } from "../ai/openai-provider";
 import { uniqueSources } from "./web-sources";
 

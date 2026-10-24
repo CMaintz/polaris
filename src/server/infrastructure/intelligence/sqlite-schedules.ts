@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { DueSchedule, Schedule, ScheduleStore } from "../../application/intelligence/ports";
+import type {
+  DueSchedule,
+  Schedule,
+  ScheduleStore,
+} from "../../application/intelligence/schedule-ports";
 import type { Cadence, ScheduleKind, ScheduleParams } from "../../../shared/intelligence-types";
 import { type Db, fromJson, toJson } from "../db/database";
 

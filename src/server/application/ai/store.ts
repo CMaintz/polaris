@@ -1,4 +1,4 @@
-import type { Confidence, EvidenceItem } from "../../domain/insights";
+import type { Confidence, EvidenceItem } from "../../domain/insight-types";
 import type { AiProviderId } from "./ports";
 
 export interface StoredCredential {

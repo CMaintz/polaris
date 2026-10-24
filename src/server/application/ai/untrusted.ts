@@ -2,7 +2,7 @@
 // them is data, never instructions (docs/09), so every prompt fences it with these.
 
 /** Escapes text so it cannot close or open the tags that fence it. */
-export function escapeTags(text: string): string {
+function escapeTags(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
