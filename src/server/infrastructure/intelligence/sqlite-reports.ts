@@ -1,10 +1,9 @@
+import type { DigestStore, StoredDigest } from "../../application/intelligence/feed-ports";
 import type {
-  DigestStore,
   PendingReport,
   ReportStore,
-  StoredDigest,
   StoredReport,
-} from "../../application/intelligence/ports";
+} from "../../application/intelligence/research-ports";
 import type { ResearchReportBody } from "../../../shared/intelligence-types";
 import { type Db, fromJson, toJson } from "../db/database";
 

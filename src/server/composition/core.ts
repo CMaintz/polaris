@@ -1,5 +1,6 @@
 import type { AiProviderFactory } from "../application/ai/ports";
-import type { FeedFetcher, WebResearchFactory } from "../application/intelligence/ports";
+import type { FeedFetcher } from "../application/intelligence/feed-ports";
+import type { WebResearchFactory } from "../application/intelligence/research-ports";
 import { AuthService } from "../application/auth/auth-service";
 import type { PasswordHasher } from "../application/auth/ports";
 import { type Clock, systemClock } from "../application/clock";

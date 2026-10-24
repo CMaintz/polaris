@@ -7,6 +7,7 @@ import type { EvidenceFacts } from "../application/analytics/evidence-facts";
 import type { Config } from "../config";
 import { AesGcmSecretBox, resolveMasterKey } from "../infrastructure/crypto/secret-box";
 import { SqliteAiStore } from "../infrastructure/db/ai-store";
+import { SqliteInsightStore } from "../infrastructure/db/insight-store";
 import type { Core } from "./core";
 
 export function buildAiKeys(core: Core, config: Config, factory: AiProviderFactory) {
@@ -31,7 +32,7 @@ export function buildAiService(
     ...analysis,
     content,
     resolveAccount,
-    insights: aiStore,
+    insights: new SqliteInsightStore(core.db),
     interactions: aiStore,
     jobs,
     audit,

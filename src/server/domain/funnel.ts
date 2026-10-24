@@ -17,7 +17,7 @@ export interface FunnelInputs {
   newFollowers: readonly DatedValue[];
 }
 
-export interface Ratio {
+interface Ratio {
   value: number | null;
   pairedDays: number;
 }
@@ -42,7 +42,7 @@ function conversions(inputs: FunnelInputs, window: DayWindow) {
   };
 }
 
-export interface Stage {
+interface Stage {
   value: number | null;
   observedDays: number;
 }
@@ -61,7 +61,7 @@ export interface FunnelStep {
   followerConversion: Ratio;
 }
 
-export const PROFILE_VIEWS_UNAVAILABLE =
+const PROFILE_VIEWS_UNAVAILABLE =
   "Profile views are not in the LinkedIn exports Polaris imports, so this stage cannot be measured.";
 
 const UNKNOWN = { value: null, pairedDays: 0 };

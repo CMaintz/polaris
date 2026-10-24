@@ -2,11 +2,17 @@ import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import type { PeerDto, ResearchReportDto } from "../../shared/intelligence-types";
 import { del, post } from "../lib/api";
-import { type Resource, useResource, useStartJob } from "../lib/hooks";
-import { useMutation } from "../lib/mutation";
-import { ExternalLink, ReportCard } from "../components/intelligence";
-import { ResourceView } from "../components/resource";
-import { Empty, ErrorBox, Field, JobLine, PageHead } from "../components/ui";
+import { ErrorBox, JobStatus } from "../components/common/feedback";
+import { Field } from "../components/common/fields";
+import { Empty, PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
+import { ExternalLink } from "../components/intelligence/external-link";
+import { PeerField } from "../components/intelligence/peer-field";
+import { ReportCard } from "../components/intelligence/report-card";
+import { useFields } from "../lib/hooks/form";
+import { useStartJob } from "../lib/hooks/job";
+import { useMutation } from "../lib/hooks/mutation";
+import { type Resource, useResource } from "../lib/hooks/resource";
 
 export function ResearchPage() {
   const reports = useResource<{ items: ResearchReportDto[] }>("/intelligence/research");
@@ -79,18 +85,13 @@ function AskForm({
           placeholder="What are people in my field saying about AI in hiring this month?"
         />
       </Field>
-      <Field label="About a peer (optional)">
-        <select value={peerId} onChange={(e) => setPeerId(e.target.value)}>
-          <option value="">No one in particular</option>
-          {peers.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <ErrorBox error={job.error} />
-      <JobLine job={job.job} />
+      <PeerField
+        label="About a peer (optional)"
+        peers={peers}
+        value={peerId}
+        onChange={setPeerId}
+      />
+      <JobStatus job={job} />
       <div>
         <button className="btn primary" disabled={disabled || job.running}>
           Research
@@ -100,20 +101,18 @@ function AskForm({
   );
 }
 
+const EMPTY_PEER = { name: "", profileUrl: "", notes: "" };
+
 function Peers({ peers }: { peers: Resource<{ items: PeerDto[] }> }) {
-  const [form, setForm] = useState({ name: "", profileUrl: "", notes: "" });
+  const { values: form, setValues: setForm, field } = useFields(EMPTY_PEER);
   const add = useMutation(
     () => post("/intelligence/peers", { ...form, profileUrl: form.profileUrl || null }),
     () => {
-      setForm({ name: "", profileUrl: "", notes: "" });
+      setForm(EMPTY_PEER);
       peers.reload();
     },
   );
   const remove = useMutation((id: string) => del(`/intelligence/peers/${id}`), peers.reload);
-  const field = (name: keyof typeof form) => ({
-    value: form[name],
-    onChange: (e: { target: { value: string } }) => setForm({ ...form, [name]: e.target.value }),
-  });
   return (
     <section className="card stack">
       <h2>Peers to watch</h2>

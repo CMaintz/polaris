@@ -8,7 +8,8 @@ import { PUBLISH_JOB, PublishingService } from "../application/action/publishing
 import type { EvidenceFacts } from "../application/analytics/evidence-facts";
 import type { PlanningService } from "../application/planning/planning-service";
 import type { PlanningStores } from "../application/planning/ports";
-import { SqliteDraftStore, SqliteProposalStore } from "../infrastructure/db/action-store";
+import { SqliteDraftStore } from "../infrastructure/db/draft-store";
+import { SqliteProposalStore } from "../infrastructure/db/proposal-store";
 import {
   SqliteConnectionStore,
   SqliteOAuthStateStore,

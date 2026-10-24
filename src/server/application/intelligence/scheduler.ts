@@ -1,7 +1,7 @@
 import type { JobRepository } from "../jobs/ports";
 import type { Cadence } from "../../../shared/intelligence-types";
 import { scheduledJob } from "./jobs";
-import type { DueSchedule, ScheduleStore } from "./ports";
+import type { DueSchedule, ScheduleStore } from "./schedule-ports";
 
 const CADENCE_MS: Record<Cadence, number> = { daily: 86_400_000, weekly: 7 * 86_400_000 };
 const PENDING = new Set(["queued", "running", "retrying"]);

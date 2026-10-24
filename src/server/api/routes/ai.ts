@@ -4,7 +4,7 @@ import type { AiService } from "../../application/ai/ai-service";
 import type { CredentialService } from "../../application/ai/credentials";
 import { AI_PROVIDERS } from "../../application/ai/ports";
 import type { AiInsight } from "../../application/ai/store";
-import type { InsightDto } from "../../../shared/api-types";
+import type { InsightDto } from "../../../shared/ai-types";
 import { type AppEnv, currentUser, readJson, readQuery, requireUser } from "../http";
 import { toJobDto } from "./jobs";
 
@@ -28,26 +28,25 @@ function toAiInsightDto(insight: AiInsight): InsightDto {
   };
 }
 
-export function aiRoutes(ai: AiService, credentials: CredentialService) {
+function credentialRoutes(credentials: CredentialService) {
+  const save = z.object({ apiKey: z.string(), model: z.string().max(100).optional() });
   return new Hono<AppEnv>()
-    .use(requireUser)
-    .get("/credentials", async (c) =>
-      c.json({ credentials: await credentials.list(currentUser(c).id) }),
-    )
-    .put("/credentials/:provider", async (c) => {
+    .get("/", async (c) => c.json({ credentials: await credentials.list(currentUser(c).id) }))
+    .put("/:provider", async (c) => {
       const id = provider.parse(c.req.param("provider"));
-      const body = await readJson(
-        c,
-        z.object({ apiKey: z.string(), model: z.string().max(100).optional() }),
-      );
+      const body = await readJson(c, save);
       return c.json({
         credential: await credentials.save(currentUser(c).id, id, body.apiKey, body.model),
       });
     })
-    .delete("/credentials/:provider", async (c) => {
+    .delete("/:provider", async (c) => {
       await credentials.remove(currentUser(c).id, provider.parse(c.req.param("provider")));
       return c.body(null, 204);
-    })
+    });
+}
+
+function jobRoutes(ai: AiService) {
+  return new Hono<AppEnv>()
     .post("/reviews/account", async (c) => {
       const body = await readJson(c, z.object({ tz }));
       return c.json(
@@ -66,27 +65,37 @@ export function aiRoutes(ai: AiService, credentials: CredentialService) {
         { job: toJobDto(await ai.ask(currentUser(c).id, body.question, body.tz)) },
         202,
       );
-    })
+    });
+}
+
+function outputRoutes(ai: AiService) {
+  const filter = z.object({
+    scope: z.enum(["account", "post"]).optional(),
+    postId: z.string().optional(),
+  });
+  const status = z.object({ status: z.enum(["open", "accepted", "dismissed", "done"]) });
+  return new Hono<AppEnv>()
     .get("/insights", async (c) => {
-      const filter = readQuery(
-        c,
-        z.object({ scope: z.enum(["account", "post"]).optional(), postId: z.string().optional() }),
-      );
-      const insights = await ai.insights(currentUser(c).id, filter);
+      const insights = await ai.insights(currentUser(c).id, readQuery(c, filter));
       return c.json({ insights: insights.map(toAiInsightDto) });
     })
     .get("/recommendations", async (c) => {
       return c.json({ recommendations: await ai.recommendations(currentUser(c).id) });
     })
     .patch("/recommendations/:id", async (c) => {
-      const { status } = await readJson(
-        c,
-        z.object({ status: z.enum(["open", "accepted", "dismissed", "done"]) }),
-      );
-      await ai.setRecommendationStatus(currentUser(c).id, c.req.param("id"), status);
+      const body = await readJson(c, status);
+      await ai.setRecommendationStatus(currentUser(c).id, c.req.param("id"), body.status);
       return c.body(null, 204);
     })
     .get("/interactions", async (c) => {
       return c.json({ interactions: await ai.interactions(currentUser(c).id) });
     });
+}
+
+export function aiRoutes(ai: AiService, credentials: CredentialService) {
+  return new Hono<AppEnv>()
+    .use(requireUser)
+    .route("/credentials", credentialRoutes(credentials))
+    .route("/", jobRoutes(ai))
+    .route("/", outputRoutes(ai));
 }

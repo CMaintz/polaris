@@ -6,8 +6,8 @@ import { addDays, dayOf } from "./dates";
 const MIN_TOPIC_LENGTH = 2;
 const MAX_JOINED_WORDS = 3;
 
-export const TREND_WINDOWS = { last7: 7, last30: 30, last90: 90 } as const;
-export type TrendWindow = keyof typeof TREND_WINDOWS;
+const TREND_WINDOWS = { last7: 7, last30: 30, last90: 90 } as const;
+type TrendWindow = keyof typeof TREND_WINDOWS;
 
 export interface TopicTrend extends Record<TrendWindow, number> {
   topic: string;

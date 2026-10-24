@@ -1,9 +1,5 @@
-import type { PostSummaryDto, SegmentDto } from "./api-types";
-
-interface PeriodDto {
-  from: string;
-  to: string;
-}
+import type { PeriodDto } from "./core-types";
+import type { PostSummaryDto, SegmentDto } from "./post-types";
 
 export type CampaignStatusDto = "planned" | "active" | "done" | "cancelled";
 
@@ -51,7 +47,7 @@ export interface CampaignPerformanceDto {
   posts: PostSummaryDto[];
 }
 
-export interface PillarInput {
+interface PillarInput {
   name: string;
   description: string;
   topics: string[];

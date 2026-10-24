@@ -1,8 +1,8 @@
 import { displayText } from "../../domain/content";
-import type { EvidenceItem } from "../../domain/insights";
+import type { EvidenceItem } from "../../domain/insight-types";
 import { postMetricValue } from "../../domain/metrics";
 import type { PostRecord, SegmentPerformance } from "../../domain/posts";
-import type { KpiDto } from "../../../shared/api-types";
+import type { KpiDto } from "../../../shared/analytics-types";
 import type { AccountFacts, PostFacts } from "../analytics/evidence-facts";
 import { sourceLabel } from "../analytics/presenters";
 import type { EvidenceSection } from "./intent";

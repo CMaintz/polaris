@@ -5,14 +5,17 @@ import { PeerService } from "../application/intelligence/peer-service";
 import type { Clock } from "../application/clock";
 import type { ResolveAccount } from "../application/content/ports";
 import type { PostSource } from "../application/intelligence/context";
+import type { FeedFetcher } from "../application/intelligence/feed-ports";
 import type {
-  FeedFetcher,
   InteractionRecorder,
   KeySource,
-  Peer,
   ProviderSource,
-  WebResearchFactory,
 } from "../application/intelligence/ports";
+import type {
+  Peer,
+  PeerStore,
+  WebResearchFactory,
+} from "../application/intelligence/research-ports";
 import type { JobRepository } from "../application/jobs/ports";
 import type { Db } from "../infrastructure/db/database";
 import { ResearchService } from "../application/intelligence/research-service";
@@ -63,26 +66,21 @@ export function buildIntelligence(core: Core, ai: AiKeyParts, options: Intellige
   });
 }
 
-export function assembleIntelligence(w: IntelligenceWiring) {
-  const peerStore = new SqliteRecordTable<Peer>(
-    w.db,
-    "peers",
-    ["name", "profileUrl", "notes"],
-    "name COLLATE NOCASE",
-  );
-  const feedStore = new SqliteFeedStore(w.db);
-  const scheduleStore = new SqliteScheduleStore(w.db);
-  const research = new ResearchService({
+function buildResearch(w: IntelligenceWiring, peers: PeerStore) {
+  return new ResearchService({
     keys: w.credentials,
     providers: w.credentials,
     webResearch: w.webResearch ?? createWebResearch,
     reports: new SqliteReportStore(w.db),
-    peers: peerStore,
+    peers,
     posts: w.posts,
     recorder: w.recorder,
     jobs: w.jobs,
     clock: w.clock,
   });
+}
+
+function buildFeeds(w: IntelligenceWiring, feedStore: SqliteFeedStore) {
   const feeds = new FeedService({
     feeds: feedStore,
     fetcher: w.fetcher ?? new HttpFeedFetcher({ allowHttp: w.allowHttpFeeds }),
@@ -99,6 +97,20 @@ export function assembleIntelligence(w: IntelligenceWiring) {
     jobs: w.jobs,
     clock: w.clock,
   });
+  return { feeds, trends };
+}
+
+export function assembleIntelligence(w: IntelligenceWiring) {
+  const peerStore = new SqliteRecordTable<Peer>(
+    w.db,
+    "peers",
+    ["name", "profileUrl", "notes"],
+    "name COLLATE NOCASE",
+  );
+  const feedStore = new SqliteFeedStore(w.db);
+  const scheduleStore = new SqliteScheduleStore(w.db);
+  const research = buildResearch(w, peerStore);
+  const { feeds, trends } = buildFeeds(w, feedStore);
   const handlers: Record<string, JobHandler> = {
     [RESEARCH_JOB]: (job) => research.run(job),
     [FEED_REFRESH_JOB]: (job) => feeds.run(job),

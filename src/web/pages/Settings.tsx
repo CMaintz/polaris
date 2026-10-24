@@ -2,9 +2,9 @@ import { Accounts } from "../components/settings/accounts";
 import { AiKeys } from "../components/settings/ai-keys";
 import { DataControls } from "../components/settings/data-controls";
 import { Imports } from "../components/settings/imports";
-import { Connections } from "../components/action";
-import { SchedulesSection } from "../components/intelligence";
-import { PageHead } from "../components/ui";
+import { Connections } from "../components/action/connections";
+import { PageHead } from "../components/common/layout";
+import { SchedulesSection } from "../components/intelligence/schedules";
 
 export function SettingsPage() {
   return (

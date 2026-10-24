@@ -31,25 +31,28 @@ export interface KnowledgeRouteDeps {
   resolveAccount: ResolveAccount;
 }
 
-export function knowledgeRoutes(deps: KnowledgeRouteDeps) {
-  const account = (c: Context<AppEnv>) => deps.resolveAccount(currentUser(c).id);
+type AccountOf = (c: Context<AppEnv>) => Promise<string | null>;
+
+function searchRoutes(search: KnowledgeRouteDeps["search"], account: AccountOf) {
+  return new Hono<AppEnv>().get("/search", async (c) => {
+    const { q, mode, type, limit, ...rest } = readQuery(c, searchQuery);
+    const accountId = await account(c);
+    const empty: SearchResponseDto = {
+      requested: mode,
+      used: "lexical",
+      notice: null,
+      results: [],
+    };
+    if (!accountId) return c.json(empty);
+    const filters = { ...rest, contentType: type };
+    return c.json(await search.search(accountId, { q, mode, filters, limit }));
+  });
+}
+
+function indexRoutes(indexer: KnowledgeRouteDeps["indexer"], account: AccountOf) {
   return new Hono<AppEnv>()
-    .use(requireUser)
-    .get("/search", async (c) => {
-      const { q, mode, type, limit, ...rest } = readQuery(c, searchQuery);
-      const accountId = await account(c);
-      const empty: SearchResponseDto = {
-        requested: mode,
-        used: "lexical",
-        notice: null,
-        results: [],
-      };
-      if (!accountId) return c.json(empty);
-      const filters = { ...rest, contentType: type };
-      return c.json(await deps.search.search(accountId, { q, mode, filters, limit }));
-    })
     .get("/status", async (c) => {
-      const status = await deps.indexer.status(currentUser(c).id, await account(c));
+      const status = await indexer.status(currentUser(c).id, await account(c));
       const body: IndexStatusDto = {
         ...status,
         lastJob: status.lastJob && toJobDto(status.lastJob),
@@ -58,11 +61,15 @@ export function knowledgeRoutes(deps: KnowledgeRouteDeps) {
     })
     .post("/index", async (c) => {
       await readJson(c, jobBody);
-      const job = await deps.indexer.start(currentUser(c).id, await account(c));
+      const job = await indexer.start(currentUser(c).id, await account(c));
       return c.json({ job: toJobDto(job) }, 202);
-    })
+    });
+}
+
+function themeRoutes(themes: KnowledgeRouteDeps["themes"], account: AccountOf) {
+  return new Hono<AppEnv>()
     .get("/themes", async (c) => {
-      const overview = await deps.themes.overview(currentUser(c).id, await account(c));
+      const overview = await themes.overview(currentUser(c).id, await account(c));
       const body: ThemesDto = {
         ...overview,
         lastJob: overview.lastJob && toJobDto(overview.lastJob),
@@ -71,7 +78,16 @@ export function knowledgeRoutes(deps: KnowledgeRouteDeps) {
     })
     .post("/themes/run", async (c) => {
       await readJson(c, jobBody);
-      const job = await deps.themes.start(currentUser(c).id, await account(c));
+      const job = await themes.start(currentUser(c).id, await account(c));
       return c.json({ job: toJobDto(job) }, 202);
     });
+}
+
+export function knowledgeRoutes(deps: KnowledgeRouteDeps) {
+  const account: AccountOf = (c) => deps.resolveAccount(currentUser(c).id);
+  return new Hono<AppEnv>()
+    .use(requireUser)
+    .route("/", searchRoutes(deps.search, account))
+    .route("/", indexRoutes(deps.indexer, account))
+    .route("/", themeRoutes(deps.themes, account));
 }

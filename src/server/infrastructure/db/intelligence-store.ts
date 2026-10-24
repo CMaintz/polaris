@@ -4,7 +4,7 @@ import type {
   FeedStore,
   ParsedFeedItem,
   StoredFeedItem,
-} from "../../application/intelligence/ports";
+} from "../../application/intelligence/feed-ports";
 import type { Db } from "./database";
 
 interface FeedRow {

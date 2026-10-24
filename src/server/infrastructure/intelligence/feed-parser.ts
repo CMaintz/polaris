@@ -1,4 +1,4 @@
-import type { ParsedFeed, ParsedFeedItem } from "../../application/intelligence/ports";
+import type { ParsedFeed, ParsedFeedItem } from "../../application/intelligence/feed-ports";
 import { FeedParseError, type XmlElement, children, decodeEntities, parseXml, textOf } from "./xml";
 
 export { FeedParseError };

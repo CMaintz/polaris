@@ -1,7 +1,7 @@
 import { type Clock, nowIso } from "../clock";
 import { NotFoundError, ValidationError } from "../errors";
 import type { PeerDto, PeerInput } from "../../../shared/intelligence-types";
-import type { PeerStore } from "./ports";
+import type { PeerStore } from "./research-ports";
 import { httpUrl } from "./research-grounding";
 
 /**

@@ -61,7 +61,7 @@ export function themePerformance(posts: readonly PostRecord[], themes: readonly 
   }));
 }
 
-export interface ThemeWindow {
+interface ThemeWindow {
   from: string;
   to: string;
   coveredDays: number;

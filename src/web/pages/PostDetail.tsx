@@ -1,45 +1,28 @@
 import { Link, useParams } from "react-router-dom";
-import type { InsightDto, PostDetailDto } from "../../shared/api-types";
-import {
-  contentTypeLabel,
-  formatDate,
-  formatNumber,
-  formatPercent,
-  formatPeriod,
-} from "../lib/format";
-import { useResource, useStartJob } from "../lib/hooks";
+import type { InsightDto } from "../../shared/ai-types";
+import type { PostDetailDto } from "../../shared/post-types";
+import { contentTypeLabel, formatDate } from "../lib/format";
+import { useResource } from "../lib/hooks/resource";
 import { linkedInUrl } from "../lib/links";
-import { InsightCard, PostTable } from "../components/content";
-import { ErrorBox, JobLine, Loading, PageHead } from "../components/ui";
+import { ErrorBox, Pending } from "../components/common/feedback";
+import { PageHead } from "../components/common/layout";
+import { ObservationTable } from "../components/content/observation-table";
+import { PerformanceCard } from "../components/content/post-performance";
+import { PostReview } from "../components/content/post-review";
+import { PostTable } from "../components/content/post-table";
 
 export function PostDetailPage() {
   const { id = "" } = useParams();
   const detail = useResource<PostDetailDto>(`/posts/${id}`);
   const insights = useResource<{ insights: InsightDto[] }>(`/ai/insights?scope=post&postId=${id}`);
-  if (!detail.data) return detail.error ? <ErrorBox error={detail.error} /> : <Loading />;
+  if (!detail.data) return <Pending error={detail.error} />;
   const { post: p, observations, baseline, comparable } = detail.data;
   return (
     <div className="stack">
       <PageHead
         title={`${contentTypeLabel(p.contentType)} post, ${formatDate(p.publishedAt, p.timeKnown)}`}
         intro={p.topics.length ? p.topics.map((t) => `#${t}`).join(" ") : undefined}
-        actions={
-          <>
-            {linkedInUrl(p.url) && (
-              <a
-                className="btn"
-                href={linkedInUrl(p.url) ?? undefined}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                Open on LinkedIn
-              </a>
-            )}
-            <Link className="btn" to="/content">
-              Back to content
-            </Link>
-          </>
-        }
+        actions={<PostActions url={p.url} />}
       />
       <div className="grid two">
         <div className="card">
@@ -72,122 +55,18 @@ export function PostDetailPage() {
   );
 }
 
-function PerformanceCard({ post: p, baseline }: Pick<PostDetailDto, "post" | "baseline">) {
+function PostActions({ url }: { url: string | null }) {
+  const href = linkedInUrl(url);
   return (
-    <div className="card">
-      <h2>Performance</h2>
-      <table>
-        <tbody>
-          <MetricRow
-            label="Impressions"
-            value={formatNumber(p.metrics.impressions)}
-            baseline={formatNumber(baseline.medianImpressions)}
-          />
-          <MetricRow
-            label="Engagements"
-            value={formatNumber(p.metrics.engagements)}
-            baseline={formatNumber(baseline.medianEngagements)}
-          />
-          <MetricRow
-            label="Engagement rate"
-            value={formatPercent(p.metrics.engagementRate)}
-            baseline={formatPercent(baseline.medianEngagementRate)}
-          />
-          <MetricRow label="Reactions" value={formatNumber(p.metrics.reactions)} />
-          <MetricRow label="Comments" value={formatNumber(p.metrics.comments)} />
-          <MetricRow label="Reposts" value={formatNumber(p.metrics.reposts)} />
-        </tbody>
-      </table>
-      <p className="muted small">
-        Typical is the median of your other {baseline.withMetrics} posts with metrics.
-      </p>
-    </div>
-  );
-}
-
-function ObservationTable({ observations }: Pick<PostDetailDto, "observations">) {
-  if (observations.length === 0)
-    return <p className="muted">No metrics have been imported for this post.</p>;
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Observed</th>
-            <th>Covers</th>
-            <th>Source</th>
-            <th className="num">Impressions</th>
-            <th className="num">Engagements</th>
-          </tr>
-        </thead>
-        <tbody>
-          {observations.map((o) => (
-            <tr key={`${o.observedOn}-${o.source}`}>
-              <td>{formatDate(o.observedOn)}</td>
-              <td className="small">{o.period ? formatPeriod(o.period) : "Lifetime to date"}</td>
-              <td className="small">{o.source}</td>
-              <td className="num">{formatNumber(o.metrics.impressions)}</td>
-              <td className="num">{formatNumber(o.metrics.engagements)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function MetricRow({
-  label,
-  value,
-  baseline,
-}: {
-  label: string;
-  value: string;
-  baseline?: string;
-}) {
-  return (
-    <tr>
-      <th>{label}</th>
-      <td className="num">
-        <strong>{value}</strong>
-      </td>
-      <td className="num muted small">{baseline ? `typical ${baseline}` : ""}</td>
-    </tr>
-  );
-}
-
-function PostReview({
-  postId,
-  insights,
-  onDone,
-}: {
-  postId: string;
-  insights: InsightDto[];
-  onDone: () => void;
-}) {
-  const { job, error, start, running } = useStartJob(onDone);
-  return (
-    <div className="card">
-      <header>
-        <h2>AI review</h2>
-        <button
-          className="btn primary"
-          onClick={() => start(`/ai/reviews/posts/${postId}`, {})}
-          disabled={running}
-        >
-          Review this post
-        </button>
-      </header>
-      <p className="small secondary">
-        Sends this post's text and metrics, and a few comparable posts, to your AI provider.
-      </p>
-      <ErrorBox error={error} />
-      <JobLine job={job} />
-      <div className="stack" style={{ marginTop: 12 }}>
-        {insights.map((i) => (
-          <InsightCard key={i.id} insight={i} />
-        ))}
-      </div>
-    </div>
+    <>
+      {href && (
+        <a className="btn" href={href} target="_blank" rel="noreferrer noopener">
+          Open on LinkedIn
+        </a>
+      )}
+      <Link className="btn" to="/content">
+        Back to content
+      </Link>
+    </>
   );
 }

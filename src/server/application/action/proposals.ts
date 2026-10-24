@@ -4,7 +4,7 @@ import type { AuditLog } from "../auth/ports";
 import { type Clock, nowIso } from "../clock";
 import { ConflictError, NotFoundError } from "../errors";
 import { PAYLOAD_SCHEMAS } from "./appliers";
-import type { NewProposal, Proposal, ProposalApplier, ProposalStore } from "./ports";
+import type { NewProposal, Proposal, ProposalApplier, ProposalStore } from "./proposal-ports";
 
 export interface ProposalDeps {
   store: ProposalStore;

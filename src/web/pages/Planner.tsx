@@ -1,13 +1,15 @@
 import { useState } from "react";
-import type { PlanItemDto, PlanStatusDto as Status } from "../../shared/api-types";
+import type { PlanItemDto, PlanStatusDto as Status } from "../../shared/planning-types";
 import { del, patch, post } from "../lib/api";
 import { formatDate } from "../lib/format";
-import { useForm } from "../lib/forms";
-import { useResource } from "../lib/hooks";
-import { useMutation } from "../lib/mutation";
-import { ResourceView } from "../components/resource";
-import { AllAccountsPlan } from "../components/plan-all";
-import { Empty, ErrorBox, Field, PageHead } from "../components/ui";
+import { AllAccountsPlan } from "../components/action/all-accounts-plan";
+import { ErrorBox } from "../components/common/feedback";
+import { Field } from "../components/common/fields";
+import { Empty, PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
+import { useForm } from "../lib/hooks/form";
+import { useMutation } from "../lib/hooks/mutation";
+import { useResource } from "../lib/hooks/resource";
 
 const COLUMNS: [Status, string][] = [
   ["idea", "Ideas"],

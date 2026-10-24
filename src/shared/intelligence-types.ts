@@ -28,7 +28,7 @@ export interface ResearchFindingDto {
   sources: ResearchSourceDto[];
 }
 
-export interface ResearchRelationDto {
+interface ResearchRelationDto {
   text: string;
   topics: string[];
   posts: { id: string; label: string }[];
@@ -44,7 +44,7 @@ export interface ResearchReportBody {
   interactionIds: string[];
 }
 
-export type ReportStatus = "running" | "completed" | "failed";
+type ReportStatus = "running" | "completed" | "failed";
 
 export interface ResearchReportDto {
   id: string;
@@ -83,7 +83,7 @@ export interface TrendMatchDto {
   topics: string[];
 }
 
-export interface TopicTrendDto {
+interface TopicTrendDto {
   topic: string;
   last7: number;
   last30: number;

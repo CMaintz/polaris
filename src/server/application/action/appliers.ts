@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ProposalKind } from "../../domain/proposals";
-import type { PlanningWriter, ProposalApplier } from "./ports";
+import type { PlanningWriter } from "./ports";
+import type { ProposalApplier } from "./proposal-ports";
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
 
@@ -44,8 +45,8 @@ export const PAYLOAD_SCHEMAS: Record<ProposalKind, z.ZodType> = {
   goal: goalPayload,
 };
 
-export type PlanItemPayload = z.infer<typeof planItemPayload>;
-export type ExperimentPayload = z.infer<typeof experimentPayload>;
+type PlanItemPayload = z.infer<typeof planItemPayload>;
+type ExperimentPayload = z.infer<typeof experimentPayload>;
 
 export function planningAppliers(planning: PlanningWriter): ProposalApplier[] {
   const planItem: ProposalApplier<PlanItemPayload> = {

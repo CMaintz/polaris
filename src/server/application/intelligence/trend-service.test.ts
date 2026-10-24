@@ -6,7 +6,7 @@ import { SqliteFeedStore } from "../../infrastructure/db/intelligence-store";
 import { SqliteJobRepository } from "../../infrastructure/db/job-repository";
 import { SqliteDigestStore } from "../../infrastructure/intelligence/sqlite-reports";
 import { FeedService } from "./feed-service";
-import type { FeedFetcher, ParsedFeed } from "./ports";
+import type { FeedFetcher, ParsedFeed } from "./feed-ports";
 import { TrendService } from "./trend-service";
 import {
   addAccount,

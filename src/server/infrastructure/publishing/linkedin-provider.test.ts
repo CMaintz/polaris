@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PublishError } from "../../application/action/ports";
+import { PublishError } from "../../application/action/provider-ports";
 import { AesGcmSecretBox } from "../crypto/secret-box";
 import { openDatabase } from "../db/database";
 import { SqliteConnectionStore } from "./connection-store";

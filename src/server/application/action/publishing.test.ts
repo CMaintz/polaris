@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ManualPublishingProvider } from "../../infrastructure/publishing/manual-provider";
 import { ConflictError, ValidationError } from "../errors";
-import { type ConnectionState, PublishError, type PublishingProvider } from "./ports";
+import { type ConnectionState, PublishError, type PublishingProvider } from "./provider-ports";
 import { PUBLISH_JOB, PublishingService } from "./publishing";
 import {
   TEST_CLOCK,

@@ -1,4 +1,4 @@
-import type { OAuthState, OAuthStateStore } from "../../application/action/ports";
+import type { OAuthState, OAuthStateStore } from "../../application/action/provider-ports";
 import type { Db } from "../db/database";
 
 export interface StoredConnection {

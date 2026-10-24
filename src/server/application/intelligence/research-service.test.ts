@@ -7,7 +7,7 @@ import { SqliteJobRepository } from "../../infrastructure/db/job-repository";
 import { SqliteRecordTable } from "../../infrastructure/db/record-table";
 import { SqliteReportStore } from "../../infrastructure/intelligence/sqlite-reports";
 import type { ReportOutput } from "./prompts";
-import type { Peer, WebResearchProvider } from "./ports";
+import type { Peer, WebResearchProvider } from "./research-ports";
 import { ResearchService } from "./research-service";
 import {
   FAKE_KEY,
