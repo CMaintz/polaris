@@ -86,6 +86,6 @@ Avoid introducing Redis solely because it is familiar.
 
 ## OD-008 - Vector storage
 
-**Status:** Assumed, awaiting review. See [ADR 0013](../adr/0013-vector-storage-deferred.md).
+**Status:** Assumed, awaiting review. See [ADR 0017](../adr/0017-search-and-embeddings-in-sqlite.md), which supersedes ADR 0013.
 
 The semantic-search layer may use PostgreSQL/pgvector or another vector store. Do not add a separate vector database before the need is demonstrated.

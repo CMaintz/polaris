@@ -1,7 +1,14 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { JobDto, KpiDto } from "../../shared/api-types";
-import { changeDirection, formatChange, formatPeriod, formatValue } from "../lib/format";
+import {
+  changeDirection,
+  contentTypeLabel,
+  contentTypes,
+  formatChange,
+  formatPeriod,
+  formatValue,
+} from "../lib/format";
 
 export function PageHead({
   title,
@@ -170,5 +177,20 @@ export function DataTable({ headers, rows }: { headers: string[]; rows: ReactNod
         </tbody>
       </table>
     </div>
+  );
+}
+
+export function ContentTypeField(props: { value: string; onChange: (value: string) => void }) {
+  return (
+    <Field label="Type">
+      <select value={props.value} onChange={(e) => props.onChange(e.target.value)}>
+        <option value="">All types</option>
+        {contentTypes().map((t) => (
+          <option key={t} value={t}>
+            {contentTypeLabel(t)}
+          </option>
+        ))}
+      </select>
+    </Field>
   );
 }

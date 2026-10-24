@@ -6,6 +6,7 @@ import type { KpiDto } from "../../../shared/api-types";
 import type { AccountFacts, PostFacts } from "../analytics/evidence-facts";
 import { sourceLabel } from "../analytics/presenters";
 import type { EvidenceSection } from "./intent";
+import type { RelatedPost } from "./related-posts";
 
 /** The facts a prompt may use, numbered so the model can cite them and we can check it. */
 export interface EvidencePack {
@@ -74,6 +75,7 @@ const ALL_SECTIONS: EvidenceSection[] = ["kpis", "posts", "contentTypes", "topic
 export function accountEvidence(
   facts: AccountFacts,
   sections: EvidenceSection[] = ALL_SECTIONS,
+  related: RelatedPost[] = [],
 ): EvidencePack {
   const builder = new PackBuilder();
   const has = (s: EvidenceSection) => sections.includes(s);
@@ -85,6 +87,7 @@ export function accountEvidence(
   if (has("contentTypes")) builder.segments("content type", facts.contentTypes);
   if (has("topics")) builder.segments("topic", facts.topics, (k) => `#${k}`);
   if (has("weekdays")) builder.segments("weekday", facts.weekdays, (k) => WEEKDAYS[Number(k)] ?? k);
+  related.forEach((r, i) => builder.post(r.post, `Related post ${i + 1} (${r.reason})`));
   return builder.pack;
 }
 

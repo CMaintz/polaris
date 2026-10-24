@@ -540,3 +540,10 @@ details summary {
   width: 100%;
   max-width: 380px;
 }
+
+.snippet mark {
+  background: var(--accent-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}

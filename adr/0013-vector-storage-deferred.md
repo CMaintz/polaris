@@ -1,6 +1,6 @@
 # ADR 0013 - Vector Storage: Deferred
 
-Status: Proposed (assumed by the implementing agent on 2026-10-23; awaiting product review)
+Status: Superseded by [ADR 0017](0017-search-and-embeddings-in-sqlite.md)
 
 Resolves: OD-008 (for now)
 

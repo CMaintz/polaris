@@ -11,6 +11,8 @@ import { aiRoutes } from "./routes/ai";
 import { accountRoutes } from "./routes/account";
 import { planningRoutes } from "./routes/planning";
 import { type StrategyRouteDeps, strategyRoutes } from "./routes/strategy";
+import { type KnowledgeRouteDeps, knowledgeRoutes } from "./routes/knowledge";
+import type { ResolveAccount } from "../application/content/ports";
 import type { AccountService } from "../application/account/account-service";
 import type { PlanningService } from "../application/planning/planning-service";
 import type { AiService } from "../application/ai/ai-service";
@@ -30,6 +32,8 @@ export interface AppDeps {
   planning: PlanningService;
   account: AccountService;
   strategy: StrategyRouteDeps;
+  knowledge: Omit<KnowledgeRouteDeps, "resolveAccount">;
+  resolveAccount: ResolveAccount;
   secureCookies: boolean;
   maxUploadBytes: number;
 }
@@ -56,6 +60,10 @@ export function createApi(deps: AppDeps) {
   api.route("/plan", planning.plan);
   api.route("/me", accountRoutes(deps.account));
   api.route("/strategy", strategyRoutes(deps.strategy));
+  api.route(
+    "/knowledge",
+    knowledgeRoutes({ ...deps.knowledge, resolveAccount: deps.resolveAccount }),
+  );
   api.route("/", analyticsRoutes(deps.analytics));
   return api;
 }
