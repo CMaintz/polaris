@@ -73,7 +73,7 @@ export function summarisePosts(key: string, posts: readonly PostRecord[]): Segme
   };
 }
 
-/** Groups posts (a post may sit in several groups, e.g. topics) and summarises each. */
+/** A post may sit in several groups (e.g. topics), so group sizes can sum past the total. */
 export function segmentPerformance(
   posts: readonly PostRecord[],
   keysOf: (post: PostRecord) => string[],

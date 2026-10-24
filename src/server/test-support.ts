@@ -38,7 +38,6 @@ export function testContainer(config: Partial<Config> = {}, overrides: Overrides
 
 export type TestContainer = ReturnType<typeof testContainer>;
 
-/** Registers a user through the API and returns a fetch helper that carries the session. */
 export async function signedInClient(container: TestContainer, email = "ada@example.com") {
   const response = await container.api.request("/auth/register", {
     method: "POST",

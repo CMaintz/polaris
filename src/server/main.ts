@@ -17,7 +17,6 @@ app.all("/api/*", (c) => c.json({ error: { code: "not_found", message: "Not foun
 const indexHtml = join(config.webDistDir, "index.html");
 if (existsSync(indexHtml)) {
   app.use("/*", serveStatic({ root: config.webDistDir }));
-  // Client-side routes (e.g. /posts/123) all load the SPA shell.
   app.get("*", (c) => c.html(readFileSync(indexHtml, "utf8")));
 }
 

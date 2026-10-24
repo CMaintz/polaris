@@ -50,7 +50,6 @@ const planSchema = z.object({
 
 const SCHEMAS = { goals: goalSchema, experiments: experimentSchema, plan: planSchema };
 
-/** CRUD routes for one record kind; list views add their computed fields. */
 function crud<K extends keyof typeof SCHEMAS>(
   planning: PlanningService,
   kind: K,
