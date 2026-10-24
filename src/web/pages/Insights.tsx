@@ -4,7 +4,9 @@ import type { EvidenceDto, InsightDto } from "../../shared/api-types";
 import { patch } from "../lib/api";
 import { formatDate, formatPeriod, formatValue } from "../lib/format";
 import { useResource, useStartJob } from "../lib/hooks";
+import { useMutation } from "../lib/mutation";
 import { InsightCard } from "../components/content";
+import { ResourceView } from "../components/resource";
 import { ErrorBox, JobLine, PageHead } from "../components/ui";
 
 interface Recommendation {
@@ -60,22 +62,31 @@ export function InsightsPage() {
         A review sends aggregate metrics, your top and weakest posts (including their text) and
         segment medians to your provider. Nothing else leaves Polaris.
       </p>
+      <ErrorBox error={keys.error} />
       <ErrorBox error={review.error} />
       <JobLine job={review.job} />
       <Ask disabled={!hasKey} />
-      <Recommendations items={recs.data?.recommendations ?? []} onChange={recs.reload} />
+      <ResourceView resource={recs}>
+        {(data) => <Recommendations items={data.recommendations} onChange={recs.reload} />}
+      </ResourceView>
       <section className="stack">
         <h2>Account insights</h2>
-        {insights.data?.insights.length ? (
-          <div className="grid two">
-            {insights.data.insights.map((i) => (
-              <InsightCard key={i.id} insight={i} />
-            ))}
-          </div>
-        ) : (
-          <p className="muted">No AI reviews yet. Rule-based insights are on the Overview.</p>
-        )}
+        <ResourceView resource={insights}>
+          {(data) => <AccountInsights insights={data.insights} />}
+        </ResourceView>
       </section>
+    </div>
+  );
+}
+
+function AccountInsights({ insights }: { insights: InsightDto[] }) {
+  if (insights.length === 0)
+    return <p className="muted">No AI reviews yet. Rule-based insights are on the Overview.</p>;
+  return (
+    <div className="grid two">
+      {insights.map((i) => (
+        <InsightCard key={i.id} insight={i} />
+      ))}
     </div>
   );
 }
@@ -166,26 +177,40 @@ function Recommendations({ items, onChange }: { items: Recommendation[]; onChang
       <ul style={{ listStyle: "none", padding: 0 }} className="stack">
         {open.map((r) => (
           <li key={r.id}>
-            <strong>{r.recommendation}</strong>{" "}
-            {r.status === "accepted" && <span className="badge">Accepted</span>}
-            {r.basedOnDemo && <span className="badge">Demo data</span>}
-            <div className="small secondary">{r.rationale}</div>
-            <EvidenceList evidence={r.evidence} />
-            <div className="row" style={{ marginTop: 6 }}>
-              {STATUS_ACTIONS.filter(([s]) => s !== r.status).map(([status, label]) => (
-                <button
-                  key={status}
-                  className="btn small"
-                  onClick={() => patch(`/ai/recommendations/${r.id}`, { status }).then(onChange)}
-                >
-                  {label}
-                </button>
-              ))}
-              <span className="muted small">{formatDate(r.createdAt.slice(0, 10))}</span>
-            </div>
+            <RecommendationItem item={r} onChange={onChange} />
           </li>
         ))}
       </ul>
     </section>
+  );
+}
+
+function RecommendationItem({ item: r, onChange }: { item: Recommendation; onChange: () => void }) {
+  const setStatus = useMutation(
+    (status: Recommendation["status"]) => patch(`/ai/recommendations/${r.id}`, { status }),
+    onChange,
+  );
+  return (
+    <>
+      <strong>{r.recommendation}</strong>{" "}
+      {r.status === "accepted" && <span className="badge">Accepted</span>}
+      {r.basedOnDemo && <span className="badge">Demo data</span>}
+      <div className="small secondary">{r.rationale}</div>
+      <EvidenceList evidence={r.evidence} />
+      <ErrorBox error={setStatus.error} />
+      <div className="row" style={{ marginTop: 6 }}>
+        {STATUS_ACTIONS.filter(([s]) => s !== r.status).map(([status, label]) => (
+          <button
+            key={status}
+            className="btn small"
+            disabled={setStatus.busy}
+            onClick={() => setStatus.run(status)}
+          >
+            {label}
+          </button>
+        ))}
+        <span className="muted small">{formatDate(r.createdAt.slice(0, 10))}</span>
+      </div>
+    </>
   );
 }

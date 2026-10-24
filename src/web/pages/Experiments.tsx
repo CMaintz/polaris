@@ -1,16 +1,26 @@
 import { useState } from "react";
 import { del, patch, post } from "../lib/api";
-import { formatChange, formatDate, formatNumber, formatPercent, formatPeriod } from "../lib/format";
+import { formatChange, formatDate, formatPeriod } from "../lib/format";
 import { inDays, today, useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
-import { DateRangeFields, Empty, ErrorBox, Field, Loading, PageHead } from "../components/ui";
+import {
+  type MetricKey,
+  formatMetric,
+  metricInputLabel,
+  metricLabel,
+  metricOptions,
+  parseMetricInput,
+} from "../lib/metrics";
+import { useMutation } from "../lib/mutation";
+import { ResourceView } from "../components/resource";
+import { DateRangeFields, Empty, ErrorBox, Field, PageHead } from "../components/ui";
 
 interface ExperimentView {
   id: string;
   name: string;
   hypothesis: string;
   variable: string;
-  metric: string;
+  metric: MetricKey;
   baseline: number | null;
   startDate: string;
   endDate: string;
@@ -27,14 +37,11 @@ interface ExperimentView {
   };
 }
 
-const METRICS: Record<string, string> = {
-  engagements: "Engagements per post",
-  impressions: "Impressions per post",
-  engagement_rate: "Engagement rate per post",
-  comments: "Comments per post",
-  reactions: "Reactions per post",
-  reposts: "Reposts per post",
-};
+const perPost = (key: MetricKey) => `${metricLabel(key)} per post`;
+const METRICS = metricOptions(
+  ["engagements", "impressions", "engagement_rate", "comments", "reactions", "reposts"],
+  perPost,
+);
 
 const VERDICT: Record<string, string> = {
   insufficient_data: "Not enough posts yet (needs 3 on each side)",
@@ -43,9 +50,6 @@ const VERDICT: Record<string, string> = {
   no_clear_change: "No clear change (under 10%)",
 };
 
-const show = (metric: string, v: number | null) =>
-  metric === "engagement_rate" ? formatPercent(v, 2) : formatNumber(v);
-
 export function ExperimentsPage() {
   const list = useResource<{ items: ExperimentView[] }>("/experiments");
   const form = useForm(
@@ -53,7 +57,7 @@ export function ExperimentsPage() {
       name: "",
       hypothesis: "",
       variable: "",
-      metric: "engagements",
+      metric: "engagements" as MetricKey,
       baseline: "",
       startDate: today(),
       endDate: inDays(28),
@@ -61,7 +65,7 @@ export function ExperimentsPage() {
     async (v) => {
       await post("/experiments", {
         ...v,
-        baseline: v.baseline === "" ? null : Number(v.baseline),
+        baseline: parseMetricInput(v.metric, v.baseline),
         status: "running",
       });
       list.reload();
@@ -84,14 +88,16 @@ export function ExperimentsPage() {
           </Field>
           <Field label="Measure">
             <select {...form.field("metric")}>
-              {Object.entries(METRICS).map(([v, l]) => (
+              {METRICS.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Baseline (blank = the period before)">
+          <Field
+            label={`${metricInputLabel(form.values.metric, "Baseline")}, blank for the period before`}
+          >
             <input type="number" step="any" {...form.field("baseline")} />
           </Field>
           <DateRangeFields start={form.field("startDate")} end={form.field("endDate")} />
@@ -111,15 +117,15 @@ export function ExperimentsPage() {
           </button>
         </div>
       </form>
-      {!list.data ? (
-        <Loading />
-      ) : list.data.items.length === 0 ? (
-        <Empty title="No experiments yet" />
-      ) : (
-        list.data.items.map((e) => (
-          <ExperimentCard key={e.id} experiment={e} onChange={list.reload} />
-        ))
-      )}
+      <ResourceView resource={list}>
+        {({ items }) =>
+          items.length === 0 ? (
+            <Empty title="No experiments yet" />
+          ) : (
+            items.map((e) => <ExperimentCard key={e.id} experiment={e} onChange={list.reload} />)
+          )
+        }
+      </ResourceView>
     </div>
   );
 }
@@ -134,8 +140,15 @@ function ExperimentCard({
   const ev = e.evaluation;
   const [concluding, setConcluding] = useState(false);
   const [conclusion, setConclusion] = useState(e.conclusion);
-  const conclude = () =>
-    void patch(`/experiments/${e.id}`, { status: "completed", conclusion }).then(onChange);
+  const conclude = useMutation(
+    () => patch(`/experiments/${e.id}`, { status: "completed", conclusion }),
+    () => {
+      setConcluding(false);
+      onChange();
+    },
+  );
+  const remove = useMutation(() => del(`/experiments/${e.id}`), onChange);
+  const busy = conclude.busy || remove.busy;
   return (
     <article className="card stack">
       <header>
@@ -145,7 +158,7 @@ function ExperimentCard({
       <p style={{ margin: 0 }}>{e.hypothesis}</p>
       <div className="small secondary">
         {e.variable && `Change: ${e.variable}. `}
-        {METRICS[e.metric]}, {formatDate(e.startDate)} to {formatDate(e.endDate)}
+        {perPost(e.metric)}, {formatDate(e.startDate)} to {formatDate(e.endDate)}
       </div>
       <div className="grid kpis">
         <div>
@@ -155,11 +168,11 @@ function ExperimentCard({
               ? ` (${formatPeriod(ev.baselinePeriod)}, ${ev.baselineSampleSize} posts)`
               : " (set by you)"}
           </div>
-          <strong>{show(e.metric, ev.baseline)}</strong>
+          <strong>{formatMetric(e.metric, ev.baseline)}</strong>
         </div>
         <div>
           <div className="kpi-label">During ({ev.sampleSize} posts)</div>
-          <strong>{show(e.metric, ev.observed)}</strong>
+          <strong>{formatMetric(e.metric, ev.observed)}</strong>
         </div>
         <div>
           <div className="kpi-label">Result</div>
@@ -181,7 +194,7 @@ function ExperimentCard({
             />
           </Field>
           <div className="row">
-            <button className="btn small primary" onClick={conclude}>
+            <button className="btn small primary" disabled={busy} onClick={() => conclude.run()}>
               Save conclusion
             </button>
             <button className="btn small" onClick={() => setConcluding(false)}>
@@ -190,16 +203,14 @@ function ExperimentCard({
           </div>
         </div>
       )}
+      <ErrorBox error={conclude.error ?? remove.error} />
       <div className="row">
         {e.status !== "completed" && !concluding && (
           <button className="btn small" onClick={() => setConcluding(true)}>
             Conclude
           </button>
         )}
-        <button
-          className="btn small danger"
-          onClick={() => del(`/experiments/${e.id}`).then(onChange)}
-        >
+        <button className="btn small danger" disabled={busy} onClick={() => remove.run()}>
           Delete
         </button>
       </div>

@@ -43,3 +43,11 @@ export const del = send("DELETE");
 
 /** The browser's offset from UTC in minutes, east positive, as the API expects. */
 export const tzOffset = () => -new Date().getTimezoneOffset();
+
+export const isUnauthorized = (error: unknown) => error instanceof ApiError && error.status === 401;
+
+export function withTimezone(body: object | FormData, tz: number): object | FormData {
+  if (!(body instanceof FormData)) return { ...body, tz };
+  body.set("tz", String(tz));
+  return body;
+}

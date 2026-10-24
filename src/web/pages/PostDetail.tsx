@@ -82,6 +82,7 @@ export function PostDetailPage() {
           </p>
         </div>
       </div>
+      <ErrorBox error={insights.error} />
       <PostReview postId={p.id} insights={insights.data?.insights ?? []} onDone={insights.reload} />
       <div className="card">
         <h2>Measurement history and provenance</h2>

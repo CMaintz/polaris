@@ -1,21 +1,23 @@
 import { del, post } from "../lib/api";
-import { formatDate, formatNumber, formatPercent } from "../lib/format";
+import { formatDate, formatPercent } from "../lib/format";
 import { inDays, today, useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
 import {
-  DateRangeFields,
-  Empty,
-  ErrorBox,
-  Field,
-  Loading,
-  Meter,
-  PageHead,
-} from "../components/ui";
+  type MetricKey,
+  formatMetric,
+  metricInputLabel,
+  metricLabel,
+  metricOptions,
+  parseMetricInput,
+} from "../lib/metrics";
+import { useMutation } from "../lib/mutation";
+import { ResourceView } from "../components/resource";
+import { DateRangeFields, Empty, ErrorBox, Field, Meter, PageHead } from "../components/ui";
 
 interface GoalView {
   id: string;
   name: string;
-  metric: string;
+  metric: MetricKey;
   target: number;
   startDate: string;
   endDate: string;
@@ -30,13 +32,17 @@ interface GoalView {
   };
 }
 
-const METRICS: Record<string, string> = {
-  followers: "Followers (reach a total)",
-  impressions: "Impressions (total over the period)",
-  engagements: "Engagements (total over the period)",
-  posts: "Posts published",
-  engagement_rate: "Engagement rate (%)",
+const MEASURED_AS: Partial<Record<MetricKey, string>> = {
+  followers: "reach a total",
+  impressions: "total over the period",
+  engagements: "total over the period",
 };
+const goalLabel = (key: MetricKey) =>
+  MEASURED_AS[key] ? `${metricLabel(key)} (${MEASURED_AS[key]})` : metricLabel(key);
+const METRICS = metricOptions(
+  ["followers", "impressions", "engagements", "posts", "engagement_rate"],
+  goalLabel,
+);
 
 const STATUS: Record<string, string> = {
   not_started: "Not started",
@@ -47,24 +53,21 @@ const STATUS: Record<string, string> = {
   missed: "Missed",
 };
 
-const isRate = (metric: string) => metric === "engagement_rate";
-const show = (metric: string, value: number | null) =>
-  isRate(metric) ? formatPercent(value, 2) : formatNumber(value);
+const isRate = (metric: MetricKey) => metric === "engagement_rate";
 
 export function GoalsPage() {
   const goals = useResource<{ items: GoalView[] }>("/goals");
   const form = useForm(
     {
       name: "",
-      metric: "impressions",
+      metric: "impressions" as MetricKey,
       target: "",
       startDate: today(),
       endDate: inDays(90),
       notes: "",
     },
     async (v) => {
-      const target = isRate(v.metric) ? Number(v.target) / 100 : Number(v.target);
-      await post("/goals", { ...v, target });
+      await post("/goals", { ...v, target: parseMetricInput(v.metric, v.target) });
       goals.reload();
     },
   );
@@ -87,14 +90,14 @@ export function GoalsPage() {
           </Field>
           <Field label="Metric">
             <select {...form.field("metric")}>
-              {Object.entries(METRICS).map(([value, label]) => (
+              {METRICS.map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label={isRate(form.values.metric) ? "Target (%)" : "Target"}>
+          <Field label={metricInputLabel(form.values.metric, "Target")}>
             <input required type="number" min="0" step="any" {...form.field("target")} />
           </Field>
           <DateRangeFields start={form.field("startDate")} end={form.field("endDate")} />
@@ -109,21 +112,22 @@ export function GoalsPage() {
           </button>
         </div>
       </form>
-      {!goals.data ? (
-        <Loading />
-      ) : goals.data.items.length === 0 ? (
-        <Empty title="No goals yet" />
-      ) : (
-        goals.data.items.map((g) => (
-          <GoalCard key={g.id} goal={g} onDelete={() => del(`/goals/${g.id}`).then(goals.reload)} />
-        ))
-      )}
+      <ResourceView resource={goals}>
+        {({ items }) =>
+          items.length === 0 ? (
+            <Empty title="No goals yet" />
+          ) : (
+            items.map((g) => <GoalCard key={g.id} goal={g} onDeleted={goals.reload} />)
+          )
+        }
+      </ResourceView>
     </div>
   );
 }
 
-function GoalCard({ goal, onDelete }: { goal: GoalView; onDelete: () => void }) {
+function GoalCard({ goal, onDeleted }: { goal: GoalView; onDeleted: () => void }) {
   const p = goal.progress;
+  const remove = useMutation(() => del(`/goals/${goal.id}`), onDeleted);
   return (
     <article className="card stack">
       <header>
@@ -131,13 +135,13 @@ function GoalCard({ goal, onDelete }: { goal: GoalView; onDelete: () => void }) 
         <span className="badge">{STATUS[p.status] ?? p.status}</span>
       </header>
       <div className="secondary small">
-        {METRICS[goal.metric]}: target {show(goal.metric, goal.target)},{" "}
+        {goalLabel(goal.metric)}: target {formatMetric(goal.metric, goal.target)},{" "}
         {formatDate(goal.startDate)} to {formatDate(goal.endDate)}
       </div>
       <Meter value={p.progress} behind={p.status === "behind"} />
       <div className="small">
-        Now {show(goal.metric, p.current)}
-        {p.baseline !== null && ` (started at ${show(goal.metric, p.baseline)})`},{" "}
+        Now {formatMetric(goal.metric, p.current)}
+        {p.baseline !== null && ` (started at ${formatMetric(goal.metric, p.baseline)})`},{" "}
         {formatPercent(p.progress, 0)} of the way there
         {!isRate(goal.metric) && `, ${formatPercent(p.expected, 0)} of the time used`}. Measured up
         to {formatDate(p.measuredUntil)}.
@@ -147,8 +151,9 @@ function GoalCard({ goal, onDelete }: { goal: GoalView; onDelete: () => void }) 
           {goal.notes}
         </p>
       )}
+      <ErrorBox error={remove.error} />
       <div>
-        <button className="btn small danger" onClick={onDelete}>
+        <button className="btn small danger" disabled={remove.busy} onClick={() => remove.run()}>
           Delete
         </button>
       </div>
