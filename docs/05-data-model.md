@@ -192,3 +192,6 @@ logical model above:
   from posts, so the export leaves them out. `theme_runs`, `themes` and `post_themes` hold the
   latest AI theme classification; themes cascade from their run, so wiping a demo run removes
   them.
+- `peers`, `feeds` and `schedules` are the user's own records. `feed_items` cascade from their
+  feed. `research_reports` (keyed by the job that writes them) and `trend_digests` draw on the
+  user's posts and topics, so "delete imported data" removes them.

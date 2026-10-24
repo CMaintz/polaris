@@ -203,3 +203,20 @@ See ADR 0017 and ADR 0018.
   emerging themes compare the share of posts in the latest 90 covered days with the 90 before.
 - **Ask retrieval** (section 9 step 3): up to four posts that match the question are added to the
   evidence, fenced like all post text, with the reason they matched.
+
+## As implemented: external intelligence
+
+See ADR 0019, ADR 0020 and ADR 0021.
+
+- **Research**: the user asks a question, optionally about a peer, and a background job answers
+  it with their own provider's server-side web search (LinkedIn itself is excluded). A second
+  call turns the notes into a report: summary, findings with sources, how it relates to the
+  user's topics and top posts, and caveats. Findings that cite no returned source are dropped,
+  and only http(s) URLs become links.
+- **Peers** are a watchlist of names, profile links and notes. Polaris never fetches the profile.
+- **Trend feeds**: the user adds RSS or Atom feeds, fetched by the server behind an SSRF guard.
+  Items are matched to the account's hashtag topics by keywords, counted over 7, 30 and 90
+  days. A digest can add an AI summary of how recent items relate to the user's content.
+- **Schedules** run feed refreshes, trend digests, a weekly account review or a research rerun,
+  daily or weekly. The job worker checks for due schedules on every poll, and a missed period
+  costs one catch-up run, not one per period.

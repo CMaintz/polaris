@@ -34,6 +34,12 @@ const ACCOUNT_TABLES: readonly AccountTable[] = [
   { name: "themes", imported: true, dataset: "none" },
   { name: "knowledge_documents", imported: true, dataset: "none", exported: false },
   { name: "post_embeddings", imported: true, dataset: "none", exported: false },
+  // Derived from imported posts and topics, so "delete imported data" removes them too.
+  { name: "research_reports", imported: true, dataset: "none" },
+  { name: "trend_digests", imported: true, dataset: "none" },
+  { name: "peers", imported: false, dataset: "none" },
+  { name: "feeds", imported: false, dataset: "none" },
+  { name: "schedules", imported: false, dataset: "none" },
   { name: "campaigns", imported: false, dataset: "none" },
   { name: "content_pillars", imported: false, dataset: "none" },
 ];
@@ -46,6 +52,7 @@ const CHILD_TABLES: readonly { name: string; parent: string; key: string }[] = [
   { name: "post_metric_snapshots", parent: "posts", key: "post_id" },
   { name: "post_topics", parent: "posts", key: "post_id" },
   { name: "post_themes", parent: "posts", key: "post_id" },
+  { name: "feed_items", parent: "feeds", key: "feed_id" },
   { name: "campaign_posts", parent: "campaigns", key: "campaign_id" },
   { name: "campaign_plan_items", parent: "campaigns", key: "campaign_id" },
   { name: "campaign_goals", parent: "campaigns", key: "campaign_id" },

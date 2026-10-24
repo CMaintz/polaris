@@ -18,7 +18,9 @@ import { PlannerPage } from "./pages/Planner";
 import { PostDetailPage } from "./pages/PostDetail";
 import { SettingsPage } from "./pages/Settings";
 import { CampaignsPage } from "./pages/Campaigns";
+import { ResearchPage } from "./pages/Research";
 import { SearchPage } from "./pages/Search";
+import { TrendsPage } from "./pages/Trends";
 import { ThemesPage } from "./pages/Themes";
 import { FunnelPage } from "./pages/Funnel";
 import { StrategyPage } from "./pages/Strategy";
@@ -34,6 +36,8 @@ const NAV: { title: string; links: [string, string][] }[] = [
       ["/analytics", "Analytics"],
       ["/audience", "Audience"],
       ["/insights", "AI insights"],
+      ["/research", "Research"],
+      ["/trends", "Trends"],
     ],
   },
   {
@@ -176,6 +180,8 @@ function Shell() {
           <Route path="/planner" element={<PlannerPage />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/experiments" element={<ExperimentsPage />} />
+          <Route path="/research" element={<ResearchPage />} />
+          <Route path="/trends" element={<TrendsPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/themes" element={<ThemesPage />} />
           <Route path="/strategy" element={<StrategyPage />} />
