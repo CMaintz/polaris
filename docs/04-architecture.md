@@ -123,3 +123,17 @@ A later deployment may support:
 - managed hosting
 
 The architecture should not make any one deployment model impossible.
+
+## As implemented
+
+- **Layers**: `src/server/domain` (pure rules), `application/<area>` (services and their ports),
+  `infrastructure` (SQLite, SDK and HTTP adapters), `api/routes` (HTTP), and
+  `composition/` (one builder per area; the only code that knows which adapter backs which
+  port). The web client in `src/web` talks to the API only, through types in `src/shared`.
+- **Jobs**: one SQLite-backed queue (ADR 0012) runs imports, AI reviews and questions, search
+  indexing, theme classification, research, feed refreshes, trend digests, AI drafting,
+  agentic planning and publishing. Every job is idempotent and parses its payload before use.
+- **Scheduled intelligence**: the worker runs a tick before each drain that enqueues due
+  schedules and due publications (ADR 0021), so there is no second timer.
+- **Browser automation** is not used. LinkedIn data comes from the user's own exports, and
+  posting uses the official API (ADR 0010, ADR 0025).

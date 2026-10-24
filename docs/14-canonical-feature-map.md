@@ -43,3 +43,8 @@
 - AI prompt/version management
 - Export/delete
 - Multi-platform-ready domain model
+
+## Status
+
+Every feature above is implemented. ADR 0027 maps each area to the decisions behind it and lists
+what has only been tested against fakes rather than live services.
