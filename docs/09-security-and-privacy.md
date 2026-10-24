@@ -72,3 +72,10 @@ Trend feeds are the only URLs the server fetches for a user (ADR 0020):
 
 Feed text, web search notes and model output are untrusted: they are fenced in prompts and
 rendered as plain text.
+
+## As implemented: publishing connections
+
+LinkedIn access tokens are sealed with the same AES-GCM key as AI keys, bound to their account,
+and never returned or exported. The OAuth `state` is single-use, bound to the user and stored
+only as a hash. Disconnect deletes the token; LinkedIn documents no revocation endpoint, so the
+member can also revoke the app from their LinkedIn settings.

@@ -16,6 +16,7 @@ function testConfig(overrides: Partial<Config> = {}): Config {
     webDistDir: "./dist/web",
     maxUploadBytes: 10 * 1024 * 1024,
     feedsAllowHttp: false,
+    linkedin: null,
     ...overrides,
   };
 }

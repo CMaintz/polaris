@@ -3,7 +3,7 @@ import type { Job } from "../jobs/ports";
 import type { AiProvider } from "./ports";
 import { type Prepared, inputSummary, promptFor } from "./prepared";
 import type { PromptTemplate } from "./prompts";
-import { structuredCall, toJobError } from "./recorded-call";
+import { jobStructuredCall } from "./recorded-call";
 import type { InteractionLog } from "./store";
 
 export interface ModelCallDeps {
@@ -18,17 +18,9 @@ export async function callModel(
   prepared: Prepared,
 ): Promise<{ output: unknown; interactionId: string }> {
   const recorder = { recorder: deps.interactions, clock: deps.clock };
-  const context = {
-    userId: job.userId,
-    jobId: job.id,
-    inputSummary: inputSummary(prepared, provider.id),
-  };
   const template = prepared.template as PromptTemplate<unknown>;
-  try {
-    const call = { template, prompt: promptFor(prepared) };
-    const { value, interactionId } = await structuredCall(recorder, context, provider, call);
-    return { output: value, interactionId };
-  } catch (error) {
-    throw toJobError(error);
-  }
+  const call = { template, prompt: promptFor(prepared) };
+  const summary = inputSummary(prepared, provider.id);
+  const { value, interactionId } = await jobStructuredCall(recorder, job, provider, call, summary);
+  return { output: value, interactionId };
 }

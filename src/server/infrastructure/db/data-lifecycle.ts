@@ -1,5 +1,5 @@
 import type { DataLifecycle } from "../../application/account/account-service";
-import { exportedTables, childTableQueries, importedTables } from "./account-tables";
+import { childTableQueries, exportQueries, importedTables } from "./account-tables";
 import type { Db } from "./database";
 
 export class SqliteDataLifecycle implements DataLifecycle {
@@ -11,20 +11,14 @@ export class SqliteDataLifecycle implements DataLifecycle {
     const account = this.db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(userId) as
       { id: string } | undefined;
     const rows = (sql: string, ...params: unknown[]) => this.db.prepare(sql).all(...params);
-    const byAccount = Object.fromEntries(
-      exportedTables().map((t) => [
-        t,
-        account ? rows(`SELECT * FROM ${t} WHERE account_id = ?`, account.id) : [],
-      ]),
-    );
-    const children = Object.fromEntries(
-      childTableQueries().map(({ name, sql }) => [name, account ? rows(sql, account.id) : []]),
+    const queries = [...exportQueries(), ...childTableQueries()];
+    const tables = Object.fromEntries(
+      queries.map(({ name, sql }) => [name, account ? rows(sql, account.id) : []]),
     );
     return {
       user: this.db.prepare("SELECT id, email, created_at FROM users WHERE id = ?").get(userId),
       account: account ?? null,
-      ...byAccount,
-      ...children,
+      ...tables,
       ai_interactions: rows("SELECT * FROM ai_interactions WHERE user_id = ?", userId),
       ai_keys: rows(
         "SELECT provider, model, key_hint, created_at FROM ai_credentials WHERE user_id = ?",

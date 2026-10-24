@@ -102,3 +102,19 @@ export function toJobError(error: unknown): unknown {
   if (error instanceof AiProviderError && error.retryable) return error;
   return new PermanentJobError(error instanceof Error ? error.message : String(error));
 }
+
+/** A structured call made by a job: failures come out as retryable or permanent job errors. */
+export async function jobStructuredCall<T>(
+  deps: RecorderDeps,
+  job: { id: string; userId: string },
+  provider: AiProvider,
+  call: { template: PromptTemplate<T>; prompt: string },
+  inputSummary: Record<string, unknown>,
+): Promise<{ value: T; model: string; interactionId: string }> {
+  try {
+    const context = { userId: job.userId, jobId: job.id, inputSummary };
+    return await structuredCall(deps, context, provider, call);
+  } catch (error) {
+    throw toJobError(error);
+  }
+}
