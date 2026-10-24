@@ -19,6 +19,12 @@ export interface ApplyStats {
   audienceSegments: number;
 }
 
+/** A user's work on one account: the owner travels with the id, so every lookup checks it. */
+export interface AccountScope {
+  userId: string;
+  accountId: string;
+}
+
 export interface ContentStore {
   /** The active account (ADR 0026); a LinkedIn account is created when the user has none. */
   ensureAccount(userId: string, now: string): Promise<Account>;
@@ -34,6 +40,8 @@ export interface ContentStore {
     jobId: string,
     now: string,
   ): Promise<ApplyStats>;
+  /** The user's account with this id, or null when it is not theirs. */
+  ownedAccount(userId: string, accountId: string): Promise<Account | null>;
   hasDataset(accountId: string, dataset: Dataset): Promise<boolean>;
   hasPost(accountId: string, postId: string): Promise<boolean>;
   deleteDataset(accountId: string, dataset: Dataset): Promise<void>;

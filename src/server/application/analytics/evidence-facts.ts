@@ -1,5 +1,5 @@
 import type { Clock } from "../clock";
-import type { ContentStore } from "../content/ports";
+import type { AccountScope, ContentStore } from "../content/ports";
 import { NotFoundError } from "../errors";
 import { todayUtc } from "../../domain/dates";
 import {
@@ -10,7 +10,7 @@ import {
 } from "../../domain/posts";
 import type { KpiDto } from "../../../shared/api-types";
 import { accountKpis } from "./account-series";
-import { holdsDataset, loadAccountData } from "./account-data";
+import { holdsDataset, loadScopedData } from "./account-data";
 import type { ContentQueries } from "./ports";
 import { baselineFor, comparablePosts, rankedRecentPosts } from "./post-selection";
 
@@ -37,9 +37,9 @@ export interface PostFacts {
 }
 
 export interface EvidenceFacts {
-  account(userId: string, periodDays: number, tzOffsetMinutes: number): Promise<AccountFacts>;
+  account(scope: AccountScope, periodDays: number, tzOffsetMinutes: number): Promise<AccountFacts>;
   /** Throws NotFoundError when the post is not the user's. */
-  post(userId: string, postId: string): Promise<PostFacts>;
+  post(scope: AccountScope, postId: string): Promise<PostFacts>;
 }
 
 export class AnalyticsEvidenceFacts implements EvidenceFacts {
@@ -49,8 +49,8 @@ export class AnalyticsEvidenceFacts implements EvidenceFacts {
     private readonly clock: Clock,
   ) {}
 
-  async account(userId: string, periodDays: number, tzOffsetMinutes: number) {
-    const data = await loadAccountData(this.content, this.queries, userId);
+  async account(scope: AccountScope, periodDays: number, tzOffsetMinutes: number) {
+    const data = await loadScopedData(this.content, this.queries, scope);
     const asOf = data.asOf ?? todayUtc(this.clock());
     const ranked = rankedRecentPosts(data.posts, asOf);
     return {
@@ -64,8 +64,8 @@ export class AnalyticsEvidenceFacts implements EvidenceFacts {
     };
   }
 
-  async post(userId: string, postId: string) {
-    const data = await loadAccountData(this.content, this.queries, userId);
+  async post(scope: AccountScope, postId: string) {
+    const data = await loadScopedData(this.content, this.queries, scope);
     const post = data.posts.find((p) => p.id === postId);
     if (!post) throw new NotFoundError("Post");
     return {

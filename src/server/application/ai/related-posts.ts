@@ -1,4 +1,5 @@
 import type { PostRecord } from "../../domain/posts";
+import type { AccountScope } from "../content/ports";
 
 /** A post that matched the question, and why, so the model sees why it was included. */
 export interface RelatedPost {
@@ -7,5 +8,5 @@ export interface RelatedPost {
 }
 
 export interface RelatedPosts {
-  find(userId: string, question: string, jobId: string): Promise<RelatedPost[]>;
+  find(scope: AccountScope, question: string, jobId: string): Promise<RelatedPost[]>;
 }
