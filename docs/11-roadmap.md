@@ -69,3 +69,7 @@
 - unified content strategy
 
 Roadmap ordering is intentionally less important than maintaining a coherent vertical slice. A thin end-to-end workflow is preferable to building isolated infrastructure for months.
+
+## Status
+
+Phases 0 to 7 are implemented (ADR 0027).
