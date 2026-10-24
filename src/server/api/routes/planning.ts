@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { PlanningService } from "../../application/planning/planning-service";
-import { type AppEnv, currentUser, day, readJson, requireUser } from "../http";
+import { type AppEnv, currentUser, day, readJson, readPatch, requireUser } from "../http";
 
 const text = (max: number) => z.string().max(max);
 
@@ -63,31 +63,14 @@ function crud<K extends keyof typeof SCHEMAS>(
       return c.json({ item: await planning.create(currentUser(c).id, kind, values as never) }, 201);
     })
     .patch("/:id", async (c) => {
-      const parsed = await readJson(c, (schema as unknown as z.ZodObject).partial() as z.ZodType);
-      const sent = Object.keys((await c.req.json()) as object);
-      const item = await planning.update(
-        currentUser(c).id,
-        kind,
-        c.req.param("id"),
-        onlySent(parsed, sent),
-      );
+      const values = await readPatch(c, schema as unknown as z.ZodObject);
+      const item = await planning.update(currentUser(c).id, kind, c.req.param("id"), values);
       return c.json({ item });
     })
     .delete("/:id", async (c) => {
       await planning.remove(currentUser(c).id, kind, c.req.param("id"));
       return c.body(null, 204);
     });
-}
-
-/**
- * zod applies defaults even inside a partial schema, so a PATCH that omits a field would
- * reset it. Keep only the keys the client actually sent.
- */
-function onlySent(parsed: unknown, sent: string[]): never {
-  const values = parsed as Record<string, unknown>;
-  return Object.fromEntries(
-    sent.filter((key) => key in values).map((key) => [key, values[key]]),
-  ) as never;
 }
 
 export function planningRoutes(planning: PlanningService) {

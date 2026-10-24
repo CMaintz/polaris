@@ -170,3 +170,20 @@ Imports should:
     least 5 rated posts;
   - a change of at least 50% in posting frequency (last 28 days against the 28 before, with at
     least 4 earlier posts), only when the archive covers both windows.
+
+## As implemented: strategy
+
+See ADR 0022 and ADR 0023 for the reasoning.
+
+- **Campaigns** have a name, objective, dates, status and notes. They link to posts, plan items
+  and goals in the same account. A campaign's posts are the linked posts plus any post a linked
+  plan item was published as. Performance compares them with the same number of days just before
+  the campaign: posts published, median impressions, median engagement rate and follower change,
+  each with how many days had data.
+- **Content pillars** are planned recurring themes: a set of hashtag topics and a target share of
+  posts (all targets together at most 100%). The actual share and median performance count only
+  data-archive posts on days the archive covers. A pillar is under- or over-served when it is more
+  than five points off target, and nothing is judged with fewer than five posts.
+- **Funnel** shows impressions, then engagements, then new followers, per week or month and per
+  campaign window, with engagement rate and new followers per 1,000 impressions over paired days.
+  Profile views are not in any supported export, so that stage is always shown as unavailable.

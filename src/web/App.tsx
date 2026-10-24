@@ -17,18 +17,34 @@ import { OverviewPage } from "./pages/Overview";
 import { PlannerPage } from "./pages/Planner";
 import { PostDetailPage } from "./pages/PostDetail";
 import { SettingsPage } from "./pages/Settings";
+import { CampaignsPage } from "./pages/Campaigns";
+import { FunnelPage } from "./pages/Funnel";
+import { StrategyPage } from "./pages/Strategy";
 
-const NAV = [
-  ["/", "Overview"],
-  ["/content", "Content"],
-  ["/analytics", "Analytics"],
-  ["/audience", "Audience"],
-  ["/insights", "AI insights"],
-  ["/planner", "Planner"],
-  ["/goals", "Goals"],
-  ["/experiments", "Experiments"],
-  ["/settings", "Settings"],
-] as const;
+const NAV: { title: string; links: [string, string][] }[] = [
+  {
+    title: "Intelligence",
+    links: [
+      ["/", "Overview"],
+      ["/content", "Content"],
+      ["/analytics", "Analytics"],
+      ["/audience", "Audience"],
+      ["/insights", "AI insights"],
+    ],
+  },
+  {
+    title: "Strategy",
+    links: [
+      ["/strategy", "Pillars"],
+      ["/campaigns", "Campaigns"],
+      ["/funnel", "Funnel"],
+      ["/goals", "Goals"],
+      ["/experiments", "Experiments"],
+    ],
+  },
+  { title: "Action", links: [["/planner", "Planner"]] },
+  { title: "Polaris", links: [["/settings", "Settings"]] },
+];
 
 export function App() {
   const [user, setUser] = useState<UserDto | null | undefined>(undefined);
@@ -115,16 +131,21 @@ function Shell() {
           </svg>
           Polaris
         </div>
-        {NAV.map(([to, label]) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
-            onClick={() => setOpen(false)}
-          >
-            {label}
-          </NavLink>
+        {NAV.map(({ title, links }) => (
+          <div key={title} className="nav-group">
+            <div className="nav-group-title">{title}</div>
+            {links.map(([to, label]) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+                onClick={() => setOpen(false)}
+              >
+                {label}
+              </NavLink>
+            ))}
+          </div>
         ))}
         <div className="sidebar-footer">
           <div>{user.email}</div>
@@ -151,6 +172,9 @@ function Shell() {
           <Route path="/planner" element={<PlannerPage />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/experiments" element={<ExperimentsPage />} />
+          <Route path="/strategy" element={<StrategyPage />} />
+          <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route path="/funnel" element={<FunnelPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

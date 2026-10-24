@@ -70,3 +70,13 @@ export function currentUser(c: Context<AppEnv>): User {
 }
 
 export const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
+
+/**
+ * zod fills defaults even inside a partial schema, so a PATCH that omits a field would reset
+ * it. Keeps only the keys the client actually sent.
+ */
+export async function readPatch(c: Context, schema: z.ZodObject): Promise<never> {
+  const parsed = (await readJson(c, schema.partial() as z.ZodType)) as Record<string, unknown>;
+  const sent = Object.keys((await c.req.json()) as object);
+  return Object.fromEntries(sent.filter((k) => k in parsed).map((k) => [k, parsed[k]])) as never;
+}

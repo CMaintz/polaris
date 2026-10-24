@@ -10,6 +10,7 @@ import { analyticsRoutes } from "./routes/analytics";
 import { aiRoutes } from "./routes/ai";
 import { accountRoutes } from "./routes/account";
 import { planningRoutes } from "./routes/planning";
+import { type StrategyRouteDeps, strategyRoutes } from "./routes/strategy";
 import type { AccountService } from "../application/account/account-service";
 import type { PlanningService } from "../application/planning/planning-service";
 import type { AiService } from "../application/ai/ai-service";
@@ -28,6 +29,7 @@ export interface AppDeps {
   credentials: CredentialService;
   planning: PlanningService;
   account: AccountService;
+  strategy: StrategyRouteDeps;
   secureCookies: boolean;
   maxUploadBytes: number;
 }
@@ -53,6 +55,7 @@ export function createApi(deps: AppDeps) {
   api.route("/experiments", planning.experiments);
   api.route("/plan", planning.plan);
   api.route("/me", accountRoutes(deps.account));
+  api.route("/strategy", strategyRoutes(deps.strategy));
   api.route("/", analyticsRoutes(deps.analytics));
   return api;
 }
