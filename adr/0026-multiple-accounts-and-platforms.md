@@ -75,9 +75,8 @@ multi-platform-ready domain model.
 
 ## Consequences
 
-- AI, drafting and planning-agent jobs still resolve the active account when they run. A switch
-  in the seconds between starting one and the worker picking it up applies it to the newly
-  active account. Imports, indexing, research, digests and feed refreshes carry their account.
+- Every job carries the account it was queued for, and loads it owner-checked, so switching
+  accounts while a job waits never redirects its result.
 - A LinkedIn publishing connection can be made on an `other` account; nothing posts there
   unless the user schedules a draft, but the connection screen does not yet refuse it.
 - A new platform with its own adapter needs a platform value (a CHECK change, so a migration)

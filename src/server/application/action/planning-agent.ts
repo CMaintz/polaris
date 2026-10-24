@@ -61,7 +61,7 @@ export class PlanningAgent {
     const { accountId, weeks, tz } = parsePayload(payloadSchema, job.payload);
     const already = await this.deps.proposals.proposedByJob(job.id);
     if (already > 0) return { proposed: already };
-    const facts = await this.deps.facts.account(job.userId, PERIOD_DAYS, tz);
+    const facts = await this.deps.facts.account({ userId: job.userId, accountId }, PERIOD_DAYS, tz);
     const pack = accountEvidence(facts);
     const window = planningWindow(todayUtc(this.deps.clock()), weeks);
     const demo = facts.basedOnDemo;

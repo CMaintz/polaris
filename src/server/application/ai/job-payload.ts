@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { parsePayload } from "../jobs/payload";
 
-const common = { tz: z.number().int(), label: z.string().optional() };
+// The account is fixed when the job is queued, so switching accounts meanwhile cannot move it.
+const common = {
+  accountId: z.string().min(1),
+  tz: z.number().int(),
+  label: z.string().optional(),
+};
 
 const aiPayload = z.discriminatedUnion("task", [
   z.object({ task: z.literal("account_review"), ...common }),

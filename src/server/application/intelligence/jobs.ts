@@ -53,7 +53,12 @@ export function scheduledJob(schedule: DueSchedule): NewJob {
       return {
         userId,
         type: AI_JOB,
-        payload: { task: "account_review", tz: params.tz ?? 0, label: "Account review" },
+        payload: {
+          task: "account_review",
+          accountId,
+          tz: params.tz ?? 0,
+          label: "Account review",
+        },
         maxRetries: 2,
       };
   }

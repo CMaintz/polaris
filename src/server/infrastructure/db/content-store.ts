@@ -81,6 +81,10 @@ export class SqliteContentStore implements ContentStore {
     return this.accounts.findActive(userId);
   }
 
+  async ownedAccount(userId: string, accountId: string): Promise<Account | null> {
+    return this.accounts.get(userId, accountId);
+  }
+
   async applyBundle(account: Account, bundle: ImportBundle, jobId: string, now: string) {
     return this.db.transaction(() => {
       const stats: ApplyStats = {

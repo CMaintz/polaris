@@ -36,6 +36,6 @@ export function buildKnowledge(core: Core, ai: AiKeyParts, facts: EvidenceFacts)
     [KNOWLEDGE_INDEX_JOB]: indexer.run.bind(indexer),
     [KNOWLEDGE_THEMES_JOB]: themes.run.bind(themes),
   };
-  const related = new SearchRelatedPosts({ resolveAccount: core.resolveAccount, search, facts });
+  const related = new SearchRelatedPosts({ search, facts });
   return { search, indexer, themes, related, handlers };
 }
