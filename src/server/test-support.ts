@@ -73,3 +73,19 @@ export function uploadFiles(
     body: form,
   });
 }
+
+export type Client = Awaited<ReturnType<typeof signedInClient>>;
+
+/** Uploads files, runs the queued import and returns the finished job. */
+export async function importAndWait(
+  container: TestContainer,
+  client: Client,
+  files: Record<string, Uint8Array>,
+) {
+  const response = await uploadFiles(container, client, files);
+  if (response.status !== 202) throw new Error(`upload failed: ${await response.text()}`);
+  const { job } = (await response.json()) as { job: { id: string } };
+  await container.worker.drain();
+  const done = await (await client.request(`/jobs/${job.id}`)).json();
+  return (done as { job: { status: string; error: string | null; result: unknown } }).job;
+}

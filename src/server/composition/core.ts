@@ -12,6 +12,7 @@ import {
   SqliteSessionRepository,
   SqliteUserRepository,
 } from "../infrastructure/db/auth-repositories";
+import { SqliteAccountStore } from "../infrastructure/db/account-store";
 import { SqliteContentQueries } from "../infrastructure/db/content-queries";
 import { SqliteContentStore } from "../infrastructure/db/content-store";
 import { openDatabase } from "../infrastructure/db/database";
@@ -50,6 +51,7 @@ export function buildCore(config: Config, overrides: Overrides) {
     auth,
     jobs: new SqliteJobRepository(db),
     content,
+    accountStore: new SqliteAccountStore(db),
     queries: new SqliteContentQueries(db),
     resolveAccount,
   };
