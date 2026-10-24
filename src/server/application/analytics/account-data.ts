@@ -1,4 +1,4 @@
-import type { Account, ContentStore } from "../content/ports";
+import type { Account, AccountScope, ContentStore } from "../content/ports";
 import type { Dataset } from "../../domain/content";
 import { assignBands } from "../../domain/posts";
 import { type Loaded, latestDay } from "./account-series";
@@ -10,8 +10,21 @@ export async function loadAccountData(
   queries: ContentQueries,
   userId: string,
 ): Promise<Loaded> {
-  const account = await content.findAccount(userId);
-  if (!account) return { account, posts: [], days: [], bands: new Map(), asOf: null };
+  return loadOrEmpty(queries, await content.findAccount(userId));
+}
+
+/** A job's account, fixed when it was queued; empty when the account has since been deleted. */
+export async function loadScopedData(
+  content: ContentStore,
+  queries: ContentQueries,
+  { userId, accountId }: AccountScope,
+): Promise<Loaded> {
+  return loadOrEmpty(queries, await content.ownedAccount(userId, accountId));
+}
+
+function loadOrEmpty(queries: ContentQueries, account: Account | null): Promise<Loaded> {
+  if (!account)
+    return Promise.resolve({ account, posts: [], days: [], bands: new Map(), asOf: null });
   return loadAccount(queries, account);
 }
 

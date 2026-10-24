@@ -342,3 +342,31 @@ describe("post review evidence", () => {
     expect(prompt.split(text).length - 1).toBeGreaterThan(1);
   });
 });
+
+describe("AI jobs and account switching", () => {
+  it("saves a review to the account it was asked for, even after a switch", async () => {
+    const { client, container } = await setup(() => analysis(["E1"]));
+    const queued = await client.request("/ai/reviews/account", {
+      method: "POST",
+      body: JSON.stringify({ tz: 0 }),
+    });
+    expect(queued.status).toBe(202);
+    const other = await client.request("/accounts", {
+      method: "POST",
+      body: JSON.stringify({ platform: "other", label: "Mastodon" }),
+    });
+    expect(other.status).toBe(201);
+    await container.worker.drain();
+
+    const insightsNow = async () =>
+      ((await (await client.request("/ai/insights?scope=account")).json()) as { insights: [] })
+        .insights;
+    expect(await insightsNow()).toHaveLength(0);
+    const { accounts } = (await (await client.request("/accounts")).json()) as {
+      accounts: { id: string; platform: string }[];
+    };
+    const linkedin = accounts.find((a) => a.platform === "linkedin");
+    await client.request(`/accounts/${linkedin?.id}/activate`, { method: "POST" });
+    expect((await insightsNow()).length).toBeGreaterThan(0);
+  });
+});

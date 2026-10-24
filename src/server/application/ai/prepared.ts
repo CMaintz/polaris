@@ -15,6 +15,7 @@ import {
 } from "./prompts";
 
 interface Common {
+  accountId: string;
   pack: EvidencePack;
   demo: boolean;
 }
@@ -37,32 +38,37 @@ export async function prepare(
   job: { id: string; userId: string },
   payload: AiPayload,
 ): Promise<Prepared> {
-  const { userId } = job;
+  const scope = { userId: job.userId, accountId: payload.accountId };
+  const { accountId } = scope;
   if (payload.task === "post_review") {
-    const post = await facts.post(userId, payload.postId);
+    const post = await facts.post(scope, payload.postId);
     const { postId } = payload;
+    const pack = postEvidence(post);
     return {
       task: "post_review",
       template: POST_REVIEW,
-      pack: postEvidence(post),
+      accountId,
+      pack,
       demo: post.basedOnDemo,
       postId,
     };
   }
-  const account = await facts.account(userId, PERIOD_DAYS, payload.tz);
+  const account = await facts.account(scope, PERIOD_DAYS, payload.tz);
   const demo = account.basedOnDemo;
   if (payload.task === "account_review") {
     return {
       task: "account_review",
       template: ACCOUNT_REVIEW,
+      accountId,
       pack: accountEvidence(account),
       demo,
     };
   }
   const intent = classifyQuestion(payload.question);
-  const posts = await related.find(userId, payload.question, job.id);
+  const posts = await related.find(scope, payload.question, job.id);
   const pack = accountEvidence(account, SECTIONS[intent], posts);
-  return { task: "ask", template: ASK_DATA, pack, demo, intent, question: payload.question };
+  const { question } = payload;
+  return { task: "ask", template: ASK_DATA, accountId, pack, demo, intent, question };
 }
 
 /** What was sent, for the interaction log (docs/09). Never the post text or the question. */
