@@ -4,7 +4,6 @@ import { csrf } from "hono/csrf";
 import { secureHeaders } from "hono/secure-headers";
 import type { AuthService } from "../application/auth/auth-service";
 import type { JobRepository } from "../application/jobs/ports";
-import type { ContentStore } from "../application/content/ports";
 import type { ImportService } from "../application/imports/import-service";
 import { importRoutes } from "./routes/imports";
 import { analyticsRoutes } from "./routes/analytics";
@@ -15,7 +14,6 @@ import type { AccountService } from "../application/account/account-service";
 import type { PlanningService } from "../application/planning/planning-service";
 import type { AiService } from "../application/ai/ai-service";
 import type { CredentialService } from "../application/ai/credentials";
-import type { AiStore } from "../application/ai/store";
 import type { AnalyticsService } from "../application/analytics/analytics-service";
 import { type AppEnv, errorResponse } from "./http";
 import { SESSION_COOKIE, authRoutes } from "./routes/auth";
@@ -28,10 +26,8 @@ export interface AppDeps {
   analytics: AnalyticsService;
   ai: AiService;
   credentials: CredentialService;
-  aiStore: AiStore;
   planning: PlanningService;
   account: AccountService;
-  content: ContentStore;
   secureCookies: boolean;
   maxUploadBytes: number;
 }
@@ -50,8 +46,8 @@ export function createApi(deps: AppDeps) {
   api.get("/health", (c) => c.json({ status: "ok" }));
   api.route("/auth", authRoutes(deps.auth, deps.secureCookies));
   api.route("/jobs", jobRoutes(deps.jobs));
-  api.route("/imports", importRoutes(deps.imports, deps.content, deps.maxUploadBytes));
-  api.route("/ai", aiRoutes(deps.ai, deps.credentials, deps.aiStore, deps.content));
+  api.route("/imports", importRoutes(deps.imports, deps.maxUploadBytes));
+  api.route("/ai", aiRoutes(deps.ai, deps.credentials));
   const planning = planningRoutes(deps.planning);
   api.route("/goals", planning.goals);
   api.route("/experiments", planning.experiments);

@@ -9,7 +9,18 @@ import { EMPTY_METRICS, type PostMetrics, mergeMetrics } from "../../domain/metr
 import type { PostRecord } from "../../domain/posts";
 import { type Db, fromJson } from "./database";
 
-interface PostRow {
+interface MetricColumns {
+  impressions: number | null;
+  reactions: number | null;
+  comments: number | null;
+  reposts: number | null;
+  clicks: number | null;
+  engagements: number | null;
+  period_from: string | null;
+  period_to: string | null;
+}
+
+interface PostRow extends MetricColumns {
   id: string;
   external_id: string;
   dataset: Dataset;
@@ -20,16 +31,15 @@ interface PostRow {
   content_type: ContentType;
   providers: string;
   topics: string | null;
-  impressions: number | null;
-  reactions: number | null;
-  comments: number | null;
-  reposts: number | null;
-  clicks: number | null;
-  engagements: number | null;
   observed_on: string | null;
-  period_from: string | null;
-  period_to: string | null;
   provider: string | null;
+}
+
+interface SnapshotRow extends MetricColumns {
+  post_id: string;
+  observed_on: string;
+  provider: string;
+  import_job_id: string | null;
 }
 
 // The latest observation per post: the newest observed day, ties broken by provider name so
@@ -47,6 +57,18 @@ const POSTS = `
   WHERE p.account_id = ?
   ORDER BY p.published_at DESC`;
 
+const toMetrics = (row: MetricColumns): PostMetrics => ({
+  impressions: row.impressions,
+  reactions: row.reactions,
+  comments: row.comments,
+  reposts: row.reposts,
+  clicks: row.clicks,
+  engagements: row.engagements,
+});
+
+const toPeriod = (row: MetricColumns) =>
+  row.period_from && row.period_to ? { from: row.period_from, to: row.period_to } : null;
+
 function toRecord(row: PostRow): PostRecord {
   return {
     id: row.id,
@@ -59,19 +81,23 @@ function toRecord(row: PostRow): PostRecord {
     contentType: row.content_type,
     providers: fromJson<string[]>(row.providers) ?? [],
     topics: (fromJson<string[]>(row.topics) ?? []).sort(),
-    metrics: {
-      impressions: row.impressions,
-      reactions: row.reactions,
-      comments: row.comments,
-      reposts: row.reposts,
-      clicks: row.clicks,
-      engagements: row.engagements,
-    },
+    metrics: toMetrics(row),
     metricsObservedOn: row.observed_on,
-    metricsPeriod:
-      row.period_from && row.period_to ? { from: row.period_from, to: row.period_to } : null,
+    metricsPeriod: toPeriod(row),
     metricsProvider: row.provider,
   };
+}
+
+/** Per post: metrics merged over its snapshots in the order given, and who reported them. */
+function foldHistory(rows: readonly SnapshotRow[]) {
+  const merged = new Map<string, { metrics: PostMetrics; providers: Set<string> }>();
+  for (const row of rows) {
+    const entry = merged.get(row.post_id) ?? { metrics: EMPTY_METRICS, providers: new Set() };
+    entry.metrics = mergeMetrics(entry.metrics, toMetrics(row));
+    entry.providers.add(row.provider);
+    merged.set(row.post_id, entry);
+  }
+  return merged;
 }
 
 export class SqliteContentQueries implements ContentQueries {
@@ -88,17 +114,8 @@ export class SqliteContentQueries implements ContentQueries {
         `SELECT m.* FROM post_metric_snapshots m JOIN posts p ON p.id = m.post_id
          WHERE p.account_id = ? ORDER BY m.observed_on, m.provider`,
       )
-      .all(accountId) as (PostRow & { post_id: string })[];
-    const merged = new Map<string, { metrics: PostMetrics; providers: Set<string> }>();
-    for (const row of history) {
-      const entry = merged.get(row.post_id) ?? { metrics: EMPTY_METRICS, providers: new Set() };
-      entry.metrics = mergeMetrics(
-        entry.metrics,
-        toRecord({ ...row, providers: "[]", topics: null }).metrics,
-      );
-      entry.providers.add(row.provider as string);
-      merged.set(row.post_id, entry);
-    }
+      .all(accountId) as SnapshotRow[];
+    const merged = foldHistory(history);
     return records.map((record) => {
       const entry = merged.get(record.id);
       if (!entry) return record;
@@ -112,17 +129,14 @@ export class SqliteContentQueries implements ContentQueries {
         `SELECT m.* FROM post_metric_snapshots m JOIN posts p ON p.id = m.post_id
          WHERE p.account_id = ? AND m.post_id = ? ORDER BY m.observed_on, m.provider`,
       )
-      .all(accountId, postId) as (PostRow & { import_job_id: string | null })[];
-    return rows.map((row) => {
-      const record = toRecord({ ...row, providers: "[]", topics: null });
-      return {
-        observedOn: row.observed_on as string,
-        provider: row.provider as string,
-        metrics: record.metrics,
-        period: record.metricsPeriod,
-        importJobId: row.import_job_id,
-      };
-    });
+      .all(accountId, postId) as SnapshotRow[];
+    return rows.map((row) => ({
+      observedOn: row.observed_on,
+      provider: row.provider,
+      metrics: toMetrics(row),
+      period: toPeriod(row),
+      importJobId: row.import_job_id,
+    }));
   }
 
   async accountDays(accountId: string): Promise<AccountDay[]> {

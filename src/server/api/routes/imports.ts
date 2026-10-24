@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import type { ContentStore } from "../../application/content/ports";
 import type { ImportService } from "../../application/imports/import-service";
 import type { SourceFile } from "../../application/imports/ports";
 import { ValidationError } from "../../application/errors";
@@ -18,7 +17,7 @@ async function readUploads(form: FormData): Promise<SourceFile[]> {
   );
 }
 
-export function importRoutes(imports: ImportService, content: ContentStore, maxBytes: number) {
+export function importRoutes(imports: ImportService, maxBytes: number) {
   // Enforced while streaming, so an oversized request never reaches memory in full.
   const limit = bodyLimit({
     maxSize: maxBytes,
@@ -53,14 +52,5 @@ export function importRoutes(imports: ImportService, content: ContentStore, maxB
       await imports.deleteDemo(currentUser(c).id);
       return c.body(null, 204);
     })
-    .get("/status", async (c) => {
-      const account = await content.findAccount(currentUser(c).id);
-      const has = (dataset: "linkedin" | "demo") =>
-        account ? content.hasDataset(account.id, dataset) : Promise.resolve(false);
-      return c.json({
-        account,
-        hasLinkedInData: await has("linkedin"),
-        hasDemoData: await has("demo"),
-      });
-    });
+    .get("/status", async (c) => c.json(await imports.status(currentUser(c).id)));
 }

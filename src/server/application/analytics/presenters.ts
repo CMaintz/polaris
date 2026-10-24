@@ -1,11 +1,11 @@
-import { displayText } from "../../domain/content";
+import { LINKEDIN_DATA_EXPORT, displayText } from "../../domain/content";
 import type { Insight } from "../../domain/insights";
 import { type PostMetrics, engagementRate, totalEngagements } from "../../domain/metrics";
 import type { Band, PostRecord, SegmentPerformance } from "../../domain/posts";
 import type { InsightDto, MetricsDto, PostSummaryDto, SegmentDto } from "../../../shared/api-types";
 
 const PROVIDER_LABELS: Record<string, string> = {
-  "linkedin-data-export": "LinkedIn data archive",
+  [LINKEDIN_DATA_EXPORT]: "LinkedIn data archive",
   "linkedin-analytics-export": "LinkedIn analytics export",
   demo: "Demo data (synthetic)",
 };

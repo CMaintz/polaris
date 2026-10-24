@@ -33,11 +33,15 @@ export interface JobRepository {
   complete(id: string, result: unknown, now: string): Promise<void>;
   scheduleRetry(id: string, error: string, runAfter: string): Promise<void>;
   fail(id: string, error: string, now: string): Promise<void>;
-  /**
-   * Jobs left running by a crash. Requeued (handlers are idempotent) but counted as a
-   * retry, so a job that crashes the process fails once its retries run out.
-   */
-  requeueInterrupted(now: string): Promise<void>;
+  /** Jobs marked running; at startup, those a crash left behind. */
+  listRunning(): Promise<Job[]>;
+  /** Counts an interrupted run as a retry, then requeues the job or fails it as told. */
+  recordInterruption(
+    id: string,
+    outcome: "queued" | "failed",
+    error: string,
+    now: string,
+  ): Promise<void>;
   findForUser(userId: string, id: string): Promise<Job | null>;
   listForUser(userId: string, type?: string, limit?: number): Promise<Job[]>;
 }

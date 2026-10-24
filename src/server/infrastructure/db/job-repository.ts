@@ -95,16 +95,23 @@ export class SqliteJobRepository implements JobRepository {
       .run(error, now, id);
   }
 
-  async requeueInterrupted(now: string): Promise<void> {
+  async listRunning(): Promise<Job[]> {
+    const rows = this.db.prepare("SELECT * FROM jobs WHERE status = 'running'").all() as JobRow[];
+    return rows.map(toJob);
+  }
+
+  async recordInterruption(
+    id: string,
+    outcome: "queued" | "failed",
+    error: string,
+    now: string,
+  ): Promise<void> {
     this.db
       .prepare(
-        `UPDATE jobs SET retry_count = retry_count + 1,
-           status = CASE WHEN retry_count + 1 > max_retries THEN 'failed' ELSE 'queued' END,
-           error = 'Interrupted by a server restart', run_after = ?,
-           completed_at = CASE WHEN retry_count + 1 > max_retries THEN ? ELSE NULL END
-         WHERE status = 'running'`,
+        `UPDATE jobs SET retry_count = retry_count + 1, status = ?, error = ?, run_after = ?,
+           completed_at = ? WHERE id = ?`,
       )
-      .run(now, now);
+      .run(outcome, error, now, outcome === "failed" ? now : null, id);
   }
 
   async findForUser(userId: string, id: string): Promise<Job | null> {

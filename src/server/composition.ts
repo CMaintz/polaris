@@ -17,9 +17,10 @@ import { AesGcmSecretBox, resolveMasterKey } from "./infrastructure/crypto/secre
 import { SqliteAiStore } from "./infrastructure/db/ai-store";
 import { AccountService } from "./application/account/account-service";
 import { PlanningService } from "./application/planning/planning-service";
-import type { Experiment, Goal, PlanItem } from "./application/planning/ports";
+import type { Measurements } from "./application/planning/ports";
+import type { ResolveAccount } from "./application/content/ports";
 import { SqliteDataLifecycle } from "./infrastructure/db/data-lifecycle";
-import { SqliteRecordTable } from "./infrastructure/db/record-table";
+import { sqlitePlanningStores } from "./infrastructure/db/planning-tables";
 import {
   SqliteAuditLog,
   SqliteSessionRepository,
@@ -27,7 +28,7 @@ import {
 } from "./infrastructure/db/auth-repositories";
 import { SqliteContentQueries } from "./infrastructure/db/content-queries";
 import { SqliteContentStore } from "./infrastructure/db/content-store";
-import { type Db, openDatabase } from "./infrastructure/db/database";
+import { openDatabase } from "./infrastructure/db/database";
 import { SqliteImportFileStore } from "./infrastructure/db/import-file-store";
 import { SqliteJobRepository } from "./infrastructure/db/job-repository";
 import { buildDemoBundle } from "./infrastructure/demo/demo-provider";
@@ -54,6 +55,9 @@ function buildCore(config: Config, overrides: Overrides) {
     clock,
     allowSignup: config.allowSignup,
   });
+  const content = new SqliteContentStore(db);
+  const resolveAccount: ResolveAccount = async (userId) =>
+    (await content.findAccount(userId))?.id ?? null;
   return {
     clock,
     db,
@@ -61,7 +65,8 @@ function buildCore(config: Config, overrides: Overrides) {
     audit,
     auth,
     jobs: new SqliteJobRepository(db),
-    content: new SqliteContentStore(db),
+    content,
+    resolveAccount,
   };
 }
 
@@ -79,69 +84,35 @@ function buildImports({ db, content, jobs, audit, clock }: Core) {
   });
 }
 
-function buildAi(
-  core: Core,
-  db: Db,
-  config: Config,
-  facts: EvidenceFacts,
-  factory: AiProviderFactory,
-) {
-  const { content, jobs, audit, clock } = core;
+function buildAi(core: Core, config: Config, facts: EvidenceFacts, factory: AiProviderFactory) {
+  const { db, content, resolveAccount, jobs, audit, clock } = core;
   const aiStore = new SqliteAiStore(db);
   const box = new AesGcmSecretBox(
     resolveMasterKey(config.masterKey, join(config.dataDir, "master.key")),
   );
   const credentials = new CredentialService(aiStore, box, factory, audit, clock);
-  const ai = new AiService({ credentials, facts, content, store: aiStore, jobs, audit, clock });
+  const ai = new AiService({
+    credentials,
+    facts,
+    content,
+    resolveAccount,
+    insights: aiStore,
+    interactions: aiStore,
+    jobs,
+    audit,
+    clock,
+  });
   return { aiStore, credentials, ai };
 }
 
-function buildPlanning(core: Core, analytics: AnalyticsService) {
-  const { db } = core;
-  const goals = new SqliteRecordTable<Goal>(
-    db,
-    "goals",
-    ["name", "metric", "target", "startDate", "endDate", "status", "notes"],
-    "end_date, created_at",
-  );
-  const experiments = new SqliteRecordTable<Experiment>(
-    db,
-    "experiments",
-    [
-      "goalId",
-      "name",
-      "hypothesis",
-      "variable",
-      "metric",
-      "baseline",
-      "startDate",
-      "endDate",
-      "status",
-      "result",
-      "conclusion",
-      "followUp",
-    ],
-    "start_date DESC, created_at",
-  );
-  const plan = new SqliteRecordTable<PlanItem>(
-    db,
-    "plan_items",
-    ["title", "concept", "targetTopic", "plannedDate", "status", "draft", "postId"],
-    "planned_date IS NULL, planned_date, created_at",
-  );
-  const planning = new PlanningService(
-    { goals, experiments, plan },
-    core.content,
-    analytics,
-    core.clock,
-  );
-  const account = new AccountService(
-    new SqliteDataLifecycle(db),
-    core.auth,
-    core.audit,
-    core.clock,
-  );
-  return { planning, account };
+function buildPlanning(core: Core, measurements: Measurements) {
+  const { db, content, resolveAccount, clock } = core;
+  const stores = sqlitePlanningStores(db);
+  return new PlanningService({ stores, content, resolveAccount, measurements, clock });
+}
+
+function buildAccount(core: Core) {
+  return new AccountService(new SqliteDataLifecycle(core.db), core.auth, core.audit, core.clock);
 }
 
 /** The composition root: the only place that knows which adapter backs which port. */
@@ -151,21 +122,23 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
   const queries = new SqliteContentQueries(core.db);
   const analytics = new AnalyticsService(core.content, queries, core.clock);
   const facts = new AnalyticsEvidenceFacts(core.content, queries, core.clock);
-  const ai = buildAi(core, core.db, config, facts, overrides.aiFactory ?? new SdkProviderFactory());
+  const ai = buildAi(core, config, facts, overrides.aiFactory ?? new SdkProviderFactory());
   const handlers = {
     [IMPORT_JOB]: imports.run.bind(imports),
     [AI_JOB]: ai.ai.run.bind(ai.ai),
   };
   const worker = new JobWorker(core.jobs, handlers, core.clock, overrides.worker);
   const planning = buildPlanning(core, analytics);
+  const account = buildAccount(core);
   const api = createApi({
     ...core,
     ...ai,
-    ...planning,
+    planning,
+    account,
     imports,
     analytics,
     secureCookies: config.secureCookies,
     maxUploadBytes: config.maxUploadBytes,
   });
-  return { ...core, ...ai, ...planning, imports, analytics, worker, api };
+  return { ...core, ...ai, planning, account, imports, analytics, worker, api };
 }

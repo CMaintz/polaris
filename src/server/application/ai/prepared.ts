@@ -1,0 +1,83 @@
+import type { EvidenceFacts } from "../analytics/evidence-facts";
+import { PERIOD_DAYS } from "../../domain/dates";
+import { type EvidencePack, accountEvidence, disclosure, postEvidence } from "./evidence";
+import { type Intent, SECTIONS, classifyQuestion } from "./intent";
+import type { AiPayload } from "./job-payload";
+import {
+  ACCOUNT_REVIEW,
+  ASK_DATA,
+  type Analysis,
+  type Answer,
+  POST_REVIEW,
+  type PromptTemplate,
+  renderPrompt,
+} from "./prompts";
+
+interface Common {
+  pack: EvidencePack;
+  demo: boolean;
+}
+
+/** One AI task, with the evidence gathered for it. */
+export type Prepared = Common &
+  (
+    | { task: "account_review"; template: PromptTemplate<Analysis> }
+    | { task: "post_review"; template: PromptTemplate<Analysis>; postId: string }
+    | { task: "ask"; template: PromptTemplate<Answer>; intent: Intent; question: string }
+  );
+
+export async function prepare(
+  facts: EvidenceFacts,
+  userId: string,
+  payload: AiPayload,
+): Promise<Prepared> {
+  if (payload.task === "post_review") {
+    const post = await facts.post(userId, payload.postId);
+    const { postId } = payload;
+    return {
+      task: "post_review",
+      template: POST_REVIEW,
+      pack: postEvidence(post),
+      demo: post.basedOnDemo,
+      postId,
+    };
+  }
+  const account = await facts.account(userId, PERIOD_DAYS, payload.tz);
+  const demo = account.basedOnDemo;
+  if (payload.task === "account_review") {
+    return {
+      task: "account_review",
+      template: ACCOUNT_REVIEW,
+      pack: accountEvidence(account),
+      demo,
+    };
+  }
+  const intent = classifyQuestion(payload.question);
+  const pack = accountEvidence(account, SECTIONS[intent]);
+  return { task: "ask", template: ASK_DATA, pack, demo, intent, question: payload.question };
+}
+
+/** What was sent, for the interaction log (docs/09). Never the post text or the question. */
+export function inputSummary(prepared: Prepared, provider: string): Record<string, unknown> {
+  return { ...disclosure(prepared.pack), ...taskDetail(prepared), provider, demo: prepared.demo };
+}
+
+function taskDetail(prepared: Prepared) {
+  if (prepared.task === "post_review") return { postId: prepared.postId };
+  if (prepared.task === "ask") return { intent: prepared.intent };
+  return {};
+}
+
+export function requestFor(prepared: Prepared) {
+  const { template, pack, demo } = prepared;
+  return {
+    system: template.system,
+    prompt: renderPrompt(pack, {
+      demo,
+      question: prepared.task === "ask" ? prepared.question : undefined,
+    }),
+    schema: template.schema,
+    schemaName: template.schemaName,
+    maxTokens: template.maxTokens,
+  };
+}

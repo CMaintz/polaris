@@ -1,4 +1,4 @@
-import { addDays, dayOf, isWithin } from "./dates";
+import { PERIOD_DAYS, RECENT_DAYS, addDays, dayOf, isWithin, lastDays } from "./dates";
 import { postMetricValue } from "./metrics";
 import {
   type PostRecord,
@@ -184,8 +184,9 @@ function segmentInsight(
 const engagementsOf = (p: PostRecord) => postMetricValue(p.metrics, "engagements");
 
 function outlierPost({ posts, asOf, sources }: InsightInputs): Insight | null {
+  const recentWindow = lastDays(asOf, RECENT_DAYS);
   const recent = posts.filter(
-    (p) => p.publishedAt && isWithin(dayOf(p.publishedAt), addDays(asOf, -89), asOf),
+    (p) => p.publishedAt && isWithin(dayOf(p.publishedAt), recentWindow.from, recentWindow.to),
   );
   const typical = median(recent.map(engagementsOf));
   const rated = recent.filter((p) => engagementsOf(p) !== null);
@@ -215,7 +216,7 @@ function outlierPost({ posts, asOf, sources }: InsightInputs): Insight | null {
         label: "90-day median engagements",
         value: typical,
         unit: "count",
-        period: { from: addDays(asOf, -89), to: asOf },
+        period: recentWindow,
         source: sources.posts,
       },
     ],
@@ -224,13 +225,15 @@ function outlierPost({ posts, asOf, sources }: InsightInputs): Insight | null {
 
 function cadenceChange({ posts, asOf, sources }: InsightInputs): Insight | null {
   const coverage = postCountCoverage(posts);
+  const currentWindow = lastDays(asOf, PERIOD_DAYS);
+  const previousWindow = lastDays(addDays(asOf, -PERIOD_DAYS), PERIOD_DAYS);
   // Both windows must lie inside the archive's range, or a missing export reads as silence.
-  if (!coverage || coverage.from > addDays(asOf, -55) || coverage.to < asOf) return null;
+  if (!coverage || coverage.from > previousWindow.from || coverage.to < asOf) return null;
   const listed = posts.filter(isFullyListed);
-  const count = (from: string, to: string) =>
+  const count = ({ from, to }: { from: string; to: string }) =>
     listed.filter((p) => p.publishedAt && isWithin(dayOf(p.publishedAt), from, to)).length;
-  const current = count(addDays(asOf, -27), asOf);
-  const previous = count(addDays(asOf, -55), addDays(asOf, -28));
+  const current = count(currentWindow);
+  const previous = count(previousWindow);
   const change = growth(previous, current);
   if (previous < 4 || change.percent === null || Math.abs(change.percent) < 0.5) return null;
   const fewer = current < previous;
@@ -252,7 +255,7 @@ function cadenceChange({ posts, asOf, sources }: InsightInputs): Insight | null 
         label: "Posts, last 28 days",
         value: current,
         unit: "count",
-        period: { from: addDays(asOf, -27), to: asOf },
+        period: currentWindow,
         source: sources.posts,
       },
       {
@@ -260,7 +263,7 @@ function cadenceChange({ posts, asOf, sources }: InsightInputs): Insight | null 
         label: "Posts, previous 28 days",
         value: previous,
         unit: "count",
-        period: { from: addDays(asOf, -55), to: addDays(asOf, -28) },
+        period: previousWindow,
         source: sources.posts,
       },
     ],
