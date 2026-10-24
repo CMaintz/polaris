@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { PromptTemplate } from "../ai/prompts";
 import { fenced, inlineText } from "../ai/untrusted";
 import type { AccountContext } from "./context";
-import type { Peer, WebSource } from "./ports";
+import type { Peer, WebSource } from "./research-ports";
 
 // Versioned like every Polaris prompt (docs/06): a wording change gets a new version.
 

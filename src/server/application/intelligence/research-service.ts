@@ -9,23 +9,22 @@ import type {
 } from "../../../shared/intelligence-types";
 import { type AccountContext, type PostSource, accountContext } from "./context";
 import {
+  type CallContext,
   type TemplateContext,
   recordedCall,
   structuredCall,
   toJobError,
 } from "../ai/recorded-call";
 import { type ResearchPayload, researchJob, researchPayload } from "./jobs";
+import type { ActiveKey, InteractionRecorder, KeySource, ProviderSource } from "./ports";
 import type {
-  ActiveKey,
-  InteractionRecorder,
-  KeySource,
   Peer,
   PeerStore,
-  ProviderSource,
   ReportStore,
   StoredReport,
   WebResearchFactory,
-} from "./ports";
+  WebResearchProvider,
+} from "./research-ports";
 import {
   RESEARCH_REPORT,
   RESEARCH_SEARCH,
@@ -122,15 +121,7 @@ export class ResearchService {
       promptVersion: RESEARCH_SEARCH.version,
     };
     try {
-      const search = await recordedCall(this.deps, searchCall, async () => {
-        const result = await searcher.research({
-          system: RESEARCH_SEARCH.system,
-          prompt: renderSearchPrompt(question, peer),
-          maxTokens: RESEARCH_SEARCH.maxTokens,
-        });
-        const value = { text: result.text, sources: result.sources };
-        return { value, model: result.model, output: value, ...result.usage };
-      });
+      const search = await this.searchWeb(searcher, searchCall, renderSearchPrompt(question, peer));
       const sources = numberSources(search.value.sources);
       const structured = await this.structure(job.userId, context, question, search.value, account);
       return groundReport(structured.value, sources, account, [
@@ -140,6 +131,18 @@ export class ResearchService {
     } catch (error) {
       throw toJobError(error);
     }
+  }
+
+  private searchWeb(searcher: WebResearchProvider, call: CallContext, prompt: string) {
+    return recordedCall(this.deps, call, async () => {
+      const result = await searcher.research({
+        system: RESEARCH_SEARCH.system,
+        prompt,
+        maxTokens: RESEARCH_SEARCH.maxTokens,
+      });
+      const value = { text: result.text, sources: result.sources };
+      return { value, model: result.model, output: value, ...result.usage };
+    });
   }
 
   private async structure(

@@ -23,7 +23,7 @@ export const AI_JOB = "ai";
 const MAX_QUESTION = 500;
 const INTERACTION_LIMIT = 50;
 
-export interface AiKeys {
+interface AiKeys {
   /** Null when the user has stored no key. */
   activeProvider(userId: string): Promise<AiProvider | null>;
   list(userId: string): Promise<readonly unknown[]>;

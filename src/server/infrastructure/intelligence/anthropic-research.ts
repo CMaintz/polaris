@@ -9,7 +9,7 @@ import type {
   WebResearchProvider,
   WebResearchRequest,
   WebResearchResult,
-} from "../../application/intelligence/ports";
+} from "../../application/intelligence/research-ports";
 import { translateAnthropicError } from "../ai/anthropic-errors";
 import { uniqueSources } from "./web-sources";
 

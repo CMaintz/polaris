@@ -1,4 +1,5 @@
-import type { KpiDto, PlanItemDto } from "./api-types";
+import type { KpiDto } from "./analytics-types";
+import type { PlanItemDto } from "./planning-types";
 
 export type PlatformDto = "linkedin" | "other";
 

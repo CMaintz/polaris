@@ -9,7 +9,7 @@ export interface CallDeps extends RecorderDeps {
   models: ModelSource;
 }
 
-export async function requireModel(models: ModelSource, userId: string): Promise<AiProvider> {
+async function requireModel(models: ModelSource, userId: string): Promise<AiProvider> {
   const provider = await models.activeProvider(userId);
   if (!provider) throw new PermanentJobError("No AI key is configured");
   return provider;

@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import type { ThemesDto } from "../../shared/knowledge-types";
 import { formatDate } from "../lib/format";
-import { useResource, useStartJob } from "../lib/hooks";
-import { EmergingTable, ThemeTable } from "../components/knowledge";
-import { ResourceView } from "../components/resource";
-import { Empty, ErrorBox, JobLine, PageHead } from "../components/ui";
+import { ErrorBox, JobLine } from "../components/common/feedback";
+import { Empty, PageHead } from "../components/common/layout";
+import { ResourceView } from "../components/common/resource-view";
+import { EmergingTable, ThemeTable } from "../components/knowledge/themes";
+import { useStartJob } from "../lib/hooks/job";
+import { useResource } from "../lib/hooks/resource";
 
 export function ThemesPage() {
   const themes = useResource<ThemesDto>("/knowledge/themes");

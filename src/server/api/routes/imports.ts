@@ -17,31 +17,29 @@ async function readUploads(form: FormData): Promise<SourceFile[]> {
   );
 }
 
-export function importRoutes(imports: ImportService, maxBytes: number) {
-  // Enforced while streaming, so an oversized request never reaches memory in full.
-  const limit = bodyLimit({
+async function readForm(request: { formData(): Promise<FormData> }): Promise<FormData> {
+  try {
+    return await request.formData();
+  } catch {
+    throw new ValidationError("Send the files as multipart/form-data");
+  }
+}
+
+// Enforced while streaming, so an oversized request never reaches memory in full.
+function uploadLimit(maxBytes: number) {
+  const message = `Uploads are limited to ${Math.round(maxBytes / 1048576)} MB`;
+  return bodyLimit({
     maxSize: maxBytes,
-    onError: (c) =>
-      c.json(
-        {
-          error: {
-            code: "too_large",
-            message: `Uploads are limited to ${Math.round(maxBytes / 1048576)} MB`,
-          },
-        },
-        413,
-      ),
+    onError: (c) => c.json({ error: { code: "too_large", message } }, 413),
   });
+}
+
+export function importRoutes(imports: ImportService, maxBytes: number) {
   return new Hono<AppEnv>()
     .use(requireUser)
-    .post("/", limit, async (c) => {
-      let form: FormData;
-      try {
-        form = await c.req.formData();
-      } catch {
-        throw new ValidationError("Send the files as multipart/form-data");
-      }
-      const job = await imports.startImport(currentUser(c).id, await readUploads(form));
+    .post("/", uploadLimit(maxBytes), async (c) => {
+      const files = await readUploads(await readForm(c.req));
+      const job = await imports.startImport(currentUser(c).id, files);
       return c.json({ job: toJobDto(job) }, 202);
     })
     .post("/demo", async (c) => {

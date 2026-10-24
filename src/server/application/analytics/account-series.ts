@@ -14,7 +14,7 @@ import {
   pairedRate,
   rollingAverage,
 } from "../../domain/timeseries";
-import type { KpiDto, SeriesPointDto } from "../../../shared/api-types";
+import type { KpiDto, SeriesPointDto } from "../../../shared/analytics-types";
 import type { AccountDay } from "./ports";
 import { sourceLabel } from "./presenters";
 

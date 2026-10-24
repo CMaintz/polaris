@@ -3,7 +3,7 @@ import {
   type ConnectionStatus,
   PublishError,
   type PublishResult,
-} from "../../application/action/ports";
+} from "../../application/action/provider-ports";
 import type { SecretBox } from "../../application/ai/ports";
 import type { Clock } from "../../application/clock";
 import { ConflictError } from "../../application/errors";

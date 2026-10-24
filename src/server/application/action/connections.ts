@@ -8,7 +8,7 @@ import type {
   ConnectionStatus,
   OAuthStateStore,
   PublishingProvider,
-} from "./ports";
+} from "./provider-ports";
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 

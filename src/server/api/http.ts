@@ -4,7 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import type { User } from "../application/auth/ports";
 import { AppError, UnauthorizedError, ValidationError } from "../application/errors";
-import type { ApiErrorBody } from "../../shared/api-types";
+import type { ApiErrorBody } from "../../shared/core-types";
 
 export interface AppEnv {
   Variables: { user: User | null };

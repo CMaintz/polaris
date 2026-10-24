@@ -1,4 +1,4 @@
-import type { FeedFetcher, ParsedFeed } from "../../application/intelligence/ports";
+import type { FeedFetcher, ParsedFeed } from "../../application/intelligence/feed-ports";
 import { FeedParseError, parseFeed } from "./feed-parser";
 import { FetchError, type Resolver, safeFetch, systemResolver } from "./safe-fetch";
 

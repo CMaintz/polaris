@@ -1,10 +1,10 @@
-import type { StoredVector } from "./ports";
+import type { LexicalHit, StoredVector } from "./ports";
 
 // Reciprocal rank fusion constant from Cormack et al. (SIGIR 2009). Fusing ranks rather than
 // scores avoids normalising bm25 (unbounded) against cosine similarity (bounded).
 const RRF_K = 60;
 
-export function cosine(a: Float32Array, b: Float32Array): number {
+function cosine(a: Float32Array, b: Float32Array): number {
   let dot = 0;
   let normA = 0;
   let normB = 0;
@@ -37,10 +37,33 @@ export function nearest(
     .slice(0, options.limit);
 }
 
-export function fuseRanks(lists: readonly (readonly string[])[]): string[] {
+function fuseRanks(lists: readonly (readonly string[])[]): string[] {
   const scores = new Map<string, number>();
   for (const list of lists) {
     list.forEach((id, rank) => scores.set(id, (scores.get(id) ?? 0) + 1 / (RRF_K + rank + 1)));
   }
   return [...scores.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+}
+
+export interface Ranked {
+  postId: string;
+  lexical: LexicalHit | null;
+  similarity: number | null;
+}
+
+export const lexicalOnly = (hit: LexicalHit): Ranked => ({
+  postId: hit.postId,
+  lexical: hit,
+  similarity: null,
+});
+
+export function fuse(lexical: LexicalHit[], neighbours: Neighbour[]): Ranked[] {
+  const byId = new Map(lexical.map((h) => [h.postId, h]));
+  const similarity = new Map(neighbours.map((n) => [n.postId, n.similarity]));
+  const order = fuseRanks([lexical.map((h) => h.postId), neighbours.map((n) => n.postId)]);
+  return order.map((postId) => ({
+    postId,
+    lexical: byId.get(postId) ?? null,
+    similarity: similarity.get(postId) ?? null,
+  }));
 }

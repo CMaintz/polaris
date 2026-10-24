@@ -1,4 +1,4 @@
-import type { WebSource } from "../../application/intelligence/ports";
+import type { WebSource } from "../../application/intelligence/research-ports";
 
 const MAX_SOURCES = 20;
 

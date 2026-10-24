@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from "react";
-import type { UserDto } from "../../shared/api-types";
+import type { UserDto } from "../../shared/core-types";
 import { post } from "../lib/api";
-import { Field } from "../components/ui";
+import { Field } from "../components/common/fields";
 
 export function LoginPage({ onSignedIn }: { onSignedIn: (user: UserDto) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");

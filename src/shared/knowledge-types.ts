@@ -1,4 +1,4 @@
-import type { JobDto } from "./api-types";
+import type { JobDto } from "./core-types";
 
 /** A run of snippet text; `hit` marks a matched term. Plain text, never markup. */
 export interface SnippetSegment {
@@ -52,7 +52,7 @@ export interface ThemePerformanceDto {
   medianEngagementRate: number | null;
 }
 
-export interface ThemeWindowDto {
+interface ThemeWindowDto {
   from: string;
   to: string;
   coveredDays: number;

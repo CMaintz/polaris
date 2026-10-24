@@ -1,13 +1,15 @@
-import type { AudienceDto } from "../../shared/api-types";
+import type { AudienceDto } from "../../shared/analytics-types";
 import { formatDate, formatPercent } from "../lib/format";
-import { useResource } from "../lib/hooks";
-import { TrendChart } from "../components/charts";
-import { Empty, ErrorBox, Loading, Meter, PageHead } from "../components/ui";
+import { TrendChart } from "../components/charts/trend-chart";
+import { Pending } from "../components/common/feedback";
+import { Empty, PageHead } from "../components/common/layout";
+import { Meter } from "../components/common/meter";
+import { useResource } from "../lib/hooks/resource";
 
 export function AudiencePage() {
   const audience = useResource<AudienceDto>("/audience");
   const data = audience.data;
-  if (!data) return audience.error ? <ErrorBox error={audience.error} /> : <Loading />;
+  if (!data) return <Pending error={audience.error} />;
   return (
     <div className="stack">
       <PageHead
