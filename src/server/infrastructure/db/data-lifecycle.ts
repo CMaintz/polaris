@@ -1,40 +1,18 @@
 import type { DataLifecycle } from "../../application/account/account-service";
+import { accountTables, importedTables } from "./account-tables";
 import type { Db } from "./database";
-
-// What an export contains: everything the user owns, minus secrets (password hash, session
-// tokens, sealed AI keys) and raw upload bytes, which the user already has.
-const ACCOUNT_TABLES = [
-  "posts",
-  "account_metric_days",
-  "audience_segments",
-  "topics",
-  "goals",
-  "experiments",
-  "plan_items",
-  "ai_insights",
-  "recommendations",
-];
-
-// Imported data and everything derived from it. Goals, experiments and plans are the user's
-// own writing, so they survive a "delete imported data".
-const IMPORTED_TABLES = [
-  "posts",
-  "account_metric_days",
-  "audience_segments",
-  "topics",
-  "ai_insights",
-  "recommendations",
-];
 
 export class SqliteDataLifecycle implements DataLifecycle {
   constructor(private readonly db: Db) {}
 
+  // What an export contains: everything the user owns, minus secrets (password hash, session
+  // tokens, sealed AI keys) and raw upload bytes, which the user already has.
   async exportUser(userId: string): Promise<Record<string, unknown>> {
     const account = this.db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(userId) as
       { id: string } | undefined;
     const rows = (sql: string, ...params: unknown[]) => this.db.prepare(sql).all(...params);
     const byAccount = Object.fromEntries(
-      ACCOUNT_TABLES.map((t) => [
+      accountTables().map((t) => [
         t,
         account ? rows(`SELECT * FROM ${t} WHERE account_id = ?`, account.id) : [],
       ]),
@@ -76,7 +54,7 @@ export class SqliteDataLifecycle implements DataLifecycle {
       const account = this.db.prepare("SELECT id FROM accounts WHERE user_id = ?").get(userId) as
         { id: string } | undefined;
       if (account) {
-        for (const table of IMPORTED_TABLES)
+        for (const table of importedTables())
           this.db.prepare(`DELETE FROM ${table} WHERE account_id = ?`).run(account.id);
       }
       // The profile fields on the account row came from the import too.

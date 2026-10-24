@@ -1,6 +1,8 @@
+import { z } from "zod";
 import { type Clock, nowIso } from "../clock";
 import type { ApplyStats, ContentStore } from "../content/ports";
 import { ConflictError, PermanentJobError, ValidationError } from "../errors";
+import { parsePayload } from "../jobs/payload";
 import type { Job, JobContext, JobRepository } from "../jobs/ports";
 import type { AuditLog } from "../auth/ports";
 import type { ImportBundle } from "../../domain/content";
@@ -20,10 +22,11 @@ export interface ImportResult {
   files: FileReport[];
 }
 
-interface ImportPayload {
-  fileIds?: string[];
-  demo?: boolean;
-}
+const importPayload = z.union([
+  z.object({ demo: z.literal(true) }),
+  z.object({ fileIds: z.array(z.string()).min(1) }),
+]);
+type ImportPayload = z.infer<typeof importPayload>;
 
 export interface ImportDeps {
   providers: SocialDataProvider[];
@@ -73,10 +76,10 @@ export class ImportService {
 
   /** Job handler. Idempotent, so a retried or crash-requeued import is harmless. */
   async run(job: Job, context: JobContext): Promise<ImportResult> {
-    const payload = job.payload as ImportPayload;
+    const payload = parsePayload(importPayload, job.payload);
     const now = nowIso(this.deps.clock);
     const account = await this.deps.content.ensureAccount(job.userId, now);
-    if (payload.demo && (await this.deps.content.hasDataset(account.id, "linkedin"))) {
+    if ("demo" in payload && (await this.deps.content.hasDataset(account.id, "linkedin"))) {
       // Re-checked here because real data may have been imported while this job waited.
       throw new PermanentJobError("Demo data was not loaded because real data now exists");
     }
@@ -96,8 +99,8 @@ export class ImportService {
 
   private async readSources(userId: string, payload: ImportPayload, context: JobContext) {
     const today = todayUtc(this.deps.clock());
-    if (payload.demo) return [{ file: "Demo data", bundle: this.deps.demo(today) }];
-    const stored = await this.deps.files.load(userId, payload.fileIds ?? []);
+    if ("demo" in payload) return [{ file: "Demo data", bundle: this.deps.demo(today) }];
+    const stored = await this.deps.files.load(userId, payload.fileIds);
     if (stored.length === 0)
       throw new PermanentJobError("The uploaded files are no longer available");
     const sources: { file: string; bundle: ImportBundle }[] = [];

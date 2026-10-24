@@ -235,3 +235,102 @@ describe("recommendations", () => {
     ).toBe(204);
   });
 });
+
+describe("recommendation status", () => {
+  it("stamps a status change with the injected clock", async () => {
+    const { run, client, container } = await setup(() => analysis(["E1"]));
+    await run("/ai/reviews/account");
+    const { recommendations } = (await (await client.request("/ai/recommendations")).json()) as {
+      recommendations: { id: string }[];
+    };
+    container.setNow("2026-03-16T09:30:00Z");
+    const body = JSON.stringify({ status: "accepted" });
+    await client.request(`/ai/recommendations/${recommendations[0]?.id}`, {
+      method: "PATCH",
+      body,
+    });
+    const row = container.db.prepare("SELECT updated_at FROM recommendations").get() as {
+      updated_at: string;
+    };
+    expect(row.updated_at).toBe("2026-03-16T09:30:00.000Z");
+  });
+});
+
+describe("demo data and AI output", () => {
+  it("deletes AI insights and recommendations based on the demo when the demo is deleted", async () => {
+    const { run, client, container } = await setup(() => analysis(["E1"]));
+    await run("/ai/reviews/account");
+    await client.request("/imports/demo", { method: "DELETE" });
+    const rows = (table: string) =>
+      (container.db.prepare(`SELECT COUNT(*) n FROM ${table}`).get() as { n: number }).n;
+    expect(rows("ai_insights")).toBe(0);
+    expect(rows("recommendations")).toBe(0);
+  });
+});
+
+describe("AI job payloads", () => {
+  it("fails a job with an unknown task without retrying or calling the provider", async () => {
+    const { factory, container, client } = await setup(() => analysis(["E1"]));
+    const job = await container.jobs.enqueue(
+      { userId: client.userId, type: "ai", payload: { task: "summarise", tz: 0 } },
+      container.clock().toISOString(),
+    );
+    await container.worker.drain();
+    expect(await container.jobs.findForUser(client.userId, job.id)).toMatchObject({
+      status: "failed",
+      retryCount: 0,
+    });
+    expect(factory.calls).toHaveLength(0);
+  });
+});
+
+describe("evidence sent to the model", () => {
+  it("sends post text past the 280-character UI excerpt", async () => {
+    const { run, factory, container } = await setup(() => analysis(["E1"]));
+    const text = `Opening line. ${"detail ".repeat(60)}closing line`;
+    container.db.prepare("UPDATE posts SET text = ?").run(text);
+    await run("/ai/reviews/account");
+    expect(factory.calls[0]?.prompt).toContain(text);
+  });
+
+  it("keeps a topic with enough posts when single-post topics rank above it", async () => {
+    const { run, factory, container } = await setup(() => analysis(["E1"]));
+    const ids = (
+      container.db
+        .prepare("SELECT DISTINCT post_id id FROM post_metric_snapshots LIMIT 8")
+        .all() as { id: string }[]
+    ).map((r) => r.id);
+    container.db.exec("DELETE FROM post_topics; DELETE FROM topics;");
+    const tag = (postId: string, topic: string, engagements: number) => {
+      container.db
+        .prepare(
+          "INSERT OR IGNORE INTO topics (id, account_id, name) SELECT ?, account_id, ? FROM posts LIMIT 1",
+        )
+        .run(topic, topic);
+      container.db
+        .prepare("INSERT INTO post_topics VALUES (?, ?, 'hashtag', 1)")
+        .run(postId, topic);
+      container.db
+        .prepare("UPDATE post_metric_snapshots SET engagements = ? WHERE post_id = ?")
+        .run(engagements, postId);
+    };
+    ids.slice(0, 6).forEach((id, i) => tag(id, `solo${i}`, 1000 + i));
+    ids.slice(6).forEach((id) => tag(id, "steady", 1));
+    await run("/ai/reviews/account");
+    expect(factory.calls[0]?.prompt).toContain("topic #steady (2 posts)");
+  });
+});
+
+describe("post review evidence", () => {
+  it("sends the comparable posts' full text, not their excerpts", async () => {
+    const { run, factory, container } = await setup(() => analysis(["E1"]));
+    const text = `Opening line. ${"detail ".repeat(60)}closing line`;
+    container.db.prepare("UPDATE posts SET text = ?").run(text);
+    const { id } = container.db.prepare("SELECT id FROM posts LIMIT 1").get() as { id: string };
+    const job = await run(`/ai/reviews/posts/${id}`);
+    expect(job.status).toBe("completed");
+    const prompt = factory.calls[0]?.prompt ?? "";
+    expect(prompt).toContain("This post");
+    expect(prompt.split(text).length - 1).toBeGreaterThan(1);
+  });
+});

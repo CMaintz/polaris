@@ -1,15 +1,8 @@
 import { type Clock } from "../clock";
 import type { ContentStore } from "../content/ports";
 import { NotFoundError } from "../errors";
-import { addDays, dayOf, todayUtc } from "../../domain/dates";
-import { postMetricValue } from "../../domain/metrics";
-import {
-  type PostRecord,
-  assignBands,
-  postingTimes,
-  segmentPerformance,
-  summarisePosts,
-} from "../../domain/posts";
+import { addDays, todayUtc } from "../../domain/dates";
+import { type PostRecord, postingTimes, segmentPerformance } from "../../domain/posts";
 import type { Granularity } from "../../domain/timeseries";
 import type {
   AudienceDto,
@@ -27,15 +20,17 @@ import {
   accountRuleInsights,
   accountSeries,
   dailyValues,
-  latestDay,
   providersOf,
 } from "./account-series";
+import { holdsDataset, loadAccountData } from "./account-data";
 import {
   type PostQuery,
+  baselineFor,
   byMetric,
   byPublished,
   comparablePosts,
   matchesQuery,
+  rankedRecentPosts,
 } from "./post-selection";
 import {
   ruleInsightDto,
@@ -61,12 +56,7 @@ export class AnalyticsService {
     const status = await this.status(data);
     const asOf = data.asOf ?? todayUtc(this.clock());
     const summary = (p: PostRecord) => toPostSummary(p, data.bands.get(p.id) ?? "unrated");
-    const recent = data.posts.filter(
-      (p) => p.publishedAt && dayOf(p.publishedAt) >= addDays(asOf, -89),
-    );
-    const ranked = recent
-      .filter((p) => postMetricValue(p.metrics, "engagements") !== null)
-      .sort(byMetric("engagements", "desc"));
+    const ranked = rankedRecentPosts(data.posts, asOf);
     return {
       status,
       periodDays,
@@ -86,8 +76,8 @@ export class AnalyticsService {
         0,
       ),
       recentPosts: data.posts.slice(0, 5).map(summary),
-      topPosts: ranked.slice(0, 5).map(summary),
-      bottomPosts: ranked.length >= 8 ? ranked.slice(-3).reverse().map(summary) : [],
+      topPosts: ranked.top.map(summary),
+      bottomPosts: ranked.bottom.map(summary),
       themes: segmentPerformance(data.posts, (p) => p.topics)
         .filter((s) => s.posts >= 2)
         .slice(0, 6)
@@ -139,12 +129,7 @@ export class AnalyticsService {
         metrics: toMetricsDto(o.metrics),
         period: o.period,
       })),
-      baseline: toSegmentDto(
-        summarisePosts(
-          "all",
-          data.posts.filter((p) => p.id !== post.id),
-        ),
-      ),
+      baseline: toSegmentDto(baselineFor(post, data.posts)),
       comparable: comparablePosts(post, data.posts).map((p) =>
         toPostSummary(p, data.bands.get(p.id) ?? "unrated"),
       ),
@@ -226,23 +211,15 @@ export class AnalyticsService {
     };
   }
 
-  private async load(userId: string): Promise<Loaded> {
-    const account = await this.content.findAccount(userId);
-    if (!account) return { account, posts: [], days: [], bands: new Map(), asOf: null };
-    const [posts, days] = await Promise.all([
-      this.queries.posts(account.id),
-      this.queries.accountDays(account.id),
-    ]);
-    return { account, posts, days, bands: assignBands(posts), asOf: latestDay(posts, days) };
+  private load(userId: string): Promise<Loaded> {
+    return loadAccountData(this.content, this.queries, userId);
   }
 
   private async status(data: Loaded): Promise<DataStatusDto> {
-    const has = async (dataset: "linkedin" | "demo") =>
-      data.account ? this.content.hasDataset(data.account.id, dataset) : false;
     return {
       asOf: data.asOf,
-      hasLinkedInData: await has("linkedin"),
-      hasDemoData: await has("demo"),
+      hasLinkedInData: await holdsDataset(this.content, data, "linkedin"),
+      hasDemoData: await holdsDataset(this.content, data, "demo"),
       posts: data.posts.length,
       postsWithMetrics: data.posts.filter((p) => p.metricsObservedOn !== null).length,
     };
