@@ -9,6 +9,7 @@ import { type AiPayload as Payload, parseAiPayload } from "./job-payload";
 import { callModel } from "./model-call";
 import type { AiProvider } from "./ports";
 import { type Prepared, prepare } from "./prepared";
+import type { RelatedPosts } from "./related-posts";
 import type { Analysis, Answer } from "./prompts";
 import type {
   InsightFilter,
@@ -31,6 +32,7 @@ export interface AiKeys {
 export interface AiDeps {
   credentials: AiKeys;
   facts: EvidenceFacts;
+  related: RelatedPosts;
   content: Pick<ContentStore, "hasDataset">;
   resolveAccount: ResolveAccount;
   insights: InsightStore;
@@ -97,7 +99,7 @@ export class AiService {
     const payload = parseAiPayload(job.payload);
     const provider = await this.deps.credentials.activeProvider(job.userId);
     if (!provider) throw new PermanentJobError("No AI key is configured");
-    const prepared = await prepare(this.deps.facts, job.userId, payload);
+    const prepared = await prepare(this.deps, job, payload);
     const data = await callModel(this.deps, job, provider, prepared);
     return this.persist(job, prepared, data);
   }

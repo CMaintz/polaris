@@ -1,15 +1,13 @@
 import { useSearchParams } from "react-router-dom";
 import type { PostPageDto } from "../../shared/api-types";
 import { PAGE_PARAM, withParam } from "../lib/filters";
-import { contentTypeLabel } from "../lib/format";
 import { useResource } from "../lib/hooks";
 import { metricOptions } from "../lib/metrics";
 import { PostTable } from "../components/content";
 import { ResourceView } from "../components/resource";
-import { Field, PageHead } from "../components/ui";
+import { ContentTypeField, Field, PageHead } from "../components/ui";
 
 const PAGE_SIZE = 25;
-const TYPES = ["text", "image", "video", "document", "article", "link", "unknown"];
 const SORTS: [string, string][] = [
   ["published", "Publish date"],
   ...metricOptions(["engagements", "impressions", "engagement_rate", "comments"]),
@@ -63,16 +61,7 @@ function ContentFilters({
           placeholder="Words in the post"
         />
       </Field>
-      <Field label="Type">
-        <select value={filter("type")} onChange={(e) => set("type", e.target.value)}>
-          <option value="">All types</option>
-          {TYPES.map((t) => (
-            <option key={t} value={t}>
-              {contentTypeLabel(t)}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <ContentTypeField value={filter("type")} onChange={(v) => set("type", v)} />
       <Field label="Topic">
         <select value={filter("topic")} onChange={(e) => set("topic", e.target.value)}>
           <option value="">All topics</option>

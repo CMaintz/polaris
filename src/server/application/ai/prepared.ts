@@ -1,4 +1,5 @@
 import type { EvidenceFacts } from "../analytics/evidence-facts";
+import type { RelatedPosts } from "./related-posts";
 import { PERIOD_DAYS } from "../../domain/dates";
 import { type EvidencePack, accountEvidence, disclosure, postEvidence } from "./evidence";
 import { type Intent, SECTIONS, classifyQuestion } from "./intent";
@@ -26,11 +27,17 @@ export type Prepared = Common &
     | { task: "ask"; template: PromptTemplate<Answer>; intent: Intent; question: string }
   );
 
+export interface PrepareDeps {
+  facts: EvidenceFacts;
+  related: RelatedPosts;
+}
+
 export async function prepare(
-  facts: EvidenceFacts,
-  userId: string,
+  { facts, related }: PrepareDeps,
+  job: { id: string; userId: string },
   payload: AiPayload,
 ): Promise<Prepared> {
+  const { userId } = job;
   if (payload.task === "post_review") {
     const post = await facts.post(userId, payload.postId);
     const { postId } = payload;
@@ -53,7 +60,8 @@ export async function prepare(
     };
   }
   const intent = classifyQuestion(payload.question);
-  const pack = accountEvidence(account, SECTIONS[intent]);
+  const posts = await related.find(userId, payload.question, job.id);
+  const pack = accountEvidence(account, SECTIONS[intent], posts);
   return { task: "ask", template: ASK_DATA, pack, demo, intent, question: payload.question };
 }
 
@@ -68,16 +76,7 @@ function taskDetail(prepared: Prepared) {
   return {};
 }
 
-export function requestFor(prepared: Prepared) {
-  const { template, pack, demo } = prepared;
-  return {
-    system: template.system,
-    prompt: renderPrompt(pack, {
-      demo,
-      question: prepared.task === "ask" ? prepared.question : undefined,
-    }),
-    schema: template.schema,
-    schemaName: template.schemaName,
-    maxTokens: template.maxTokens,
-  };
+export function promptFor(prepared: Prepared): string {
+  const question = prepared.task === "ask" ? prepared.question : undefined;
+  return renderPrompt(prepared.pack, { demo: prepared.demo, question });
 }
