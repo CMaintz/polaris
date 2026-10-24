@@ -7,7 +7,7 @@ import {
   type StructuredResult,
 } from "../../application/ai/ports";
 
-function translate(error: unknown): AiProviderError {
+export function translateOpenAiError(error: unknown): AiProviderError {
   if (
     error instanceof OpenAI.AuthenticationError ||
     error instanceof OpenAI.PermissionDeniedError
@@ -58,7 +58,7 @@ export class OpenAiProvider implements AiProvider {
         text: { format: zodTextFormat(request.schema, request.schemaName) },
       });
     } catch (error) {
-      throw translate(error);
+      throw translateOpenAiError(error);
     }
     if (response.output_parsed === null || response.output_parsed === undefined) {
       throw new AiProviderError(

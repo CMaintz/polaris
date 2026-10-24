@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { AiProviderId } from "../../application/ai/ports";
 import type {
   AiInsight,
-  AiStore,
+  CredentialStore,
+  InsightFilter,
+  InsightStore,
+  InteractionLog,
   InteractionRecord,
   Recommendation,
   RecommendationStatus,
@@ -40,7 +43,7 @@ const toRecommendation = (r: Row): Recommendation => ({
   interactionId: r["interaction_id"] as string,
 });
 
-export class SqliteAiStore implements AiStore {
+export class SqliteAiStore implements CredentialStore, InteractionLog, InsightStore {
   constructor(private readonly db: Db) {}
 
   async saveCredential(userId: string, c: Omit<StoredCredential, "active">, now: string) {
@@ -178,7 +181,7 @@ export class SqliteAiStore implements AiStore {
     })();
   }
 
-  async insights(accountId: string, filter: { scope?: "account" | "post"; postId?: string }) {
+  async insights(accountId: string, filter: InsightFilter) {
     const rows = this.db
       .prepare(
         `SELECT * FROM ai_insights WHERE account_id = ? AND (? IS NULL OR scope = ?)

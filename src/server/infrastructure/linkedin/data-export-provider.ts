@@ -5,12 +5,11 @@ import {
   type ContentType,
   type ImportBundle,
   type ImportedPost,
+  LINKEDIN_DATA_EXPORT,
   emptyBundle,
 } from "../../domain/content";
 import { csvRecords, pick } from "./csv";
 import { externalIdFromUrl, parseTimestamp } from "./values";
-
-const DATA_EXPORT_PROVIDER = "linkedin-data-export";
 
 const KNOWN_FILES = ["shares.csv", "profile.csv"];
 
@@ -28,7 +27,7 @@ function isZip(file: SourceFile): boolean {
  * connections, ...) is deliberately ignored to keep personal data out of Polaris.
  */
 export class LinkedInDataExportProvider implements SocialDataProvider {
-  readonly id = DATA_EXPORT_PROVIDER;
+  readonly id = LINKEDIN_DATA_EXPORT;
   readonly label = "LinkedIn data archive";
 
   constructor(private readonly options = { maxEntryBytes: 200 * 1024 * 1024 }) {}

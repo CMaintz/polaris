@@ -5,7 +5,7 @@ import { ConflictError, PermanentJobError, ValidationError } from "../errors";
 import { parsePayload } from "../jobs/payload";
 import type { Job, JobContext, JobRepository } from "../jobs/ports";
 import type { AuditLog } from "../auth/ports";
-import type { ImportBundle } from "../../domain/content";
+import type { Dataset, ImportBundle } from "../../domain/content";
 import { todayUtc } from "../../domain/dates";
 import type { ImportFileStore, SocialDataProvider, SourceFile } from "./ports";
 
@@ -67,6 +67,14 @@ export class ImportService {
       { userId, type: IMPORT_JOB, payload: { demo: true, label: "Demo data" } },
       nowIso(this.deps.clock),
     );
+  }
+
+  /** The account, or null before the first import, and which datasets it holds. */
+  async status(userId: string) {
+    const account = await this.deps.content.findAccount(userId);
+    const has = async (dataset: Dataset) =>
+      account ? this.deps.content.hasDataset(account.id, dataset) : false;
+    return { account, hasLinkedInData: await has("linkedin"), hasDemoData: await has("demo") };
   }
 
   async deleteDemo(userId: string): Promise<void> {

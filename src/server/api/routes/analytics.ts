@@ -1,13 +1,16 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AnalyticsService } from "../../application/analytics/analytics-service";
-import { type AppEnv, currentUser, readQuery, requireUser } from "../http";
+import { PERIOD_DAYS } from "../../domain/dates";
+import { type AppEnv, currentUser, day, readQuery, requireUser } from "../http";
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
 // The browser's UTC offset in minutes (east positive), for posting-time buckets.
 const tz = z.coerce.number().int().min(-840).max(840).default(0);
 
-const dashboardQuery = z.object({ days: z.coerce.number().int().min(7).max(365).default(28), tz });
+const dashboardQuery = z.object({
+  days: z.coerce.number().int().min(7).max(365).default(PERIOD_DAYS),
+  tz,
+});
 
 const postQuery = z.object({
   q: z.string().max(200).optional(),

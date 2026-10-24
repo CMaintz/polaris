@@ -1,9 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { PlanningService } from "../../application/planning/planning-service";
-import { type AppEnv, currentUser, readJson, requireUser } from "../http";
+import { type AppEnv, currentUser, day, readJson, requireUser } from "../http";
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
 const text = (max: number) => z.string().max(max);
 
 const goalSchema = z.object({

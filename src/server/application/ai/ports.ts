@@ -1,6 +1,8 @@
 import type { z } from "zod";
 
-export type AiProviderId = "anthropic" | "openai";
+export const AI_PROVIDERS = ["anthropic", "openai"] as const;
+
+export type AiProviderId = (typeof AI_PROVIDERS)[number];
 
 export const DEFAULT_MODELS: Record<AiProviderId, string> = {
   anthropic: "claude-opus-5-5",

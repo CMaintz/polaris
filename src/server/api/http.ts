@@ -68,3 +68,5 @@ export function currentUser(c: Context<AppEnv>): User {
   if (!user) throw new UnauthorizedError();
   return user;
 }
+
+export const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");

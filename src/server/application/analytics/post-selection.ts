@@ -1,4 +1,4 @@
-import { addDays, dayOf } from "../../domain/dates";
+import { RECENT_DAYS, dayOf, lastDays } from "../../domain/dates";
 import { type PostMetricKey, postMetricValue } from "../../domain/metrics";
 import {
   type Band,
@@ -63,10 +63,10 @@ export function comparablePosts(post: PostRecord, posts: PostRecord[]): PostReco
     .slice(0, 5);
 }
 
-/** Posts of the last 90 days with an engagement figure: the best, and the weakest when enough. */
+/** Recent posts with an engagement figure: the best, and the weakest when enough. */
 export function rankedRecentPosts(posts: readonly PostRecord[], asOf: string) {
   const ranked = posts
-    .filter((p) => p.publishedAt && dayOf(p.publishedAt) >= addDays(asOf, -89))
+    .filter((p) => p.publishedAt && dayOf(p.publishedAt) >= lastDays(asOf, RECENT_DAYS).from)
     .filter((p) => postMetricValue(p.metrics, "engagements") !== null)
     .sort(byMetric("engagements", "desc"));
   return { top: ranked.slice(0, 5), bottom: ranked.length >= 8 ? ranked.slice(-3).reverse() : [] };
