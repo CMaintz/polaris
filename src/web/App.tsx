@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import type { ImportStatusDto, UserDto } from "../shared/api-types";
 import { api, del, isUnauthorized, post } from "./lib/api";
+import { useAccounts } from "./lib/accounts";
 import { useResource } from "./lib/hooks";
 import { useMutation } from "./lib/mutation";
 import { type Session, SessionProvider, useSession } from "./lib/session";
+import { AccountSwitcher } from "./components/accounts";
 import { ErrorBox } from "./components/ui";
 import { AnalyticsPage } from "./pages/Analytics";
 import { AudiencePage } from "./pages/Audience";
@@ -26,6 +28,7 @@ import { TrendsPage } from "./pages/Trends";
 import { ThemesPage } from "./pages/Themes";
 import { FunnelPage } from "./pages/Funnel";
 import { StrategyPage } from "./pages/Strategy";
+import { ComparePage } from "./pages/Compare";
 
 const NAV: { title: string; links: [string, string][] }[] = [
   {
@@ -37,6 +40,7 @@ const NAV: { title: string; links: [string, string][] }[] = [
       ["/themes", "Themes"],
       ["/analytics", "Analytics"],
       ["/audience", "Audience"],
+      ["/compare", "Compare accounts"],
       ["/insights", "AI insights"],
       ["/research", "Research"],
       ["/trends", "Trends"],
@@ -103,7 +107,14 @@ function SignedIn({ user, onSignedOut }: { user: UserDto; onSignedOut: () => voi
     await post("/auth/logout");
     onSignedOut();
   }, [onSignedOut]);
-  const session: Session = { user, status: status.data, refreshStatus: status.reload, signOut };
+  const accounts = useAccounts(status.data, status.reload);
+  const session: Session = {
+    user,
+    status: status.data,
+    refreshStatus: status.reload,
+    ...accounts,
+    signOut,
+  };
   return (
     <SessionProvider session={session}>
       <Shell />
@@ -130,7 +141,7 @@ function DemoBanner() {
 }
 
 function Shell() {
-  const { user, signOut } = useSession();
+  const { user, signOut, generation } = useSession();
   const signingOut = useMutation(signOut);
   const [open, setOpen] = useState(false);
   return (
@@ -148,6 +159,7 @@ function Shell() {
           </svg>
           Polaris
         </div>
+        <AccountSwitcher />
         {NAV.map(({ title, links }) => (
           <div key={title} className="nav-group">
             <div className="nav-group-title">{title}</div>
@@ -177,7 +189,7 @@ function Shell() {
           <ErrorBox error={signingOut.error} />
         </div>
       </nav>
-      <main className="main">
+      <main className="main" key={generation}>
         <DemoBanner />
         <Routes>
           <Route path="/" element={<OverviewPage />} />
@@ -185,6 +197,7 @@ function Shell() {
           <Route path="/content/:id" element={<PostDetailPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/audience" element={<AudiencePage />} />
+          <Route path="/compare" element={<ComparePage />} />
           <Route path="/insights" element={<InsightsPage />} />
           <Route path="/planner" element={<PlannerPage />} />
           <Route path="/goals" element={<GoalsPage />} />

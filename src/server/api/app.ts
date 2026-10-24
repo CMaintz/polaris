@@ -9,6 +9,7 @@ import { importRoutes } from "./routes/imports";
 import { analyticsRoutes } from "./routes/analytics";
 import { aiRoutes } from "./routes/ai";
 import { accountRoutes } from "./routes/account";
+import { accountsRoutes } from "./routes/accounts";
 import { planningRoutes } from "./routes/planning";
 import { type StrategyRouteDeps, strategyRoutes } from "./routes/strategy";
 import { type KnowledgeRouteDeps, knowledgeRoutes } from "./routes/knowledge";
@@ -16,10 +17,13 @@ import { type ActionRouteDeps, actionRoutes } from "./routes/action";
 import { type IntelligenceDeps, intelligenceRoutes } from "./routes/intelligence";
 import type { ResolveAccount } from "../application/content/ports";
 import type { AccountService } from "../application/account/account-service";
+import type { AccountsService } from "../application/accounts/accounts-service";
 import type { PlanningService } from "../application/planning/planning-service";
+import type { UnifiedPlan } from "../application/planning/unified-plan";
 import type { AiService } from "../application/ai/ai-service";
 import type { CredentialService } from "../application/ai/credentials";
 import type { AnalyticsService } from "../application/analytics/analytics-service";
+import type { ComparisonService } from "../application/analytics/comparison-service";
 import { type AppEnv, errorResponse } from "./http";
 import { SESSION_COOKIE, authRoutes } from "./routes/auth";
 import { jobRoutes } from "./routes/jobs";
@@ -29,10 +33,13 @@ export interface AppDeps {
   jobs: JobRepository;
   imports: ImportService;
   analytics: AnalyticsService;
+  comparison: ComparisonService;
   ai: AiService;
   credentials: CredentialService;
   planning: PlanningService;
+  unifiedPlan: UnifiedPlan;
   account: AccountService;
+  accounts: AccountsService;
   strategy: StrategyRouteDeps;
   knowledge: Omit<KnowledgeRouteDeps, "resolveAccount">;
   resolveAccount: ResolveAccount;
@@ -58,11 +65,12 @@ export function createApi(deps: AppDeps) {
   api.route("/jobs", jobRoutes(deps.jobs));
   api.route("/imports", importRoutes(deps.imports, deps.maxUploadBytes));
   api.route("/ai", aiRoutes(deps.ai, deps.credentials));
-  const planning = planningRoutes(deps.planning);
+  const planning = planningRoutes(deps.planning, deps.unifiedPlan);
   api.route("/goals", planning.goals);
   api.route("/experiments", planning.experiments);
   api.route("/plan", planning.plan);
   api.route("/me", accountRoutes(deps.account));
+  api.route("/accounts", accountsRoutes(deps.accounts));
   api.route("/strategy", strategyRoutes(deps.strategy));
   api.route("/intelligence", intelligenceRoutes(deps.intelligence.routes));
   api.route("/action", actionRoutes(deps.action));
@@ -70,6 +78,6 @@ export function createApi(deps: AppDeps) {
     "/knowledge",
     knowledgeRoutes({ ...deps.knowledge, resolveAccount: deps.resolveAccount }),
   );
-  api.route("/", analyticsRoutes(deps.analytics));
+  api.route("/", analyticsRoutes(deps.analytics, deps.comparison));
   return api;
 }

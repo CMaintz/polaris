@@ -165,9 +165,12 @@ Avoid a generic JSON-only database. Structured fields should exist for queryable
 The SQLite schema lives in `src/server/infrastructure/db/migrations.ts`. Differences from the
 logical model above:
 
-- `accounts` has one row per user (ADR 0015). It holds only display name, headline and profile
-  URL.
+- `accounts` has one row per profile a user analyses (ADR 0026), with `platform` (`linkedin`
+  or `other`), a user-chosen `label`, and the display name, headline and profile URL from the
+  import. `users.active_account_id` points at the account the user works in; when it is null
+  (never switched, or the active account was deleted) the oldest account is used.
 - `posts.dataset` is `linkedin` or `demo`, so demo data can never be mistaken for real data.
+  `linkedin` means real imported data on every platform (ADR 0026).
   `posts.time_known` records whether the publish time is real or only a date.
   `posts.providers` lists which adapters contributed to the post.
 - `post_metric_snapshots` is keyed by (post, observed day, provider). Re-importing updates the

@@ -5,8 +5,9 @@ import {
   emptyBundle,
 } from "../../domain/content";
 import { EMPTY_METRICS } from "../../domain/metrics";
-import { normaliseHeader } from "./csv";
-import { type Cell, cellText, externalIdFromUrl, parseDayCell, parseNumber } from "./values";
+import { normaliseHeader } from "../csv/csv";
+import { type Cell, cellText, parseDayCell, parseNumber } from "../csv/values";
+import { externalIdFromUrl } from "./values";
 
 export const ANALYTICS_EXPORT_PROVIDER = "linkedin-analytics-export";
 

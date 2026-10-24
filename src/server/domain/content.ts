@@ -2,7 +2,10 @@ import type { PostMetrics } from "./metrics";
 
 export type ContentType = "text" | "image" | "video" | "document" | "article" | "link" | "unknown";
 
-/** Which dataset a post belongs to. Demo posts are synthetic and must never pass as real. */
+/**
+ * Which dataset a post belongs to. Demo posts are synthetic and must never pass as real.
+ * "linkedin" is the stored value for real imported data on every platform (ADR 0026).
+ */
 export type Dataset = "linkedin" | "demo";
 
 /**
@@ -10,6 +13,12 @@ export type Dataset = "linkedin" | "demo";
  * member published. Analytics exports list only top posts, so post counts rely on this one.
  */
 export const LINKEDIN_DATA_EXPORT = "linkedin-data-export";
+
+/** Provider id of the platform-neutral posts CSV, which lists every post in its date range. */
+export const GENERIC_CSV = "generic-csv";
+
+/** The real sources that list every post, so post counts can rely on them. */
+export const FULL_LISTING_PROVIDERS: readonly string[] = [LINKEDIN_DATA_EXPORT, GENERIC_CSV];
 
 interface ProfileFacts {
   displayName: string | null;
@@ -26,6 +35,8 @@ export interface ImportedPost {
   publishedAt: string | null;
   timeKnown: boolean;
   contentType: ContentType;
+  /** Topics the source states outside the text; hashtags in the text are found anyway. */
+  topics?: string[];
   sourceMetadata: Record<string, unknown>;
 }
 

@@ -1,3 +1,4 @@
+import { Accounts } from "../components/settings/accounts";
 import { AiKeys } from "../components/settings/ai-keys";
 import { DataControls } from "../components/settings/data-controls";
 import { Imports } from "../components/settings/imports";
@@ -10,8 +11,9 @@ export function SettingsPage() {
     <div className="stack">
       <PageHead
         title="Settings"
-        intro="Your data sources, AI keys, publishing connections, schedules and data controls."
+        intro="Your accounts, data sources, AI keys, publishing connections, schedules and data controls."
       />
+      <Accounts />
       <Imports />
       <AiKeys />
       <Connections />

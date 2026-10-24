@@ -69,11 +69,25 @@ See ADR 0010 for the decision and the assumed file layouts.
 | `linkedin-data-export`      | the member data archive ZIP, or `Shares.csv` / `Profile.csv` | posts (text, date and time, link, media type), profile name and headline                                                                                             |
 | `linkedin-analytics-export` | the creator analytics `.xlsx`                                | per-post engagements and impressions for the export window, daily impressions, engagements, new followers and back-calculated follower totals, audience demographics |
 | `demo`                      | nothing (generated)                                          | a labelled synthetic dataset (ADR 0015)                                                                                                                              |
+| `generic-csv`               | a platform-neutral posts `.csv` (accounts of platform Other) | posts (text, date or date and time, link, type, hashtags) and per-post impressions, reactions, comments, reposts and engagements as of the import day                |
 
 Both LinkedIn adapters identify a post by the URN in its URL, decoded first, so the URL-encoded
 form in `Shares.csv` and the plain form in the analytics export match. Every stored post lists
 the providers that contributed to it, and every metric snapshot records its provider, observed
 day, covered period and import job.
+
+## As implemented: multiple accounts and platforms
+
+See ADR 0026. Each provider declares the one platform it serves, and an import goes into the
+account that was active when it started. The LinkedIn adapters and the demo dataset fit only
+LinkedIn accounts; `generic-csv` fits only accounts of platform Other. A file that does not fit
+is refused before anything is queued, naming the file and the account.
+
+The generic CSV needs a header row with `date` and `text`; `url`, `type`, `impressions`,
+`reactions`, `comments`, `reposts`, `engagements` and `hashtags` are optional. Headers are
+matched case-insensitively and by aliases (ADR 0026 lists them). A post is identified by its
+URL, or by a hash of its date and text when it has none, so re-imports never duplicate. The file
+counts as the complete list of posts for the days it covers.
 
 ## Publishing
 

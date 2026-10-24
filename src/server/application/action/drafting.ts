@@ -63,7 +63,11 @@ export class DraftingService {
     const current = payload.draftId
       ? (await this.deps.drafts.find(job.userId, payload.draftId)).draft.text
       : null;
-    const facts = await this.deps.facts.account(job.userId, PERIOD_DAYS, 0);
+    const facts = await this.deps.facts.account(
+      { userId: job.userId, accountId: payload.accountId },
+      PERIOD_DAYS,
+      0,
+    );
     const voice = voiceExamples(facts.topPosts);
     const demo = facts.basedOnDemo;
     const prompt = renderDraftPrompt({ brief: payload, voice, current, demo });

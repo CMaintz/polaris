@@ -51,12 +51,15 @@ export class AiService {
   constructor(private readonly deps: AiDeps) {}
 
   async startAccountReview(userId: string, tz: number): Promise<Job> {
-    return this.enqueue(userId, { task: "account_review", tz, label: "Account review" });
+    const accountId = await this.readyAccount(userId);
+    return this.enqueue(userId, { task: "account_review", accountId, tz, label: "Account review" });
   }
 
   async startPostReview(userId: string, postId: string, tz: number): Promise<Job> {
-    await this.deps.facts.post(userId, postId); // 404s for posts the user does not own
-    return this.enqueue(userId, { task: "post_review", postId, tz, label: "Post review" });
+    const accountId = await this.readyAccount(userId);
+    await this.deps.facts.post({ userId, accountId }, postId); // 404s for another account's post
+    const label = "Post review";
+    return this.enqueue(userId, { task: "post_review", accountId, postId, tz, label });
   }
 
   async ask(userId: string, question: string, tz: number): Promise<Job> {
@@ -64,7 +67,14 @@ export class AiService {
     if (!trimmed || trimmed.length > MAX_QUESTION) {
       throw new ValidationError(`Ask a question of 1 to ${MAX_QUESTION} characters`);
     }
-    return this.enqueue(userId, { task: "ask", question: trimmed, tz, label: "Question" });
+    const accountId = await this.readyAccount(userId);
+    return this.enqueue(userId, {
+      task: "ask",
+      accountId,
+      question: trimmed,
+      tz,
+      label: "Question",
+    });
   }
 
   async insights(userId: string, filter: InsightFilter) {
@@ -104,14 +114,19 @@ export class AiService {
     return this.persist(job, prepared, data);
   }
 
-  private async enqueue(userId: string, payload: Payload): Promise<Job> {
+  /** The active account, once it has a key to use and data to review. */
+  private async readyAccount(userId: string): Promise<string> {
     if ((await this.deps.credentials.list(userId)).length === 0) {
       throw new ConflictError("Add an AI provider API key in Settings first");
     }
     const accountId = await this.deps.resolveAccount(userId);
     if (!accountId || !(await this.hasData(accountId))) {
-      throw new ConflictError("Import your LinkedIn data before asking for an AI review");
+      throw new ConflictError("Import your data before asking for an AI review");
     }
+    return accountId;
+  }
+
+  private async enqueue(userId: string, payload: Payload): Promise<Job> {
     return this.deps.jobs.enqueue(
       { userId, type: AI_JOB, payload: { ...payload }, maxRetries: 2 },
       nowIso(this.deps.clock),
@@ -148,9 +163,7 @@ export class AiService {
     analysis: Analysis,
     interactionId: string,
   ) {
-    const accountId = await this.deps.resolveAccount(userId);
-    if (!accountId) throw new NotFoundError("Account");
-    const { pack } = prepared;
+    const { accountId, pack } = prepared;
     const saved = { basedOnDemo: prepared.demo, createdAt: nowIso(this.deps.clock), interactionId };
     const scope =
       prepared.task === "post_review"
