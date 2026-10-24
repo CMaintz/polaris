@@ -19,6 +19,16 @@ import { AccountService } from "./application/account/account-service";
 import { PlanningService } from "./application/planning/planning-service";
 import type { Measurements } from "./application/planning/ports";
 import type { ResolveAccount } from "./application/content/ports";
+import { CampaignService } from "./application/strategy/campaign-service";
+import { PillarService } from "./application/strategy/pillar-service";
+import { StrategyAnalysis } from "./application/strategy/strategy-analysis";
+import { nowIso } from "./application/clock";
+import {
+  SqliteCampaignLinkStore,
+  SqliteLinkTargets,
+  SqlitePillarStore,
+  campaignTable,
+} from "./infrastructure/db/strategy-store";
 import { SqliteDataLifecycle } from "./infrastructure/db/data-lifecycle";
 import { sqlitePlanningStores } from "./infrastructure/db/planning-tables";
 import {
@@ -111,6 +121,24 @@ function buildPlanning(core: Core, measurements: Measurements) {
   return new PlanningService({ stores, content, resolveAccount, measurements, clock });
 }
 
+function buildStrategy(core: Core, queries: SqliteContentQueries) {
+  const { db, content, resolveAccount, clock } = core;
+  const accounts = {
+    find: resolveAccount,
+    ensure: async (userId: string) => (await content.ensureAccount(userId, nowIso(clock))).id,
+  };
+  const campaigns = new CampaignService({
+    campaigns: campaignTable(db),
+    links: new SqliteCampaignLinkStore(db),
+    targets: new SqliteLinkTargets(db),
+    accounts,
+    clock,
+  });
+  const pillars = new PillarService({ pillars: new SqlitePillarStore(db), accounts, clock });
+  const analysis = new StrategyAnalysis({ data: queries, accounts, campaigns, pillars, clock });
+  return { campaigns, pillars, analysis };
+}
+
 function buildAccount(core: Core) {
   return new AccountService(new SqliteDataLifecycle(core.db), core.auth, core.audit, core.clock);
 }
@@ -130,15 +158,17 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
   const worker = new JobWorker(core.jobs, handlers, core.clock, overrides.worker);
   const planning = buildPlanning(core, analytics);
   const account = buildAccount(core);
+  const strategy = buildStrategy(core, queries);
   const api = createApi({
     ...core,
     ...ai,
     planning,
     account,
+    strategy,
     imports,
     analytics,
     secureCookies: config.secureCookies,
     maxUploadBytes: config.maxUploadBytes,
   });
-  return { ...core, ...ai, planning, account, imports, analytics, worker, api };
+  return { ...core, ...ai, planning, account, strategy, imports, analytics, worker, api };
 }
