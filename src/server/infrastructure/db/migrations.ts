@@ -1,4 +1,5 @@
 import type { Db } from "./database";
+import { STRATEGY_MIGRATIONS } from "./strategy-schema";
 
 // Append-only: each entry runs once, in order, tracked by PRAGMA user_version.
 // Editing an applied migration does nothing on existing databases, so change schema
@@ -253,6 +254,7 @@ const MIGRATIONS: readonly string[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  ...STRATEGY_MIGRATIONS,
 ];
 
 export function migrate(db: Db): void {

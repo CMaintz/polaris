@@ -185,3 +185,6 @@ logical model above:
 - `ai_credentials` holds sealed keys (ADR 0011). `ai_interactions`, `ai_insights` and
   `recommendations` record AI calls and their grounded output (ADR 0014). Insights and
   recommendations count as derived from imported data, so they are deleted along with it.
+- `campaigns` and `content_pillars` are the user's own records and survive "delete imported
+  data". `campaign_posts`, `campaign_plan_items` and `campaign_goals` link a campaign to its
+  targets with real foreign keys, so deleting a post, plan item or goal drops the link.

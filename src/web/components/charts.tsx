@@ -10,12 +10,13 @@ import {
   YAxis,
 } from "recharts";
 import type { SegmentDto, SeriesPointDto } from "../../shared/api-types";
+import { DataTable } from "./ui";
 import { NOT_AVAILABLE, formatDate, formatNumber } from "../lib/format";
 import { useCssVars } from "../lib/hooks";
 
 const VARS = "--series-1,--series-2,--grid,--axis,--muted,--surface,--text,--border";
 
-function useChartColors() {
+export function useChartColors() {
   const v = useCssVars(VARS);
   return {
     series1: v["--series-1"] || "#2a78d6",
@@ -52,30 +53,7 @@ function TableView({ headers, rows }: { headers: string[]; rows: (string | numbe
   return (
     <details>
       <summary>View as table</summary>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              {headers.map((h, i) => (
-                <th key={h} className={i > 0 ? "num" : undefined}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={String(row[0])}>
-                {row.map((cell, i) => (
-                  <td key={i} className={i > 0 ? "num" : undefined}>
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable headers={headers} rows={rows} />
     </details>
   );
 }
