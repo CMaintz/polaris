@@ -10,7 +10,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   demo: "Demo data (synthetic)",
 };
 
-/** Human label for a provider id, or a comma-separated list of ids. */
 export function sourceLabel(providers: string | null): string {
   if (!providers) return "Not available";
   return providers

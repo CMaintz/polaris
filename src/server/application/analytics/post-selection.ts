@@ -47,7 +47,6 @@ export function byMetric(key: PostMetricKey, dir: "asc" | "desc") {
   };
 }
 
-/** Posts most like this one: same content type or a shared topic, nearest in time. */
 export function comparablePosts(post: PostRecord, posts: PostRecord[]): PostRecord[] {
   const time = (p: PostRecord) => (p.publishedAt ? new Date(p.publishedAt).getTime() : 0);
   return posts
