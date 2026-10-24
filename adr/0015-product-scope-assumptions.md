@@ -6,7 +6,7 @@ These fill gaps that the product documents leave open. Each one is cheap to chan
 
 1. **One LinkedIn account per user.** The data model allows more, but the UI assumes one.
 2. **Topics come from hashtags.** `#AI` and `#ai` are the same topic, so themes only exist for
-   posts with hashtags until AI topic extraction is added.
+   posts with hashtags. AI content themes (ADR 0018) cover posts without them, separately.
 3. **Times are stored in UTC.** LinkedIn exports carry no timezone. Posting-time analysis groups
    posts using the timezone offset the browser sends.
 4. **Performance bands** are quartiles of total engagements across the user's posts that have
