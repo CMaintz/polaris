@@ -10,6 +10,7 @@ import { SdkProviderFactory } from "../infrastructure/ai/provider-factory";
 import { buildAiKeys, buildAiService } from "./ai";
 import { type Core, type Overrides, buildCore } from "./core";
 import { buildImports } from "./imports";
+import { buildIntelligence } from "./intelligence";
 import { buildKnowledge } from "./knowledge";
 import { buildAccount, buildPlanning } from "./planning";
 import { buildStrategy } from "./strategy";
@@ -39,12 +40,21 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
   const keys = buildAiKeys(core, config, overrides.aiFactory ?? new SdkProviderFactory());
   const knowledge = buildKnowledge(core, keys, facts);
   const ai = buildAiService(core, keys, { facts, related: knowledge.related });
+  const intelligence = buildIntelligence(core, keys, {
+    allowHttpFeeds: config.feedsAllowHttp,
+    webResearch: overrides.webResearch,
+    fetcher: overrides.feedFetcher,
+  });
   const handlers = {
     [IMPORT_JOB]: reindexAfter(imports.run.bind(imports), core, knowledge.indexer),
     [AI_JOB]: ai.run.bind(ai),
     ...knowledge.handlers,
+    ...intelligence.handlers,
   };
-  const worker = new JobWorker(core.jobs, handlers, core.clock, overrides.worker);
+  const worker = new JobWorker(core.jobs, handlers, core.clock, {
+    tick: (now) => intelligence.scheduler.tick(now),
+    ...overrides.worker,
+  });
   const planning = buildPlanning(core, analytics);
   const account = buildAccount(core);
   const strategy = buildStrategy(core);
@@ -56,6 +66,7 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     account,
     strategy,
     knowledge,
+    intelligence,
     imports,
     analytics,
   };

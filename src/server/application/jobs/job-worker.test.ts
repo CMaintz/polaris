@@ -103,3 +103,34 @@ describe("JobWorker", () => {
     expect((await reload()).status).toBe("queued");
   });
 });
+
+describe("JobWorker tick", () => {
+  it("lets the tick enqueue work that the same drain then runs", async () => {
+    const container = testContainer();
+    const { userId } = await signedInClient(container);
+    const ran: string[] = [];
+    const tick = async () => {
+      if (ran.length === 0)
+        await container.jobs.enqueue(
+          { userId, type: "work", payload: {}, maxRetries: 0 },
+          container.clock().toISOString(),
+        );
+    };
+    const handlers = { work: async () => void ran.push("work") };
+    await new JobWorker(container.jobs, handlers, container.clock, { tick }).drain();
+    expect(ran).toEqual(["work"]);
+  });
+
+  it("still runs queued jobs when the tick fails", async () => {
+    const { reload, container } = await setup(async () => "ok");
+    const failing = async () => {
+      throw new Error("schedule table locked");
+    };
+    const worker = new JobWorker(container.jobs, { work: async () => "ok" }, container.clock, {
+      tick: failing,
+      onTickError: () => {},
+    });
+    await worker.drain();
+    expect((await reload()).status).toBe("completed");
+  });
+});

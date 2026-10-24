@@ -6,6 +6,9 @@ export interface WorkerOptions {
   pollMs: number;
   baseBackoffMs: number;
   onError?: (job: Job, error: unknown) => void;
+  /** Runs before each drain, for work that is due by the clock (scheduled intelligence). */
+  tick?: (now: Date) => Promise<unknown>;
+  onTickError?: (error: unknown) => void;
 }
 
 const DEFAULTS: WorkerOptions = { pollMs: 1000, baseBackoffMs: 5000 };
@@ -45,9 +48,19 @@ export class JobWorker {
     if (this.busy) return;
     this.busy = true;
     try {
+      await this.runTick();
       while (await this.runOnce());
     } finally {
       this.busy = false;
+    }
+  }
+
+  // A failing schedule must never stop the queue from draining.
+  private async runTick(): Promise<void> {
+    try {
+      await this.options.tick?.(this.clock());
+    } catch (error) {
+      (this.options.onTickError ?? ((e) => console.error("scheduler tick failed", e)))(error);
     }
   }
 

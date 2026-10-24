@@ -13,7 +13,7 @@ import { useResource } from "../lib/hooks";
 import { useMutation } from "../lib/mutation";
 import { ResourceView } from "../components/resource";
 import { CampaignPerformance } from "../components/strategy";
-import { DateRangeFields, Empty, ErrorBox, Field, PageHead } from "../components/ui";
+import { DateRangeFields, Empty, ErrorBox, Field, LabelOptions, PageHead } from "../components/ui";
 
 const STATUS: Record<CampaignStatusDto, string> = {
   planned: "Planned",
@@ -73,11 +73,7 @@ function CampaignForm({ editing, onSaved, onCancel }: FormProps) {
         </Field>
         <Field label="Status">
           <select {...field("status")}>
-            {Object.entries(STATUS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
+            <LabelOptions labels={STATUS} />
           </select>
         </Field>
         <DateRangeFields start={field("startDate")} end={field("endDate")} />
