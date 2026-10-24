@@ -2,32 +2,31 @@ import { createApi } from "../api/app";
 import { AI_JOB } from "../application/ai/ai-service";
 import { AnalyticsService } from "../application/analytics/analytics-service";
 import { AnalyticsEvidenceFacts } from "../application/analytics/evidence-facts";
-import { IMPORT_JOB } from "../application/imports/import-service";
-import type { JobHandler } from "../application/jobs/ports";
+import { ComparisonService } from "../application/analytics/comparison-service";
+import { IMPORT_JOB, type ImportResult } from "../application/imports/import-service";
+import type { Job, JobContext, JobHandler } from "../application/jobs/ports";
 import { JobWorker } from "../application/jobs/job-worker";
 import type { Config } from "../config";
 import { SdkProviderFactory } from "../infrastructure/ai/provider-factory";
 import { buildAction } from "./action";
 import { buildAiKeys, buildAiService } from "./ai";
-import { type Core, type Overrides, buildCore } from "./core";
+import { type Overrides, buildCore } from "./core";
 import { buildImports } from "./imports";
 import { buildIntelligence } from "./intelligence";
 import { buildKnowledge } from "./knowledge";
-import { buildAccount, buildPlanning } from "./planning";
+import { buildAccount, buildAccounts, buildPlanning } from "./planning";
 import { buildStrategy } from "./strategy";
 
 export type { Overrides } from "./core";
 
 // Meaning search needs embeddings of the new posts; keyword search syncs on its own.
 function reindexAfter(
-  importJob: JobHandler,
-  core: Core,
+  importJob: (job: Job, context: JobContext) => Promise<ImportResult>,
   indexer: { start(userId: string, accountId: string): Promise<unknown> },
 ): JobHandler {
   return async (job, context) => {
     const result = await importJob(job, context);
-    const accountId = await core.resolveAccount(job.userId);
-    if (accountId) await indexer.start(job.userId, accountId);
+    await indexer.start(job.userId, result.accountId);
     return result;
   };
 }
@@ -54,7 +53,7 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     fetcher: overrides.feedFetcher,
   });
   const handlers = {
-    [IMPORT_JOB]: reindexAfter(imports.run.bind(imports), core, knowledge.indexer),
+    [IMPORT_JOB]: reindexAfter(imports.run.bind(imports), knowledge.indexer),
     [AI_JOB]: ai.run.bind(ai),
     ...knowledge.handlers,
     ...intelligence.handlers,
@@ -74,13 +73,16 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     ...keys,
     ai,
     planning: planning.service,
+    unifiedPlan: planning.unified,
     action,
     account,
+    accounts: buildAccounts(core),
     strategy,
     knowledge,
     intelligence,
     imports,
     analytics,
+    comparison: new ComparisonService(core.accountStore, core.queries, core.clock),
   };
   const api = createApi({
     ...services,

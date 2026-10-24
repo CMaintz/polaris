@@ -5,6 +5,7 @@ Status: Proposed (assumed by the implementing agent on 2026-10-23; awaiting prod
 These fill gaps that the product documents leave open. Each one is cheap to change.
 
 1. **One LinkedIn account per user.** The data model allows more, but the UI assumes one.
+   Superseded by ADR 0026: a user can have several accounts on different platforms.
 2. **Topics come from hashtags.** `#AI` and `#ai` are the same topic, so themes only exist for
    posts with hashtags. AI content themes (ADR 0018) cover posts without them, separately.
 3. **Times are stored in UTC.** LinkedIn exports carry no timezone. Posting-time analysis groups

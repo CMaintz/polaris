@@ -12,6 +12,8 @@ import {
 export class LinkedInAnalyticsExportProvider implements SocialDataProvider {
   readonly id = ANALYTICS_EXPORT_PROVIDER;
   readonly label = "LinkedIn analytics export";
+  readonly platform = "linkedin";
+  readonly files = "the post analytics .xlsx";
 
   canRead(file: SourceFile): boolean {
     return file.name.toLowerCase().endsWith(".xlsx");

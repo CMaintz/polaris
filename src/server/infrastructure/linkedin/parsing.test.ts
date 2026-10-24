@@ -12,9 +12,10 @@ import {
 import { buildXlsx } from "../../testing/xlsx";
 import { LinkedInAnalyticsExportProvider } from "./analytics-export-provider";
 import { parseAnalyticsWorkbook } from "./analytics-workbook";
-import { csvRecords } from "./csv";
+import { csvRecords } from "../csv/csv";
 import { LinkedInDataExportProvider } from "./data-export-provider";
-import { externalIdFromUrl, parseNumber, parseTimestamp } from "./values";
+import { parseNumber, parseTimestamp } from "../csv/values";
+import { externalIdFromUrl } from "./values";
 
 const context = { importedOn: "2026-03-10" };
 

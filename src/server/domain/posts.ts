@@ -1,4 +1,4 @@
-import { type ContentType, type Dataset, LINKEDIN_DATA_EXPORT } from "./content";
+import { type ContentType, type Dataset, FULL_LISTING_PROVIDERS } from "./content";
 import { addDays, dayOf, daysBetween } from "./dates";
 import type { DatedValue } from "./timeseries";
 import { type PostMetricKey, type PostMetrics, postMetricValue } from "./metrics";
@@ -113,11 +113,22 @@ export function postingTimes(posts: readonly PostRecord[], tzOffsetMinutes: numb
 }
 
 /**
- * Whether the post came from a source that lists every post (the data archive, or the demo
- * set). Analytics exports list only top posts, so they cannot support a post count.
+ * Whether the post came from a source that lists every post (the data archive, a generic
+ * posts CSV, or the demo set). Analytics exports list only top posts, so they cannot support
+ * a post count.
  */
 export function isFullyListed(post: PostRecord): boolean {
-  return post.dataset === "demo" || post.providers.includes(LINKEDIN_DATA_EXPORT);
+  return post.dataset === "demo" || post.providers.some((p) => FULL_LISTING_PROVIDERS.includes(p));
+}
+
+/** The providers that make a set of posts countable, as the source of a post count. */
+export function listingProviders(posts: readonly PostRecord[]): string | null {
+  const listing = (p: PostRecord) =>
+    p.dataset === "demo"
+      ? p.providers
+      : p.providers.filter((id) => FULL_LISTING_PROVIDERS.includes(id));
+  const ids = new Set(posts.flatMap(listing));
+  return ids.size === 0 ? null : [...ids].join(",");
 }
 
 /**

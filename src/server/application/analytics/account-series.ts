@@ -1,8 +1,7 @@
 import type { Account } from "../content/ports";
-import { LINKEDIN_DATA_EXPORT } from "../../domain/content";
 import { PERIOD_DAYS, dayOf } from "../../domain/dates";
 import { growth } from "../../domain/stats";
-import { type Band, type PostRecord, dailyPostCounts } from "../../domain/posts";
+import { type Band, type PostRecord, dailyPostCounts, listingProviders } from "../../domain/posts";
 import { ruleInsights } from "../../domain/insights";
 import {
   type Aggregation,
@@ -122,7 +121,7 @@ export function accountKpis(data: Loaded, asOf: string, days: number): KpiDto[] 
     impressions,
     engagements,
     rateKpi(data, impressions),
-    kpi("posts", "Posts published", "sum", sourceLabel(LINKEDIN_DATA_EXPORT)),
+    kpi("posts", "Posts published", "sum", sourceLabel(listingProviders(data.posts))),
   ];
 }
 

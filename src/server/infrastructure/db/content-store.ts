@@ -6,24 +6,9 @@ import {
   type ImportedPost,
   extractHashtags,
 } from "../../domain/content";
+import { SqliteAccountStore } from "./account-store";
 import { datasetDeletes } from "./account-tables";
 import { type Db, toJson } from "./database";
-
-interface AccountRow {
-  id: string;
-  user_id: string;
-  display_name: string | null;
-  headline: string | null;
-  profile_url: string | null;
-}
-
-const toAccount = (row: AccountRow): Account => ({
-  id: row.id,
-  userId: row.user_id,
-  displayName: row.display_name,
-  headline: row.headline,
-  profileUrl: row.profile_url,
-});
 
 // Upsert rules: a known value is never replaced by null; a timed publish date beats a
 // date-only one; a specific content type beats "unknown"; providers accumulate.
@@ -82,22 +67,18 @@ function withoutNulls(record: Record<string, unknown>): Record<string, unknown> 
 }
 
 export class SqliteContentStore implements ContentStore {
-  constructor(private readonly db: Db) {}
+  private readonly accounts: SqliteAccountStore;
+
+  constructor(private readonly db: Db) {
+    this.accounts = new SqliteAccountStore(db);
+  }
 
   async ensureAccount(userId: string, now: string): Promise<Account> {
-    this.db
-      .prepare(
-        `INSERT INTO accounts (id, user_id, created_at, updated_at) VALUES (?, ?, ?, ?)
-         ON CONFLICT (user_id) DO NOTHING`,
-      )
-      .run(randomUUID(), userId, now, now);
-    return (await this.findAccount(userId)) as Account;
+    return this.accounts.ensureActive(userId, now);
   }
 
   async findAccount(userId: string): Promise<Account | null> {
-    const row = this.db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(userId) as
-      AccountRow | undefined;
-    return row ? toAccount(row) : null;
+    return this.accounts.findActive(userId);
   }
 
   async applyBundle(account: Account, bundle: ImportBundle, jobId: string, now: string) {
@@ -187,11 +168,11 @@ export class SqliteContentStore implements ContentStore {
     }) as { id: string; created: number };
     if (row.created === 1) stats.postsCreated += 1;
     else stats.postsUpdated += 1;
-    this.tagHashtags(accountId, row.id, post.text);
+    this.tagTopics(accountId, row.id, [...extractHashtags(post.text), ...(post.topics ?? [])]);
   }
 
-  private tagHashtags(accountId: string, postId: string, text: string | null) {
-    for (const name of extractHashtags(text)) {
+  private tagTopics(accountId: string, postId: string, names: string[]) {
+    for (const name of new Set(names)) {
       this.db
         .prepare(
           "INSERT INTO topics (id, account_id, name) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",

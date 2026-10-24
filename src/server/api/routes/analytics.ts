@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AnalyticsService } from "../../application/analytics/analytics-service";
+import type { ComparisonService } from "../../application/analytics/comparison-service";
 import { PERIOD_DAYS } from "../../domain/dates";
 import { type AppEnv, currentUser, day, readQuery, requireUser } from "../http";
 
@@ -47,7 +48,7 @@ const seriesQuery = z.object({
 
 // Mounted at the API root, so the session check is per route: a router-wide use() would
 // also guard /health and /auth.
-export function analyticsRoutes(analytics: AnalyticsService) {
+export function analyticsRoutes(analytics: AnalyticsService, comparison: ComparisonService) {
   return new Hono<AppEnv>()
     .get("/dashboard", requireUser, async (c) => {
       const { days, tz: offset } = readQuery(c, dashboardQuery);
@@ -65,6 +66,10 @@ export function analyticsRoutes(analytics: AnalyticsService) {
       return c.json(
         await analytics.timeseries(currentUser(c).id, q.metric, q.granularity, range, q.rolling),
       );
+    })
+    .get("/analytics/compare", requireUser, async (c) => {
+      const { days } = readQuery(c, dashboardQuery);
+      return c.json(await comparison.compare(currentUser(c).id, days));
     })
     .get("/analytics/breakdowns", requireUser, async (c) => {
       const { tz: offset } = readQuery(c, z.object({ tz }));

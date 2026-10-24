@@ -1,10 +1,15 @@
 import { type ReactNode, createContext, useContext } from "react";
+import type { AccountSummaryDto } from "../../shared/account-types";
 import type { ImportStatusDto, UserDto } from "../../shared/api-types";
 
 export interface Session {
   user: UserDto;
   status: ImportStatusDto | null;
   refreshStatus: () => void;
+  accounts: AccountSummaryDto[] | null;
+  /** Call after switching, adding or deleting an account: every page reloads its data. */
+  accountsChanged: () => void;
+  generation: number;
   signOut: () => Promise<void>;
 }
 

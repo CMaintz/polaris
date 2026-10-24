@@ -25,7 +25,8 @@ export class AccountService {
     await this.audit.record(userId, "data.exported");
     return {
       exportedAt: nowIso(this.clock),
-      format: "polaris-export/v1",
+      // Bumped whenever the shape changes; v2 lists every account under `accounts`.
+      format: "polaris-export/v2",
       ...(await this.data.exportUser(userId)),
     };
   }
