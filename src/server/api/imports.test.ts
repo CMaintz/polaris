@@ -166,3 +166,20 @@ describe("demo data", () => {
     expect(count(container, "SELECT COUNT(*) n FROM account_metric_days")).toBe(0);
   });
 });
+
+describe("import job payloads", () => {
+  it("fails a job whose payload does not parse instead of guessing", async () => {
+    const container = testContainer();
+    const client = await signedInClient(container);
+    const job = await container.jobs.enqueue(
+      { userId: client.userId, type: "import", payload: { demo: "yes" } },
+      container.clock().toISOString(),
+    );
+    await container.worker.drain();
+    expect(await container.jobs.findForUser(client.userId, job.id)).toMatchObject({
+      status: "failed",
+      retryCount: 0,
+    });
+    expect(count(container, "SELECT COUNT(*) n FROM posts")).toBe(0);
+  });
+});
