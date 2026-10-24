@@ -243,3 +243,21 @@ See ADR 0024 and ADR 0025.
   share link and waits for the user to confirm they posted it. The LinkedIn provider posts
   through the official Posts API on the user's own LinkedIn app connection. A post is attempted
   at most once: an interrupted attempt asks the user to check rather than posting again.
+
+## As implemented: multiple accounts
+
+See ADR 0026.
+
+- **Accounts.** A user can add accounts (a platform, LinkedIn or Other, and a name), rename them
+  and delete one with the password; deleting removes that account's data. The sidebar switcher
+  picks the active account, and every page then shows that account's data.
+- **Imports** go into the active account. The import screen names it and lists the file kinds
+  that fit its platform; a file for another platform is refused. Accounts of platform Other
+  import a generic posts CSV (docs/07).
+- **Compare accounts** (Intelligence) shows each account's followers, impressions, engagements,
+  engagement rate and posts published over one shared period, with coverage. Missing data shows
+  as "Not available", never zero.
+- **Planner** has an "All accounts" view: every account's plan items with their account, by
+  planned date. It is read-only; items are edited in their own account.
+- **Your data.** The export covers every account. "Delete imported data" clears every account's
+  imported data and keeps the accounts and the user's own records.

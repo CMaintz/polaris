@@ -74,22 +74,28 @@ const CHILD_TABLES: readonly { name: string; parent: string; key: string }[] = [
   { name: "campaign_goals", parent: "campaigns", key: "campaign_id" },
 ];
 
-/** Selects one exported table's rows for an account id. */
+/** Takes a user id; a user may have several accounts (ADR 0026). */
+const USER_ACCOUNTS = "account_id IN (SELECT id FROM accounts WHERE user_id = ?)";
+
+/** Selects one exported table's rows across all of a user's accounts. */
 export const exportQueries = (): { name: string; sql: string }[] =>
   ACCOUNT_TABLES.filter((t) => t.exported !== false).map(({ name, exported }) => ({
     name,
-    sql: `SELECT ${exported ?? "*"} FROM ${name} WHERE account_id = ?`,
+    sql: `SELECT ${exported ?? "*"} FROM ${name} WHERE ${USER_ACCOUNTS}`,
   }));
 
-/** Selects one child table's rows for an account id. */
+/** Selects one child table's rows across all of a user's accounts. */
 export const childTableQueries = (): { name: string; sql: string }[] =>
   CHILD_TABLES.map(({ name, parent, key }) => ({
     name,
-    sql: `SELECT c.* FROM ${name} c JOIN ${parent} p ON p.id = c.${key} WHERE p.account_id = ?`,
+    sql: `SELECT c.* FROM ${name} c JOIN ${parent} p ON p.id = c.${key} WHERE p.${USER_ACCOUNTS}`,
   }));
 
-export const importedTables = (): string[] =>
-  ACCOUNT_TABLES.filter((t) => t.imported).map((t) => t.name);
+/** Deletes one imported table's rows across all of a user's accounts. */
+export const importedDeletes = (): string[] =>
+  ACCOUNT_TABLES.filter((t) => t.imported).map(
+    (t) => `DELETE FROM ${t.name} WHERE ${USER_ACCOUNTS}`,
+  );
 
 interface ScopedDelete {
   /** Takes the account id, then `value`. */

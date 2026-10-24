@@ -2,22 +2,13 @@ import { strToU8 } from "fflate";
 import { describe, expect, it } from "vitest";
 import { ANALYTICS_SHEETS, POST_1, SHARES_CSV } from "../testing/linkedin-fixtures";
 import { buildXlsx } from "../testing/xlsx";
-import { type TestContainer, signedInClient, testContainer, uploadFiles } from "../test-support";
-
-type Client = Awaited<ReturnType<typeof signedInClient>>;
-
-async function importAndWait(
-  container: TestContainer,
-  client: Client,
-  files: Record<string, Uint8Array>,
-) {
-  const response = await uploadFiles(container, client, files);
-  expect(response.status).toBe(202);
-  const { job } = (await response.json()) as { job: { id: string } };
-  await container.worker.drain();
-  const done = await (await client.request(`/jobs/${job.id}`)).json();
-  return (done as { job: { status: string; error: string | null; result: unknown } }).job;
-}
+import {
+  type TestContainer,
+  importAndWait,
+  signedInClient,
+  testContainer,
+  uploadFiles,
+} from "../test-support";
 
 const count = (container: TestContainer, sql: string) =>
   (container.db.prepare(sql).get() as { n: number }).n;

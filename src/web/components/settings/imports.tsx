@@ -1,5 +1,6 @@
 import { type FormEvent, useRef } from "react";
 import type { ImportFileReportDto, JobDto } from "../../../shared/api-types";
+import { PLATFORM_NAMES } from "../../lib/accounts";
 import { formatDate } from "../../lib/format";
 import { useResource, useStartJob } from "../../lib/hooks";
 import { useSession } from "../../lib/session";
@@ -7,7 +8,8 @@ import { ResourceView } from "../resource";
 import { ErrorBox, JobLine } from "../ui";
 
 export function Imports() {
-  const { refreshStatus } = useSession();
+  const { refreshStatus, status } = useSession();
+  const linkedin = (status?.account?.platform ?? "linkedin") === "linkedin";
   const history = useResource<{ jobs: JobDto[] }>("/jobs?type=import");
   const { job, error, start, running } = useStartJob(() => {
     refreshStatus();
@@ -15,9 +17,10 @@ export function Imports() {
   });
   return (
     <section className="card stack">
-      <h2>Import LinkedIn data</h2>
-      <ImportSteps />
-      <ImportForm running={running} start={start} />
+      <h2>Import data</h2>
+      <ImportTarget />
+      {linkedin ? <ImportSteps /> : <GenericSteps />}
+      <ImportForm running={running} start={start} linkedin={linkedin} />
       <ErrorBox error={error} />
       <JobLine job={job} />
       {job?.status === "completed" && (
@@ -25,6 +28,33 @@ export function Imports() {
       )}
       <ResourceView resource={history}>{(data) => <ImportHistory jobs={data.jobs} />}</ResourceView>
     </section>
+  );
+}
+
+function ImportTarget() {
+  const { status } = useSession();
+  const account = status?.account;
+  return (
+    <p className="small">
+      Importing into{" "}
+      <strong>
+        {account
+          ? `${account.label} (${PLATFORM_NAMES[account.platform]})`
+          : "a new LinkedIn account"}
+      </strong>
+      . Files that fit: {status?.accepts.map((a) => `${a.label} (${a.files})`).join("; ")}.
+    </p>
+  );
+}
+
+function GenericSteps() {
+  return (
+    <p className="small secondary" style={{ margin: 0 }}>
+      Export your posts from the platform as a CSV with a header row. Required columns: date, text.
+      Optional: url, type, impressions, reactions, comments, reposts, engagements, hashtags. A file
+      is read as the complete list of posts for the days it covers. Import again whenever you like:
+      posts are matched by url, or by date and text, so nothing is duplicated.
+    </p>
   );
 }
 
@@ -51,9 +81,11 @@ function ImportSteps() {
 function ImportForm({
   running,
   start,
+  linkedin,
 }: {
   running: boolean;
   start: (path: string, body?: FormData) => void;
+  linkedin: boolean;
 }) {
   const { status } = useSession();
   const input = useRef<HTMLInputElement>(null);
@@ -72,13 +104,13 @@ function ImportForm({
         ref={input}
         type="file"
         multiple
-        accept=".zip,.csv,.xlsx"
-        aria-label="LinkedIn export files"
+        accept={linkedin ? ".zip,.csv,.xlsx" : ".csv"}
+        aria-label="Files to import"
       />
       <button className="btn primary" disabled={running}>
         Import
       </button>
-      {!status?.hasLinkedInData && !status?.hasDemoData && (
+      {linkedin && !status?.hasLinkedInData && !status?.hasDemoData && (
         <button
           type="button"
           className="btn"

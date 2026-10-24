@@ -1,8 +1,11 @@
+import type { Platform } from "../../domain/accounts";
 import type { Dataset, ImportBundle } from "../../domain/content";
 
 export interface Account {
   id: string;
   userId: string;
+  platform: Platform;
+  label: string;
   displayName: string | null;
   headline: string | null;
   profileUrl: string | null;
@@ -17,8 +20,9 @@ export interface ApplyStats {
 }
 
 export interface ContentStore {
-  /** The user's single LinkedIn account (ADR 0015), created on first use. */
+  /** The active account (ADR 0026); a LinkedIn account is created when the user has none. */
   ensureAccount(userId: string, now: string): Promise<Account>;
+  /** The active account, or null before the user has any. */
   findAccount(userId: string): Promise<Account | null>;
   /**
    * Writes a bundle atomically and idempotently: applying the same bundle twice leaves
@@ -35,5 +39,5 @@ export interface ContentStore {
   deleteDataset(accountId: string, dataset: Dataset): Promise<void>;
 }
 
-/** The id of the user's account, or null before the first import or record creates one. */
+/** The id of the active account, or null before the first import or record creates one. */
 export type ResolveAccount = (userId: string) => Promise<string | null>;

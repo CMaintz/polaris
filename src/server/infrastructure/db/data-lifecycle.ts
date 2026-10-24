@@ -1,5 +1,5 @@
 import type { DataLifecycle } from "../../application/account/account-service";
-import { childTableQueries, exportQueries, importedTables } from "./account-tables";
+import { childTableQueries, exportQueries, importedDeletes } from "./account-tables";
 import type { Db } from "./database";
 
 export class SqliteDataLifecycle implements DataLifecycle {
@@ -8,16 +8,14 @@ export class SqliteDataLifecycle implements DataLifecycle {
   // What an export contains: everything the user owns, minus secrets (password hash, session
   // tokens, sealed AI keys) and raw upload bytes, which the user already has.
   async exportUser(userId: string): Promise<Record<string, unknown>> {
-    const account = this.db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(userId) as
-      { id: string } | undefined;
     const rows = (sql: string, ...params: unknown[]) => this.db.prepare(sql).all(...params);
     const queries = [...exportQueries(), ...childTableQueries()];
-    const tables = Object.fromEntries(
-      queries.map(({ name, sql }) => [name, account ? rows(sql, account.id) : []]),
-    );
+    const tables = Object.fromEntries(queries.map(({ name, sql }) => [name, rows(sql, userId)]));
     return {
-      user: this.db.prepare("SELECT id, email, created_at FROM users WHERE id = ?").get(userId),
-      account: account ?? null,
+      user: this.db
+        .prepare("SELECT id, email, active_account_id, created_at FROM users WHERE id = ?")
+        .get(userId),
+      accounts: rows("SELECT * FROM accounts WHERE user_id = ? ORDER BY created_at, rowid", userId),
       ...tables,
       ai_interactions: rows("SELECT * FROM ai_interactions WHERE user_id = ?", userId),
       ai_keys: rows(
@@ -37,13 +35,8 @@ export class SqliteDataLifecycle implements DataLifecycle {
 
   async deleteImported(userId: string): Promise<void> {
     this.db.transaction(() => {
-      const account = this.db.prepare("SELECT id FROM accounts WHERE user_id = ?").get(userId) as
-        { id: string } | undefined;
-      if (account) {
-        for (const table of importedTables())
-          this.db.prepare(`DELETE FROM ${table} WHERE account_id = ?`).run(account.id);
-      }
-      // The profile fields on the account row came from the import too.
+      for (const sql of importedDeletes()) this.db.prepare(sql).run(userId);
+      // The profile fields on the account rows came from the import too; labels are the user's.
       this.db
         .prepare(
           "UPDATE accounts SET display_name = NULL, headline = NULL, profile_url = NULL WHERE user_id = ?",

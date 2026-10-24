@@ -6,6 +6,7 @@ import { useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
 import { useMutation } from "../lib/mutation";
 import { ResourceView } from "../components/resource";
+import { AllAccountsPlan } from "../components/plan-all";
 import { Empty, ErrorBox, Field, PageHead } from "../components/ui";
 
 const COLUMNS: [Status, string][] = [
@@ -22,6 +23,26 @@ const NEXT: Partial<Record<Status, Status>> = {
 };
 
 export function PlannerPage() {
+  const [all, setAll] = useState(false);
+  const toggle = (
+    <label className="row small">
+      <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} />
+      All accounts
+    </label>
+  );
+  return (
+    <div className="stack">
+      <PageHead
+        title="Planner"
+        intro="Ideas and planned posts. Planning is not publishing: a post goes out only when you approve and schedule its draft in Studio."
+        actions={toggle}
+      />
+      {all ? <AllAccountsPlan /> : <AccountPlan />}
+    </div>
+  );
+}
+
+function AccountPlan() {
   const list = useResource<{ items: PlanItemDto[] }>("/plan");
   const form = useForm({ title: "", concept: "", targetTopic: "", plannedDate: "" }, async (v) => {
     await post("/plan", {
@@ -32,11 +53,7 @@ export function PlannerPage() {
     list.reload();
   });
   return (
-    <div className="stack">
-      <PageHead
-        title="Planner"
-        intro="Ideas and planned posts. Planning is not publishing: a post goes out only when you approve and schedule its draft in Studio."
-      />
+    <>
       <form className="card stack" onSubmit={form.submit}>
         <h2>New idea</h2>
         <div className="form-grid">
@@ -69,7 +86,7 @@ export function PlannerPage() {
           )
         }
       </ResourceView>
-    </div>
+    </>
   );
 }
 

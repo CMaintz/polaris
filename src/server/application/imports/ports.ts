@@ -1,3 +1,4 @@
+import type { Platform } from "../../domain/accounts";
 import type { ImportBundle } from "../../domain/content";
 
 export interface SourceFile {
@@ -17,6 +18,10 @@ export interface ReadContext {
 export interface SocialDataProvider {
   readonly id: string;
   readonly label: string;
+  /** The only platform whose accounts may receive this provider's data. */
+  readonly platform: Platform;
+  /** The files it reads, in words a user recognises. */
+  readonly files: string;
   canRead(file: SourceFile): boolean;
   read(file: SourceFile, context: ReadContext): Promise<ImportBundle[]>;
 }

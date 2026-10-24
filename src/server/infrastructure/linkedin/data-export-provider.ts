@@ -8,8 +8,9 @@ import {
   LINKEDIN_DATA_EXPORT,
   emptyBundle,
 } from "../../domain/content";
-import { csvRecords, pick } from "./csv";
-import { externalIdFromUrl, parseTimestamp } from "./values";
+import { csvRecords, pick } from "../csv/csv";
+import { parseTimestamp } from "../csv/values";
+import { externalIdFromUrl } from "./values";
 
 const KNOWN_FILES = ["shares.csv", "profile.csv"];
 
@@ -29,6 +30,8 @@ function isZip(file: SourceFile): boolean {
 export class LinkedInDataExportProvider implements SocialDataProvider {
   readonly id = LINKEDIN_DATA_EXPORT;
   readonly label = "LinkedIn data archive";
+  readonly platform = "linkedin";
+  readonly files = "the archive .zip, or Shares.csv and Profile.csv from it";
 
   constructor(private readonly options = { maxEntryBytes: 200 * 1024 * 1024 }) {}
 

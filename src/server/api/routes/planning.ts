@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { PlanningService } from "../../application/planning/planning-service";
+import type { UnifiedPlan } from "../../application/planning/unified-plan";
 import { type AppEnv, currentUser, day, readJson, readPatch, requireUser } from "../http";
 
 const text = (max: number) => z.string().max(max);
@@ -73,10 +74,12 @@ function crud<K extends keyof typeof SCHEMAS>(
     });
 }
 
-export function planningRoutes(planning: PlanningService) {
+export function planningRoutes(planning: PlanningService, unified: UnifiedPlan) {
   return {
     goals: crud(planning, "goals", (userId) => planning.goals(userId)),
     experiments: crud(planning, "experiments", (userId) => planning.experiments(userId)),
-    plan: crud(planning, "plan", (userId) => planning.planItems(userId)),
+    plan: crud(planning, "plan", (userId) => planning.planItems(userId)).get("/all", async (c) =>
+      c.json({ items: await unified.items(currentUser(c).id) }),
+    ),
   };
 }

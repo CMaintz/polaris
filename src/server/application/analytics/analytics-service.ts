@@ -1,9 +1,13 @@
 import { type Clock } from "../clock";
 import type { ContentStore } from "../content/ports";
 import { NotFoundError } from "../errors";
-import { LINKEDIN_DATA_EXPORT } from "../../domain/content";
 import { RECENT_DAYS, addDays, lastDays, todayUtc } from "../../domain/dates";
-import { type PostRecord, postingTimes, segmentPerformance } from "../../domain/posts";
+import {
+  type PostRecord,
+  listingProviders,
+  postingTimes,
+  segmentPerformance,
+} from "../../domain/posts";
 import type { Granularity } from "../../domain/timeseries";
 import type {
   AudienceDto,
@@ -140,7 +144,9 @@ export class AnalyticsService {
       granularity,
       from,
       to,
-      source: sourceLabel(metric === "posts" ? LINKEDIN_DATA_EXPORT : providersOf(data.days)),
+      source: sourceLabel(
+        metric === "posts" ? listingProviders(data.posts) : providersOf(data.days),
+      ),
       points: accountSeries(data, metric, granularity, { from, to }, rollingWindow),
     };
   }
