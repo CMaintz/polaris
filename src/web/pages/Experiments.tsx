@@ -1,49 +1,21 @@
 import { useState } from "react";
+import type { ExperimentDto } from "../../shared/api-types";
 import { del, patch, post } from "../lib/api";
 import { formatChange, formatDate, formatPeriod } from "../lib/format";
 import { inDays, today, useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
 import {
-  type MetricKey,
+  EXPERIMENT_METRICS,
+  experimentMetricLabel,
   formatMetric,
-  metricInputLabel,
-  metricLabel,
-  metricOptions,
   parseMetricInput,
 } from "../lib/metrics";
 import { useMutation } from "../lib/mutation";
+import { MetricValueFields } from "../components/metric-fields";
 import { ResourceView } from "../components/resource";
 import { DateRangeFields, Empty, ErrorBox, Field, PageHead } from "../components/ui";
 
-interface ExperimentView {
-  id: string;
-  name: string;
-  hypothesis: string;
-  variable: string;
-  metric: MetricKey;
-  baseline: number | null;
-  startDate: string;
-  endDate: string;
-  status: string;
-  conclusion: string;
-  evaluation: {
-    baseline: number | null;
-    observed: number | null;
-    change: { percent: number | null };
-    sampleSize: number;
-    baselineSampleSize: number | null;
-    baselinePeriod: { from: string; to: string } | null;
-    verdict: string;
-  };
-}
-
-const perPost = (key: MetricKey) => `${metricLabel(key)} per post`;
-const METRICS = metricOptions(
-  ["engagements", "impressions", "engagement_rate", "comments", "reactions", "reposts"],
-  perPost,
-);
-
-const VERDICT: Record<string, string> = {
+const VERDICT: Record<ExperimentDto["evaluation"]["verdict"], string> = {
   insufficient_data: "Not enough posts yet (needs 3 on each side)",
   higher: "Higher than baseline",
   lower: "Lower than baseline",
@@ -51,13 +23,13 @@ const VERDICT: Record<string, string> = {
 };
 
 export function ExperimentsPage() {
-  const list = useResource<{ items: ExperimentView[] }>("/experiments");
+  const list = useResource<{ items: ExperimentDto[] }>("/experiments");
   const form = useForm(
     {
       name: "",
       hypothesis: "",
       variable: "",
-      metric: "engagements" as MetricKey,
+      metric: "engagements" as ExperimentDto["metric"],
       baseline: "",
       startDate: today(),
       endDate: inDays(28),
@@ -86,20 +58,14 @@ export function ExperimentsPage() {
           <Field label="What you will change">
             <input maxLength={500} {...form.field("variable")} placeholder="Post before 9:00" />
           </Field>
-          <Field label="Measure">
-            <select {...form.field("metric")}>
-              {METRICS.map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field
-            label={`${metricInputLabel(form.values.metric, "Baseline")}, blank for the period before`}
-          >
-            <input type="number" step="any" {...form.field("baseline")} />
-          </Field>
+          <MetricValueFields
+            options={EXPERIMENT_METRICS}
+            metric={form.field("metric")}
+            metricLabel="Measure"
+            valueLabel="Baseline"
+            hint="blank for the period before"
+            value={form.field("baseline")}
+          />
           <DateRangeFields start={form.field("startDate")} end={form.field("endDate")} />
         </div>
         <Field label="Hypothesis">
@@ -134,7 +100,7 @@ function ExperimentCard({
   experiment: e,
   onChange,
 }: {
-  experiment: ExperimentView;
+  experiment: ExperimentDto;
   onChange: () => void;
 }) {
   const ev = e.evaluation;
@@ -158,7 +124,7 @@ function ExperimentCard({
       <p style={{ margin: 0 }}>{e.hypothesis}</p>
       <div className="small secondary">
         {e.variable && `Change: ${e.variable}. `}
-        {perPost(e.metric)}, {formatDate(e.startDate)} to {formatDate(e.endDate)}
+        {experimentMetricLabel(e.metric)}, {formatDate(e.startDate)} to {formatDate(e.endDate)}
       </div>
       <div className="grid kpis">
         <div>

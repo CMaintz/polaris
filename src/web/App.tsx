@@ -1,9 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import type { UserDto } from "../shared/api-types";
+import type { ImportStatusDto, UserDto } from "../shared/api-types";
 import { api, del, isUnauthorized, post } from "./lib/api";
 import { useResource } from "./lib/hooks";
 import { useMutation } from "./lib/mutation";
+import { type Session, SessionProvider, useSession } from "./lib/session";
 import { ErrorBox } from "./components/ui";
 import { AnalyticsPage } from "./pages/Analytics";
 import { AudiencePage } from "./pages/Audience";
@@ -16,26 +17,6 @@ import { OverviewPage } from "./pages/Overview";
 import { PlannerPage } from "./pages/Planner";
 import { PostDetailPage } from "./pages/PostDetail";
 import { SettingsPage } from "./pages/Settings";
-
-interface DataStatus {
-  hasLinkedInData: boolean;
-  hasDemoData: boolean;
-}
-
-interface Session {
-  user: UserDto;
-  status: DataStatus | null;
-  refreshStatus: () => void;
-  signOut: () => Promise<void>;
-}
-
-const SessionContext = createContext<Session | null>(null);
-
-export function useSession(): Session {
-  const session = useContext(SessionContext);
-  if (!session) throw new Error("useSession outside the signed-in app");
-  return session;
-}
 
 const NAV = [
   ["/", "Overview"],
@@ -84,16 +65,16 @@ function SessionError({ error, onRetry }: { error: Error; onRetry: () => void })
 }
 
 function SignedIn({ user, onSignedOut }: { user: UserDto; onSignedOut: () => void }) {
-  const status = useResource<DataStatus>("/imports/status");
+  const status = useResource<ImportStatusDto>("/imports/status");
   const signOut = useCallback(async () => {
     await post("/auth/logout");
     onSignedOut();
   }, [onSignedOut]);
   const session: Session = { user, status: status.data, refreshStatus: status.reload, signOut };
   return (
-    <SessionContext.Provider value={session}>
+    <SessionProvider session={session}>
       <Shell />
-    </SessionContext.Provider>
+    </SessionProvider>
   );
 }
 
