@@ -33,6 +33,18 @@ shapes:
 - Live RSS and Atom fetching (the SSRF guard itself is tested against a fake resolver and a
   loopback server).
 
+## Not built
+
+- **Telemetry** (docs/04 infrastructure list): there is no metrics or tracing pipeline; the
+  server logs to stdout, and AI calls and security events are recorded in the database.
+- **A metric-refresh job and incremental refresh** (docs/04, docs/07): LinkedIn offers no
+  API that Polaris may pull from, so refreshing means uploading a newer export, which merges
+  idempotently. There is no background job that fetches anything from LinkedIn.
+- A LinkedIn publishing connection is not refused on an account of platform "other" (nothing
+  posts there unless the user schedules a draft).
+- A first import into a brand-new user creates a LinkedIn account even when the file is then
+  rejected.
+
 ## Consequences
 
 - The product surface is large for a single-user tool. Each area can be hidden or removed on its
