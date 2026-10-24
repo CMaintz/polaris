@@ -1,5 +1,5 @@
 import type { DataLifecycle } from "../../application/account/account-service";
-import { accountTables, importedTables } from "./account-tables";
+import { accountTables, childTableQueries, importedTables } from "./account-tables";
 import type { Db } from "./database";
 
 export class SqliteDataLifecycle implements DataLifecycle {
@@ -17,22 +17,14 @@ export class SqliteDataLifecycle implements DataLifecycle {
         account ? rows(`SELECT * FROM ${t} WHERE account_id = ?`, account.id) : [],
       ]),
     );
+    const children = Object.fromEntries(
+      childTableQueries().map(({ name, sql }) => [name, account ? rows(sql, account.id) : []]),
+    );
     return {
       user: this.db.prepare("SELECT id, email, created_at FROM users WHERE id = ?").get(userId),
       account: account ?? null,
       ...byAccount,
-      post_metric_snapshots: account
-        ? rows(
-            "SELECT m.* FROM post_metric_snapshots m JOIN posts p ON p.id = m.post_id WHERE p.account_id = ?",
-            account.id,
-          )
-        : [],
-      post_topics: account
-        ? rows(
-            "SELECT pt.* FROM post_topics pt JOIN posts p ON p.id = pt.post_id WHERE p.account_id = ?",
-            account.id,
-          )
-        : [],
+      ...children,
       ai_interactions: rows("SELECT * FROM ai_interactions WHERE user_id = ?", userId),
       ai_keys: rows(
         "SELECT provider, model, key_hint, created_at FROM ai_credentials WHERE user_id = ?",
