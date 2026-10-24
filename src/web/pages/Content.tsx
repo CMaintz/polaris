@@ -2,17 +2,16 @@ import { useSearchParams } from "react-router-dom";
 import type { PostPageDto } from "../../shared/api-types";
 import { contentTypeLabel } from "../lib/format";
 import { useResource } from "../lib/hooks";
+import { metricOptions } from "../lib/metrics";
 import { PostTable } from "../components/content";
-import { ErrorBox, Field, Loading, PageHead } from "../components/ui";
+import { ResourceView } from "../components/resource";
+import { Field, PageHead } from "../components/ui";
 
 const PAGE_SIZE = 25;
 const TYPES = ["text", "image", "video", "document", "article", "link", "unknown"];
 const SORTS: [string, string][] = [
   ["published", "Publish date"],
-  ["engagements", "Engagements"],
-  ["impressions", "Impressions"],
-  ["engagement_rate", "Engagement rate"],
-  ["comments", "Comments"],
+  ...metricOptions(["engagements", "impressions", "engagement_rate", "comments"]),
 ];
 
 /** Filters live in the URL, so a filtered view can be bookmarked and survives a reload. */
@@ -100,12 +99,9 @@ export function ContentPage() {
           </select>
         </Field>
       </div>
-      <ErrorBox error={page.error} />
-      {!page.data ? (
-        <Loading />
-      ) : (
-        <Results page={page.data} offset={offset} onPage={(o) => set("offset", String(o))} />
-      )}
+      <ResourceView resource={page}>
+        {(data) => <Results page={data} offset={offset} onPage={(o) => set("offset", String(o))} />}
+      </ResourceView>
     </div>
   );
 }

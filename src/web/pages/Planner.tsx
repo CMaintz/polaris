@@ -3,7 +3,9 @@ import { del, patch, post } from "../lib/api";
 import { formatDate } from "../lib/format";
 import { useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
-import { Empty, ErrorBox, Field, Loading, PageHead } from "../components/ui";
+import { useMutation } from "../lib/mutation";
+import { ResourceView } from "../components/resource";
+import { Empty, ErrorBox, Field, PageHead } from "../components/ui";
 
 interface PlanItem {
   id: string;
@@ -41,7 +43,6 @@ export function PlannerPage() {
     });
     list.reload();
   });
-  const items = list.data?.items ?? [];
   return (
     <div className="stack">
       <PageHead
@@ -71,26 +72,34 @@ export function PlannerPage() {
           </button>
         </div>
       </form>
-      {!list.data ? (
-        <Loading />
-      ) : items.length === 0 ? (
-        <Empty title="Nothing planned yet" />
-      ) : (
-        <div className="grid two">
-          {COLUMNS.map(([status, label]) => (
-            <section key={status} className="card stack" aria-label={label}>
-              <h2>
-                {label} ({items.filter((i) => i.status === status).length})
-              </h2>
-              {items
-                .filter((i) => i.status === status)
-                .map((item) => (
-                  <PlanCard key={item.id} item={item} onChange={list.reload} />
-                ))}
-            </section>
-          ))}
-        </div>
-      )}
+      <ResourceView resource={list}>
+        {({ items }) =>
+          items.length === 0 ? (
+            <Empty title="Nothing planned yet" />
+          ) : (
+            <Board items={items} onChange={list.reload} />
+          )
+        }
+      </ResourceView>
+    </div>
+  );
+}
+
+function Board({ items, onChange }: { items: PlanItem[]; onChange: () => void }) {
+  return (
+    <div className="grid two">
+      {COLUMNS.map(([status, label]) => (
+        <section key={status} className="card stack" aria-label={label}>
+          <h2>
+            {label} ({items.filter((i) => i.status === status).length})
+          </h2>
+          {items
+            .filter((i) => i.status === status)
+            .map((item) => (
+              <PlanCard key={item.id} item={item} onChange={onChange} />
+            ))}
+        </section>
+      ))}
     </div>
   );
 }
@@ -98,8 +107,15 @@ export function PlannerPage() {
 function PlanCard({ item, onChange }: { item: PlanItem; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.draft);
-  const update = (values: Partial<PlanItem>) =>
-    void patch(`/plan/${item.id}`, values).then(onChange);
+  const update = useMutation(
+    (values: Partial<PlanItem>) => patch(`/plan/${item.id}`, values),
+    () => {
+      setEditing(false);
+      onChange();
+    },
+  );
+  const remove = useMutation(() => del(`/plan/${item.id}`), onChange);
+  const busy = update.busy || remove.busy;
   const next = NEXT[item.status];
   return (
     <article style={{ borderTop: "1px solid var(--grid)", paddingTop: 10 }}>
@@ -124,10 +140,8 @@ function PlanCard({ item, onChange }: { item: PlanItem; onChange: () => void }) 
           <div className="row">
             <button
               className="btn small primary"
-              onClick={() => {
-                update({ draft });
-                setEditing(false);
-              }}
+              disabled={busy}
+              onClick={() => update.run({ draft })}
             >
               Save draft
             </button>
@@ -139,9 +153,14 @@ function PlanCard({ item, onChange }: { item: PlanItem; onChange: () => void }) 
       ) : (
         item.draft && <div className="post-text small">{item.draft}</div>
       )}
+      <ErrorBox error={update.error ?? remove.error} />
       <div className="row" style={{ marginTop: 8 }}>
         {next && (
-          <button className="btn small" onClick={() => update({ status: next })}>
+          <button
+            className="btn small"
+            disabled={busy}
+            onClick={() => update.run({ status: next })}
+          >
             Move to {next}
           </button>
         )}
@@ -150,13 +169,14 @@ function PlanCard({ item, onChange }: { item: PlanItem; onChange: () => void }) 
             {item.draft ? "Edit draft" : "Write draft"}
           </button>
         )}
-        <button className="btn small" onClick={() => update({ status: "dropped" })}>
+        <button
+          className="btn small"
+          disabled={busy}
+          onClick={() => update.run({ status: "dropped" })}
+        >
           Drop
         </button>
-        <button
-          className="btn small danger"
-          onClick={() => void del(`/plan/${item.id}`).then(onChange)}
-        >
+        <button className="btn small danger" disabled={busy} onClick={() => remove.run()}>
           Delete
         </button>
       </div>

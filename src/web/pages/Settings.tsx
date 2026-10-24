@@ -1,9 +1,11 @@
 import { type FormEvent, useRef, useState } from "react";
 import type { JobDto } from "../../shared/api-types";
 import { useSession } from "../App";
-import { api, del, post, put } from "../lib/api";
+import { api, del, put } from "../lib/api";
 import { formatDate } from "../lib/format";
-import { useJob, useResource } from "../lib/hooks";
+import { useResource, useStartJob } from "../lib/hooks";
+import { useMutation } from "../lib/mutation";
+import { ResourceView } from "../components/resource";
 import { ErrorBox, Field, JobLine, PageHead } from "../components/ui";
 
 export function SettingsPage() {
@@ -30,24 +32,18 @@ interface FileReport {
 function Imports() {
   const { status, refreshStatus } = useSession();
   const history = useResource<{ jobs: JobDto[] }>("/jobs?type=import");
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
   const input = useRef<HTMLInputElement>(null);
-  const job = useJob(jobId, () => {
+  const { job, error, start, running } = useStartJob(() => {
     refreshStatus();
     history.reload();
   });
-  const start = (request: Promise<{ job: JobDto }>) => {
-    setError(null);
-    request.then((r) => setJobId(r.job.id)).catch(setError);
-  };
   const upload = (e: FormEvent) => {
     e.preventDefault();
     const files = input.current?.files;
     if (!files?.length) return;
     const form = new FormData();
     for (const file of Array.from(files)) form.append("files", file);
-    start(post<{ job: JobDto }>("/imports", form));
+    start("/imports", form);
     if (input.current) input.current.value = "";
   };
   return (
@@ -76,12 +72,15 @@ function Imports() {
           accept=".zip,.csv,.xlsx"
           aria-label="LinkedIn export files"
         />
-        <button className="btn primary">Import</button>
+        <button className="btn primary" disabled={running}>
+          Import
+        </button>
         {!status?.hasLinkedInData && !status?.hasDemoData && (
           <button
             type="button"
             className="btn"
-            onClick={() => start(post<{ job: JobDto }>("/imports/demo"))}
+            disabled={running}
+            onClick={() => start("/imports/demo")}
           >
             Load demo data instead
           </button>
@@ -92,7 +91,7 @@ function Imports() {
       {job?.status === "completed" && (
         <ImportReport files={(job.result as { files: FileReport[] }).files} />
       )}
-      <ImportHistory jobs={history.data?.jobs ?? []} />
+      <ResourceView resource={history}>{(data) => <ImportHistory jobs={data.jobs} />}</ResourceView>
     </section>
   );
 }
@@ -155,17 +154,16 @@ function AiKeys() {
   const [provider, setProvider] = useState<keyof typeof PROVIDERS>("anthropic");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
-  const [error, setError] = useState<Error | null>(null);
-  const save = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      await put(`/ai/credentials/${provider}`, { apiKey, model: model || undefined });
+  const save = useMutation(
+    () => put(`/ai/credentials/${provider}`, { apiKey, model: model || undefined }),
+    () => {
       setApiKey("");
       keys.reload();
-    } catch (err) {
-      setError(err as Error);
-    }
+    },
+  );
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    save.run();
   };
   return (
     <section className="card stack">
@@ -174,22 +172,14 @@ function AiKeys() {
         Bring your own key. It is encrypted on this server, never shown again, and only used for
         reviews and questions you start. AI usage is billed to your provider account.
       </p>
-      {keys.data?.credentials.map((c) => (
-        <div key={c.provider} className="row">
-          <strong>{PROVIDERS[c.provider]}</strong>{" "}
-          <span className="muted">
-            key ending {c.keyHint}, model {c.model}
-          </span>
-          {c.active && <span className="badge ai">In use</span>}
-          <button
-            className="btn small danger"
-            onClick={() => void del(`/ai/credentials/${c.provider}`).then(keys.reload)}
-          >
-            Remove
-          </button>
-        </div>
-      ))}
-      <form className="form-grid" onSubmit={save}>
+      <ResourceView resource={keys}>
+        {(data) =>
+          data.credentials.map((c) => (
+            <CredentialRow key={c.provider} credential={c} onRemoved={keys.reload} />
+          ))
+        }
+      </ResourceView>
+      <form className="form-grid" onSubmit={submit}>
         <Field label="Provider">
           <select
             value={provider}
@@ -219,11 +209,36 @@ function AiKeys() {
           />
         </Field>
         <div style={{ alignSelf: "end" }}>
-          <button className="btn primary">Save key</button>
+          <button className="btn primary" disabled={save.busy}>
+            Save key
+          </button>
         </div>
       </form>
-      <ErrorBox error={error} />
+      <ErrorBox error={save.error} />
     </section>
+  );
+}
+
+function CredentialRow({
+  credential: c,
+  onRemoved,
+}: {
+  credential: Credential;
+  onRemoved: () => void;
+}) {
+  const remove = useMutation(() => del(`/ai/credentials/${c.provider}`), onRemoved);
+  return (
+    <div className="row">
+      <strong>{PROVIDERS[c.provider]}</strong>{" "}
+      <span className="muted">
+        key ending {c.keyHint}, model {c.model}
+      </span>
+      {c.active && <span className="badge ai">In use</span>}
+      <button className="btn small danger" disabled={remove.busy} onClick={() => remove.run()}>
+        Remove
+      </button>
+      <ErrorBox error={remove.error} />
+    </div>
   );
 }
 
@@ -231,13 +246,11 @@ function DataControls() {
   const { refreshStatus, signOut } = useSession();
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const run = (action: () => Promise<unknown>, done: string) => {
-    setError(null);
-    action()
-      .then(() => setMessage(done))
-      .catch(setError);
-  };
+  const action = useMutation((run: () => Promise<unknown>, done: string) => {
+    setMessage(null);
+    return run().then(() => setMessage(done));
+  });
+  const run = action.run;
   const download = async () => {
     const data = await api<{ exportedAt: string }>("/me/export");
     const url = URL.createObjectURL(
@@ -254,7 +267,11 @@ function DataControls() {
     <section className="card stack">
       <h2>Your data</h2>
       <div>
-        <button className="btn" onClick={() => run(download, "Export downloaded.")}>
+        <button
+          className="btn"
+          disabled={action.busy}
+          onClick={() => run(download, "Export downloaded.")}
+        >
           Download all my data (JSON)
         </button>
       </div>
@@ -273,7 +290,7 @@ function DataControls() {
         />
         <button
           className="btn danger"
-          disabled={!password}
+          disabled={!password || action.busy}
           onClick={() =>
             run(() => del("/me/data", { password }).then(refreshStatus), "Imported data deleted.")
           }
@@ -282,7 +299,7 @@ function DataControls() {
         </button>
         <button
           className="btn danger"
-          disabled={!password}
+          disabled={!password || action.busy}
           onClick={() => run(() => del("/me", { password }).then(signOut), "Account deleted.")}
         >
           Delete my account
@@ -293,7 +310,7 @@ function DataControls() {
           {message}
         </p>
       )}
-      <ErrorBox error={error} />
+      <ErrorBox error={action.error} />
     </section>
   );
 }
