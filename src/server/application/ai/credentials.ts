@@ -18,6 +18,12 @@ export interface CredentialView {
   active: boolean;
 }
 
+export interface ActiveKey {
+  provider: AiProviderId;
+  apiKey: string;
+  model: string;
+}
+
 const KEY_PATTERN = /^[A-Za-z0-9_\-.]{20,300}$/;
 
 export class CredentialService {
@@ -63,15 +69,21 @@ export class CredentialService {
     await this.audit.record(userId, "ai.key_removed", { provider });
   }
 
-  /** The user's active provider, ready to call, or null when no key is stored. */
+  /** Null when no key is stored. */
   async activeProvider(userId: string): Promise<AiProvider | null> {
+    const key = await this.activeKey(userId);
+    return key && this.factory.create(key.provider, key.apiKey, key.model);
+  }
+
+  /**
+   * The opened key, for adapters that need their own SDK client (embeddings, web search).
+   * The caller must keep it in memory only: never log, store or return it.
+   */
+  async activeKey(userId: string): Promise<ActiveKey | null> {
     const credentials = await this.store.credentials(userId);
     const active = credentials.find((c) => c.active) ?? credentials[0];
     if (!active) return null;
-    return this.factory.create(
-      active.provider,
-      this.box.open(active.sealedKey, userId),
-      active.model,
-    );
+    const apiKey = this.box.open(active.sealedKey, userId);
+    return { provider: active.provider, apiKey, model: active.model };
   }
 }
