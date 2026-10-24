@@ -1,4 +1,5 @@
 import type { Db } from "./database";
+import { ACTION_SCHEMA } from "./action-schema";
 import { INTELLIGENCE_SCHEMA } from "./intelligence-schema";
 import { KNOWLEDGE_SCHEMA } from "./knowledge-schema";
 import { STRATEGY_MIGRATIONS } from "./strategy-schema";
@@ -259,6 +260,7 @@ const MIGRATIONS: readonly string[] = [
   ...STRATEGY_MIGRATIONS,
   KNOWLEDGE_SCHEMA.join(";\n"),
   INTELLIGENCE_SCHEMA.join(";\n"),
+  ACTION_SCHEMA.join(";\n"),
 ];
 
 export function migrate(db: Db): void {

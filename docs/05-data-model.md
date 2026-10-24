@@ -195,3 +195,7 @@ logical model above:
 - `peers`, `feeds` and `schedules` are the user's own records. `feed_items` cascade from their
   feed. `research_reports` (keyed by the job that writes them) and `trend_digests` draw on the
   user's posts and topics, so "delete imported data" removes them.
+- `drafts` and `draft_versions` hold the user's writing; `proposals` hold AI suggestions awaiting
+  a decision and carry `based_on_demo`; `publications` track a scheduled post through to its
+  LinkedIn link. `publishing_connections` keep each account's sealed token, and the export lists
+  them without it; `publishing_oauth_states` are short-lived and never exported.

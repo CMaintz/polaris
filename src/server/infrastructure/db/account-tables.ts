@@ -14,8 +14,12 @@ interface AccountTable {
    */
   imported: boolean;
   dataset: DatasetScope;
-  /** Search indexes are rebuilt from posts, so an export leaves them out. */
-  exported?: false;
+  /**
+   * False leaves the table out of the export (search indexes, which are rebuilt from posts;
+   * OAuth states, which are short-lived secrets). A string lists the exported columns, for
+   * tables that also hold a secret.
+   */
+  exported?: false | string;
 }
 
 /** Every table keyed by `account_id`. A new account table belongs here, or wipes miss it. */
@@ -40,6 +44,17 @@ const ACCOUNT_TABLES: readonly AccountTable[] = [
   { name: "peers", imported: false, dataset: "none" },
   { name: "feeds", imported: false, dataset: "none" },
   { name: "schedules", imported: false, dataset: "none" },
+  { name: "drafts", imported: false, dataset: "none" },
+  // AI proposals are derived from imported data and carry based_on_demo.
+  { name: "proposals", imported: true, dataset: "demo_flag" },
+  { name: "publications", imported: false, dataset: "none" },
+  {
+    name: "publishing_connections",
+    imported: false,
+    dataset: "none",
+    exported: "provider, member_urn, display_name, expires_at, created_at",
+  },
+  { name: "publishing_oauth_states", imported: false, dataset: "none", exported: false },
   { name: "campaigns", imported: false, dataset: "none" },
   { name: "content_pillars", imported: false, dataset: "none" },
 ];
@@ -53,13 +68,18 @@ const CHILD_TABLES: readonly { name: string; parent: string; key: string }[] = [
   { name: "post_topics", parent: "posts", key: "post_id" },
   { name: "post_themes", parent: "posts", key: "post_id" },
   { name: "feed_items", parent: "feeds", key: "feed_id" },
+  { name: "draft_versions", parent: "drafts", key: "draft_id" },
   { name: "campaign_posts", parent: "campaigns", key: "campaign_id" },
   { name: "campaign_plan_items", parent: "campaigns", key: "campaign_id" },
   { name: "campaign_goals", parent: "campaigns", key: "campaign_id" },
 ];
 
-export const exportedTables = (): string[] =>
-  ACCOUNT_TABLES.filter((t) => t.exported !== false).map((t) => t.name);
+/** Selects one exported table's rows for an account id. */
+export const exportQueries = (): { name: string; sql: string }[] =>
+  ACCOUNT_TABLES.filter((t) => t.exported !== false).map(({ name, exported }) => ({
+    name,
+    sql: `SELECT ${exported ?? "*"} FROM ${name} WHERE account_id = ?`,
+  }));
 
 /** Selects one child table's rows for an account id. */
 export const childTableQueries = (): { name: string; sql: string }[] =>

@@ -40,4 +40,5 @@ These fill gaps that the product documents leave open. Each one is cheap to chan
 10. **Export and deletion.** Users can download all their data as JSON, delete imported data,
     remove AI keys and delete their account (the data lifecycle in docs/09).
 11. **Planning is not publishing.** Planner items have the statuses idea, drafting, planned,
-    published and dropped. Polaris never posts to LinkedIn.
+    published and dropped. Superseded in part by ADR 0025: Polaris posts only an approved,
+    scheduled draft, through a provider the user connected.

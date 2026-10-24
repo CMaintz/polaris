@@ -7,6 +7,7 @@ import type { JobHandler } from "../application/jobs/ports";
 import { JobWorker } from "../application/jobs/job-worker";
 import type { Config } from "../config";
 import { SdkProviderFactory } from "../infrastructure/ai/provider-factory";
+import { buildAction } from "./action";
 import { buildAiKeys, buildAiService } from "./ai";
 import { type Core, type Overrides, buildCore } from "./core";
 import { buildImports } from "./imports";
@@ -40,6 +41,13 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
   const keys = buildAiKeys(core, config, overrides.aiFactory ?? new SdkProviderFactory());
   const knowledge = buildKnowledge(core, keys, facts);
   const ai = buildAiService(core, keys, { facts, related: knowledge.related });
+  const planning = buildPlanning(core, analytics);
+  const action = buildAction(core, keys, {
+    planning: planning.service,
+    stores: planning.stores,
+    facts,
+    linkedin: config.linkedin,
+  });
   const intelligence = buildIntelligence(core, keys, {
     allowHttpFeeds: config.feedsAllowHttp,
     webResearch: overrides.webResearch,
@@ -50,19 +58,23 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     [AI_JOB]: ai.run.bind(ai),
     ...knowledge.handlers,
     ...intelligence.handlers,
+    ...action.handlers,
   };
   const worker = new JobWorker(core.jobs, handlers, core.clock, {
-    tick: (now) => intelligence.scheduler.tick(now),
+    tick: async (now) => {
+      await intelligence.scheduler.tick(now);
+      await action.publishing.enqueueDue(now.toISOString());
+    },
     ...overrides.worker,
   });
-  const planning = buildPlanning(core, analytics);
   const account = buildAccount(core);
   const strategy = buildStrategy(core);
   const services = {
     ...core,
     ...keys,
     ai,
-    planning,
+    planning: planning.service,
+    action,
     account,
     strategy,
     knowledge,

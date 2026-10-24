@@ -220,3 +220,26 @@ See ADR 0019, ADR 0020 and ADR 0021.
 - **Schedules** run feed refreshes, trend digests, a weekly account review or a research rerun,
   daily or weekly. The job worker checks for due schedules on every poll, and a missed period
   costs one catch-up run, not one per period.
+
+## As implemented: drafting, approvals and publishing
+
+See ADR 0024 and ADR 0025.
+
+- **Drafts** are versioned: every save, AI draft or restore adds a version. A draft can link to a
+  plan item in the same account. Text over LinkedIn's 3,000-character limit is flagged and cannot
+  be approved or scheduled.
+- **AI drafting** writes a draft or a rewrite from a brief (topic, angle, tone), using the
+  account's best posts as voice examples. The result is always a new version, never a post.
+- **Approval** belongs to one version: any later save drops it. Only an approved draft can be
+  scheduled.
+- **Proposals** are how AI suggests changes (docs/06): plan items, experiments and goals sit
+  pending until the user approves or rejects them. Approving applies a proposal once, however
+  often it is clicked, and a rejected proposal can never be applied. Every decision is in the
+  audit log.
+- **Agentic planning** asks the model for a plan for the next one to eight weeks. Every
+  suggestion becomes a pending proposal with its rationale and cited evidence; suggestions with
+  no real evidence, or dated outside the window, are dropped.
+- **Publishing** runs when a scheduled draft is due. The manual provider prepares the text and a
+  share link and waits for the user to confirm they posted it. The LinkedIn provider posts
+  through the official Posts API on the user's own LinkedIn app connection. A post is attempted
+  at most once: an interrupted attempt asks the user to check rather than posting again.

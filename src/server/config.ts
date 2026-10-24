@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { LinkedInAppConfig } from "./infrastructure/publishing/linkedin-oauth";
 
 export interface Config {
   dbPath: string;
@@ -15,6 +16,8 @@ export interface Config {
   maxUploadBytes: number;
   /** Plain http feed URLs; https only by default. Every fetch is SSRF-guarded either way. */
   feedsAllowHttp: boolean;
+  /** The LinkedIn app for posting through the official API; null unless fully configured. */
+  linkedin: LinkedInAppConfig | null;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -30,5 +33,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webDistDir: env.POLARIS_WEB_DIST ?? "./dist/web",
     maxUploadBytes: Number(env.POLARIS_MAX_UPLOAD_MB ?? 100) * 1024 * 1024,
     feedsAllowHttp: env.POLARIS_FEEDS_ALLOW_HTTP === "true",
+    linkedin: linkedInApp(env),
+  };
+}
+
+function linkedInApp(env: NodeJS.ProcessEnv): LinkedInAppConfig | null {
+  const clientId = env.POLARIS_LINKEDIN_CLIENT_ID;
+  const clientSecret = env.POLARIS_LINKEDIN_CLIENT_SECRET;
+  const redirectUri = env.POLARIS_LINKEDIN_REDIRECT_URI;
+  if (!clientId || !clientSecret || !redirectUri) return null;
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+    apiVersion: env.POLARIS_LINKEDIN_API_VERSION ?? "202610",
   };
 }
