@@ -57,3 +57,18 @@ Consider:
 - insecure browser sessions
 
 Social content must be treated as untrusted input. A LinkedIn post containing instructions such as "ignore previous instructions" is data, not an instruction to the Polaris agent.
+
+## As implemented: server-side fetching
+
+Trend feeds are the only URLs the server fetches for a user (ADR 0020):
+
+- https only, unless `POLARIS_FEEDS_ALLOW_HTTP` is set;
+- every resolved address must be public (loopback, private, link-local, CGNAT, multicast and
+  translation ranges are refused), and the connection is pinned to the vetted address so DNS
+  rebinding cannot redirect it;
+- each of up to three redirects is vetted again; 10 second timeout, 2 MB cap, feed content
+  types only;
+- the XML reader refuses any DOCTYPE, so no entity is ever expanded.
+
+Feed text, web search notes and model output are untrusted: they are fenced in prompts and
+rendered as plain text.

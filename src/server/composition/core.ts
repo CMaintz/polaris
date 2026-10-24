@@ -1,4 +1,5 @@
 import type { AiProviderFactory } from "../application/ai/ports";
+import type { FeedFetcher, WebResearchFactory } from "../application/intelligence/ports";
 import { AuthService } from "../application/auth/auth-service";
 import type { PasswordHasher } from "../application/auth/ports";
 import { type Clock, systemClock } from "../application/clock";
@@ -21,6 +22,8 @@ export interface Overrides {
   hasher?: PasswordHasher;
   worker?: Partial<WorkerOptions>;
   aiFactory?: AiProviderFactory;
+  webResearch?: WebResearchFactory;
+  feedFetcher?: FeedFetcher;
 }
 
 export function buildCore(config: Config, overrides: Overrides) {

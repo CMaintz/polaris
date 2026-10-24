@@ -13,6 +13,8 @@ export interface Config {
   webDistDir: string;
   /** Largest accepted import request, checked before the body is buffered. */
   maxUploadBytes: number;
+  /** Plain http feed URLs; https only by default. Every fetch is SSRF-guarded either way. */
+  feedsAllowHttp: boolean;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -27,5 +29,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     masterKey: env.POLARIS_MASTER_KEY || undefined,
     webDistDir: env.POLARIS_WEB_DIST ?? "./dist/web",
     maxUploadBytes: Number(env.POLARIS_MAX_UPLOAD_MB ?? 100) * 1024 * 1024,
+    feedsAllowHttp: env.POLARIS_FEEDS_ALLOW_HTTP === "true",
   };
 }

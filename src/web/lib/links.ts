@@ -13,3 +13,14 @@ export function linkedInUrl(url: string | null | undefined): string | null {
     return null;
   }
 }
+
+/** Model output and feed items carry URLs too; only web links are rendered as links. */
+export function safeHref(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
