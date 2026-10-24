@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import type { InsightDto, PostSummaryDto } from "../../shared/api-types";
+import type { EvidenceDto, InsightDto, PostSummaryDto } from "../../shared/api-types";
 import {
   contentTypeLabel,
   formatDate,
@@ -43,27 +43,34 @@ export function InsightCard({ insight }: { insight: InsightDto }) {
       </dl>
       <details>
         <summary>Evidence ({insight.evidence.length})</summary>
-        {insight.evidence.length === 0 ? (
-          <p className="muted small">No measured evidence supports this. Treat it as a guess.</p>
-        ) : (
-          <ul className="small">
-            {insight.evidence.map((e) => (
-              <li key={e.id}>
-                {e.label}: <strong>{formatValue(e.value, e.unit)}</strong>
-                {e.period && ` (${formatPeriod(e.period)})`}{" "}
-                <span className="muted">from {e.source}</span>
-                {e.postId && (
-                  <>
-                    {" "}
-                    <Link to={`/content/${e.postId}`}>open post</Link>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        <EvidenceList
+          evidence={insight.evidence}
+          empty="No measured evidence supports this. Treat it as a guess."
+        />
       </details>
     </article>
+  );
+}
+
+/** `empty` is shown instead of the list, so a claim without evidence says so. */
+export function EvidenceList({ evidence, empty }: { evidence: EvidenceDto[]; empty: string }) {
+  if (evidence.length === 0) return <p className="muted small">{empty}</p>;
+  return (
+    <ul className="small">
+      {evidence.map((e) => (
+        <li key={e.id}>
+          {e.label}: <strong>{formatValue(e.value, e.unit)}</strong>
+          {e.period && ` (${formatPeriod(e.period)})`}{" "}
+          <span className="muted">from {e.source}</span>
+          {e.postId && (
+            <>
+              {" "}
+              <Link to={`/content/${e.postId}`}>open post</Link>
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 

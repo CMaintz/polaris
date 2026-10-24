@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { PlanItemDto, PlanStatusDto as Status } from "../../shared/api-types";
 import { del, patch, post } from "../lib/api";
 import { formatDate } from "../lib/format";
 import { useForm } from "../lib/forms";
@@ -6,19 +7,6 @@ import { useResource } from "../lib/hooks";
 import { useMutation } from "../lib/mutation";
 import { ResourceView } from "../components/resource";
 import { Empty, ErrorBox, Field, PageHead } from "../components/ui";
-
-interface PlanItem {
-  id: string;
-  title: string;
-  concept: string;
-  targetTopic: string;
-  plannedDate: string | null;
-  status: Status;
-  draft: string;
-  postId: string | null;
-}
-
-type Status = "idea" | "drafting" | "planned" | "published" | "dropped";
 
 const COLUMNS: [Status, string][] = [
   ["idea", "Ideas"],
@@ -34,7 +22,7 @@ const NEXT: Partial<Record<Status, Status>> = {
 };
 
 export function PlannerPage() {
-  const list = useResource<{ items: PlanItem[] }>("/plan");
+  const list = useResource<{ items: PlanItemDto[] }>("/plan");
   const form = useForm({ title: "", concept: "", targetTopic: "", plannedDate: "" }, async (v) => {
     await post("/plan", {
       ...v,
@@ -85,7 +73,7 @@ export function PlannerPage() {
   );
 }
 
-function Board({ items, onChange }: { items: PlanItem[]; onChange: () => void }) {
+function Board({ items, onChange }: { items: PlanItemDto[]; onChange: () => void }) {
   return (
     <div className="grid two">
       {COLUMNS.map(([status, label]) => (
@@ -104,11 +92,11 @@ function Board({ items, onChange }: { items: PlanItem[]; onChange: () => void })
   );
 }
 
-function PlanCard({ item, onChange }: { item: PlanItem; onChange: () => void }) {
+function PlanCard({ item, onChange }: { item: PlanItemDto; onChange: () => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.draft);
   const update = useMutation(
-    (values: Partial<PlanItem>) => patch(`/plan/${item.id}`, values),
+    (values: Partial<PlanItemDto>) => patch(`/plan/${item.id}`, values),
     () => {
       setEditing(false);
       onChange();

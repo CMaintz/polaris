@@ -126,7 +126,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-interface FieldBinding {
+export interface FieldBinding {
   value: string;
   onChange: (event: { target: { value: string } }) => void;
 }
