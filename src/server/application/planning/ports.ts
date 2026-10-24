@@ -1,4 +1,5 @@
-import type { GoalMetric } from "../../domain/goals";
+import type { GoalInputs, GoalMetric } from "../../domain/goals";
+import type { PostRecord } from "../../domain/posts";
 import type { PostMetricKey } from "../../domain/metrics";
 
 export interface Goal {
@@ -60,3 +61,19 @@ export interface RecordStore<T extends { id: string }> {
   ): Promise<T | null>;
   delete(accountId: string, id: string): Promise<boolean>;
 }
+
+export interface Measurements {
+  measurements(
+    userId: string,
+  ): Promise<{ asOf: string | null; posts: PostRecord[]; inputs: GoalInputs }>;
+}
+
+export interface PlanningEntities {
+  goals: Goal;
+  experiments: Experiment;
+  plan: PlanItem;
+}
+
+export type PlanningKind = keyof PlanningEntities;
+
+export type PlanningStores = { [K in PlanningKind]: RecordStore<PlanningEntities[K]> };

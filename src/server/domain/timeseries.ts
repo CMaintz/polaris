@@ -164,3 +164,21 @@ export function dropPartialEdges(
   const last = points.length - 1;
   return points.map((p, i) => ((i === 0 || i === last) && partial(p) ? { ...p, value: null } : p));
 }
+
+/**
+ * Engagements over impressions, counting only days that report both, so a day with
+ * impressions but no engagement figure does not dilute the rate. Null without impressions.
+ */
+export function pairedRate(
+  impressions: readonly DatedValue[],
+  engagements: readonly DatedValue[],
+  from: string,
+  to: string,
+): { rate: number | null; days: number } {
+  const usable = (v: DatedValue) => v.value !== null && isWithin(v.day, from, to);
+  const engaged = new Map(engagements.filter(usable).map((v) => [v.day, v.value as number]));
+  const paired = impressions.filter((v) => usable(v) && engaged.has(v.day));
+  const seen = paired.reduce((t, v) => t + (v.value as number), 0);
+  const reacted = paired.reduce((t, v) => t + (engaged.get(v.day) as number), 0);
+  return { rate: seen === 0 ? null : reacted / seen, days: paired.length };
+}

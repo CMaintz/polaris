@@ -41,6 +41,11 @@ export interface AiInsight {
   interactionId: string;
 }
 
+export interface InsightFilter {
+  scope?: "account" | "post";
+  postId?: string;
+}
+
 export type RecommendationStatus = "open" | "accepted" | "dismissed" | "done";
 
 export interface Recommendation {
@@ -54,7 +59,7 @@ export interface Recommendation {
   interactionId: string;
 }
 
-export interface AiStore {
+export interface CredentialStore {
   /** Saves a key and makes it the active provider. */
   saveCredential(
     userId: string,
@@ -63,18 +68,23 @@ export interface AiStore {
   ): Promise<void>;
   credentials(userId: string): Promise<StoredCredential[]>;
   deleteCredential(userId: string, provider: AiProviderId): Promise<void>;
+}
+
+export interface InteractionLog {
   recordInteraction(record: InteractionRecord): Promise<string>;
   interactions(userId: string, limit: number): Promise<(InteractionRecord & { id: string })[]>;
+}
+
+/** AI output kept for an account. Every method is scoped to that account. */
+export interface InsightStore {
   saveInsights(accountId: string, insights: Omit<AiInsight, "id">[]): Promise<void>;
   saveRecommendations(
     accountId: string,
     recommendations: Omit<Recommendation, "id">[],
   ): Promise<void>;
-  insights(
-    accountId: string,
-    filter: { scope?: "account" | "post"; postId?: string },
-  ): Promise<AiInsight[]>;
+  insights(accountId: string, filter: InsightFilter): Promise<AiInsight[]>;
   recommendations(accountId: string): Promise<Recommendation[]>;
+  /** False when no recommendation with that id belongs to the account. */
   setRecommendationStatus(
     accountId: string,
     id: string,

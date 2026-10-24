@@ -1,4 +1,3 @@
-import type { AuthService } from "../auth/auth-service";
 import type { AuditLog } from "../auth/ports";
 import { type Clock, nowIso } from "../clock";
 
@@ -8,11 +7,16 @@ export interface DataLifecycle {
   deleteUser(userId: string): Promise<void>;
 }
 
+export interface PasswordConfirmer {
+  /** Throws when the password is not the user's current one. */
+  confirmPassword(userId: string, password: string): Promise<void>;
+}
+
 /** The data lifecycle from docs/09: export, delete imported data, delete the account. */
 export class AccountService {
   constructor(
     private readonly data: DataLifecycle,
-    private readonly auth: AuthService,
+    private readonly auth: PasswordConfirmer,
     private readonly audit: AuditLog,
     private readonly clock: Clock,
   ) {}

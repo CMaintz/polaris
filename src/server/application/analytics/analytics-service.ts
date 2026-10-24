@@ -1,7 +1,8 @@
 import { type Clock } from "../clock";
 import type { ContentStore } from "../content/ports";
 import { NotFoundError } from "../errors";
-import { addDays, todayUtc } from "../../domain/dates";
+import { LINKEDIN_DATA_EXPORT } from "../../domain/content";
+import { RECENT_DAYS, addDays, lastDays, todayUtc } from "../../domain/dates";
 import { type PostRecord, postingTimes, segmentPerformance } from "../../domain/posts";
 import type { Granularity } from "../../domain/timeseries";
 import type {
@@ -61,20 +62,8 @@ export class AnalyticsService {
       status,
       periodDays,
       kpis: accountKpis(data, asOf, periodDays),
-      impressionsTrend: accountSeries(
-        data,
-        "impressions",
-        "day",
-        { from: addDays(asOf, -89), to: asOf },
-        7,
-      ),
-      followersTrend: accountSeries(
-        data,
-        "followers",
-        "day",
-        { from: addDays(asOf, -89), to: asOf },
-        0,
-      ),
+      impressionsTrend: accountSeries(data, "impressions", "day", lastDays(asOf, RECENT_DAYS), 7),
+      followersTrend: accountSeries(data, "followers", "day", lastDays(asOf, RECENT_DAYS), 0),
       recentPosts: data.posts.slice(0, 5).map(summary),
       topPosts: ranked.top.map(summary),
       bottomPosts: ranked.bottom.map(summary),
@@ -145,13 +134,13 @@ export class AnalyticsService {
   ) {
     const data = await this.load(userId);
     const to = range.to ?? data.asOf ?? todayUtc(this.clock());
-    const from = range.from ?? addDays(to, -((range.days ?? 90) - 1));
+    const from = range.from ?? lastDays(to, range.days ?? RECENT_DAYS).from;
     return {
       metric,
       granularity,
       from,
       to,
-      source: sourceLabel(metric === "posts" ? "linkedin-data-export" : providersOf(data.days)),
+      source: sourceLabel(metric === "posts" ? LINKEDIN_DATA_EXPORT : providersOf(data.days)),
       points: accountSeries(data, metric, granularity, { from, to }, rollingWindow),
     };
   }

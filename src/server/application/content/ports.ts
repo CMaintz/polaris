@@ -34,3 +34,6 @@ export interface ContentStore {
   hasPost(accountId: string, postId: string): Promise<boolean>;
   deleteDataset(accountId: string, dataset: Dataset): Promise<void>;
 }
+
+/** The id of the user's account, or null before the first import or record creates one. */
+export type ResolveAccount = (userId: string) => Promise<string | null>;

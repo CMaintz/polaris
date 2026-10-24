@@ -5,6 +5,12 @@ export type ContentType = "text" | "image" | "video" | "document" | "article" | 
 /** Which dataset a post belongs to. Demo posts are synthetic and must never pass as real. */
 export type Dataset = "linkedin" | "demo";
 
+/**
+ * Provider id of the LinkedIn data archive, the one real source that lists every post the
+ * member published. Analytics exports list only top posts, so post counts rely on this one.
+ */
+export const LINKEDIN_DATA_EXPORT = "linkedin-data-export";
+
 interface ProfileFacts {
   displayName: string | null;
   headline: string | null;

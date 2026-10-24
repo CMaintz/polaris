@@ -1,5 +1,6 @@
 import type { Account } from "../content/ports";
-import { dayOf } from "../../domain/dates";
+import { LINKEDIN_DATA_EXPORT } from "../../domain/content";
+import { PERIOD_DAYS, dayOf } from "../../domain/dates";
 import { growth } from "../../domain/stats";
 import { type Band, type PostRecord, dailyPostCounts } from "../../domain/posts";
 import { ruleInsights } from "../../domain/insights";
@@ -11,6 +12,7 @@ import {
   comparePeriods,
   dropPartialEdges,
   fillPeriods,
+  pairedRate,
   rollingAverage,
 } from "../../domain/timeseries";
 import type { KpiDto, SeriesPointDto } from "../../../shared/api-types";
@@ -35,17 +37,16 @@ export interface Loaded {
   asOf: string | null;
 }
 
-/**
- * Engagement rate over a period: engagements over impressions, counting only days that
- * report both, so a day with impressions but no engagement figure does not dilute it.
- */
 export function rateKpi(data: Loaded, impressions: KpiDto): KpiDto {
-  const value = pairedRate(data.days, impressions.period.from, impressions.period.to);
-  const previous = pairedRate(
-    data.days,
-    impressions.previousPeriod.from,
-    impressions.previousPeriod.to,
-  );
+  const rate = (period: { from: string; to: string }) =>
+    pairedRate(
+      dailyValues(data, "impressions"),
+      dailyValues(data, "engagements"),
+      period.from,
+      period.to,
+    );
+  const value = rate(impressions.period);
+  const previous = rate(impressions.previousPeriod);
   return {
     ...impressions,
     key: "engagement_rate",
@@ -59,15 +60,6 @@ export function rateKpi(data: Loaded, impressions: KpiDto): KpiDto {
       percent: growth(previous.rate, value.rate).percent,
     },
   };
-}
-
-function pairedRate(days: AccountDay[], from: string, to: string) {
-  const paired = days.filter(
-    (d) => d.day >= from && d.day <= to && d.impressions !== null && d.engagements !== null,
-  );
-  const impressions = paired.reduce((t, d) => t + (d.impressions as number), 0);
-  const engagements = paired.reduce((t, d) => t + (d.engagements as number), 0);
-  return { rate: impressions === 0 ? null : engagements / impressions, days: paired.length };
 }
 
 export function dailyValues(data: Loaded, metric: SeriesMetric): DatedValue[] {
@@ -94,7 +86,8 @@ export function accountRuleInsights(data: Loaded, asOf: string, tzOffsetMinutes:
   return ruleInsights({
     posts: data.posts,
     asOf,
-    impressions: impressions.length > 0 ? comparePeriods(impressions, asOf, 28, "sum") : null,
+    impressions:
+      impressions.length > 0 ? comparePeriods(impressions, asOf, PERIOD_DAYS, "sum") : null,
     sources: { posts: "Your imported posts", account: sourceLabel(providersOf(data.days)) },
     tzOffsetMinutes,
   });
@@ -129,7 +122,7 @@ export function accountKpis(data: Loaded, asOf: string, days: number): KpiDto[] 
     impressions,
     engagements,
     rateKpi(data, impressions),
-    kpi("posts", "Posts published", "sum", sourceLabel("linkedin-data-export")),
+    kpi("posts", "Posts published", "sum", sourceLabel(LINKEDIN_DATA_EXPORT)),
   ];
 }
 

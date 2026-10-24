@@ -14,6 +14,8 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+const canRetry = (job: Job) => job.retryCount < job.maxRetries;
+
 export class JobWorker {
   private timer: NodeJS.Timeout | null = null;
   private busy = false;
@@ -29,7 +31,7 @@ export class JobWorker {
   }
 
   async start(): Promise<void> {
-    await this.jobs.requeueInterrupted(nowIso(this.clock));
+    await this.recoverInterrupted();
     this.timer = setInterval(() => void this.drain(), this.options.pollMs);
   }
 
@@ -69,9 +71,21 @@ export class JobWorker {
     return true;
   }
 
+  /**
+   * Handlers are idempotent, so a run a crash cut short is safe to repeat. It still counts
+   * as a try, so a job that crashes the process fails once its retries run out.
+   */
+  private async recoverInterrupted(): Promise<void> {
+    const now = nowIso(this.clock);
+    for (const job of await this.jobs.listRunning()) {
+      const outcome = canRetry(job) ? "queued" : "failed";
+      await this.jobs.recordInterruption(job.id, outcome, "Interrupted by a server restart", now);
+    }
+  }
+
   private async handleFailure(job: Job, error: unknown): Promise<void> {
     const message = messageOf(error);
-    const retryable = !(error instanceof PermanentJobError) && job.retryCount < job.maxRetries;
+    const retryable = !(error instanceof PermanentJobError) && canRetry(job);
     if (!retryable) {
       await this.jobs.fail(job.id, message, nowIso(this.clock));
       return;

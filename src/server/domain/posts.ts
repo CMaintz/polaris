@@ -1,4 +1,4 @@
-import type { ContentType, Dataset } from "./content";
+import { type ContentType, type Dataset, LINKEDIN_DATA_EXPORT } from "./content";
 import { addDays, dayOf, daysBetween } from "./dates";
 import type { DatedValue } from "./timeseries";
 import { type PostMetricKey, type PostMetrics, postMetricValue } from "./metrics";
@@ -117,7 +117,7 @@ export function postingTimes(posts: readonly PostRecord[], tzOffsetMinutes: numb
  * set). Analytics exports list only top posts, so they cannot support a post count.
  */
 export function isFullyListed(post: PostRecord): boolean {
-  return post.dataset === "demo" || post.providers.includes("linkedin-data-export");
+  return post.dataset === "demo" || post.providers.includes(LINKEDIN_DATA_EXPORT);
 }
 
 /**

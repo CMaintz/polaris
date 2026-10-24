@@ -1,6 +1,6 @@
 import { daysBetween, isWithin } from "./dates";
 import { sumOrNull } from "./stats";
-import type { DatedValue } from "./timeseries";
+import { type DatedValue, pairedRate } from "./timeseries";
 
 export type GoalMetric = "followers" | "impressions" | "engagements" | "posts" | "engagement_rate";
 
@@ -42,7 +42,10 @@ function measure(goal: GoalSpec, inputs: GoalInputs, to: string) {
   const { startDate: from } = goal;
   if (goal.metric === "followers") return followerGain(inputs.followers, from, to);
   if (goal.metric === "engagement_rate")
-    return { current: pairedRate(inputs, from, to), baseline: null };
+    return {
+      current: pairedRate(inputs.impressions, inputs.engagements, from, to).rate,
+      baseline: null,
+    };
   const series = inputs[goal.metric];
   return { current: sumOrNull(known(series, from, to).map((v) => v.value)), baseline: null };
 }
@@ -53,16 +56,6 @@ function followerGain(followers: DatedValue[], from: string, to: string) {
   const inside = known(followers, from, to);
   const baseline = before?.value ?? inside[0]?.value ?? null;
   return { current: inside.at(-1)?.value ?? null, baseline };
-}
-
-function pairedRate(inputs: GoalInputs, from: string, to: string): number | null {
-  const engagements = new Map(
-    known(inputs.engagements, from, to).map((v) => [v.day, v.value as number]),
-  );
-  const paired = known(inputs.impressions, from, to).filter((v) => engagements.has(v.day));
-  const impressions = paired.reduce((t, v) => t + (v.value as number), 0);
-  if (impressions === 0) return null;
-  return paired.reduce((t, v) => t + (engagements.get(v.day) ?? 0), 0) / impressions;
 }
 
 function fractionOfTarget(goal: GoalSpec, current: number, baseline: number | null): number | null {
