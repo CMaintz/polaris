@@ -10,8 +10,17 @@ your own OpenAI or Anthropic key.
   weekday and hour; audience demographics.
 - **AI insights** (bring your own key): account and post reviews and questions about your data.
   The model may only cite Polaris' own numbered evidence.
-- **Planner, goals and experiments**: plan posts, track goals against measured data, and run
-  simple before-and-after experiments.
+- **Search and themes**: keyword search with no key needed, meaning search on an OpenAI key, and
+  AI-found content themes with their performance and which ones are emerging.
+- **Research and trends**: web research with sources on your own provider, a watchlist of
+  peers, RSS and Atom feeds matched to your topics, and scheduled digests and reviews.
+- **Strategy**: goals, experiments, content pillars against what you actually post, campaigns
+  measured against the period before them, and an impressions-to-followers funnel.
+- **Planner, Studio and approvals**: plan posts, write and version drafts (with AI if you like),
+  approve them, and schedule them. AI suggestions wait for your approval; nothing is posted until
+  you approve and schedule it, by hand or through your own LinkedIn app.
+- **Several accounts**: keep one account per profile or platform, import a generic CSV for
+  platforms other than LinkedIn, and compare accounts side by side.
 - **Your data**: export everything as JSON, delete imported data, or delete the account.
 
 ## Run it
@@ -44,6 +53,16 @@ not set `POLARIS_MASTER_KEY`): stored AI keys cannot be decrypted without the ma
 2. **Metrics and audience**: your post analytics, Export. Upload the `.xlsx` file.
 
 Re-importing is safe: nothing is duplicated and newer figures are added to each post's history.
+For other platforms, upload a CSV with `date` and `text` columns (and optionally `url`,
+`type`, `impressions`, `reactions`, `comments`, `reposts`, `engagements`, `hashtags`)
+into an account of platform "other".
+
+## Posting to LinkedIn
+
+Polaris never posts on its own. To post an approved, scheduled draft through LinkedIn's official
+API, create a LinkedIn app with "Share on LinkedIn" and "Sign In with LinkedIn using OpenID
+Connect", set the `POLARIS_LINKEDIN_*` variables from `.env.example`, and connect it in
+Settings. Without an app, Studio prepares the text and a share link for you to post by hand.
 The export formats are assumed rather than documented by LinkedIn; see
 [ADR 0010](./adr/0010-linkedin-data-acquisition.md).
 
@@ -56,5 +75,6 @@ plus secret scanning and SAST.
 ## Documentation
 
 Product and architecture documentation lives in [`PROJECT.md`](./PROJECT.md),
-[`docs/`](./docs/MANIFEST.md) and [`adr/`](./adr/). Decisions taken while building the first
-version, which are still awaiting product review, are the ADRs marked **Proposed** (0006 to 0016).
+[`docs/`](./docs/MANIFEST.md) and [`adr/`](./adr/). Decisions taken while building, which are
+still awaiting product review, are the ADRs marked **Proposed** (0006 to 0027). ADR 0027 maps
+every roadmap phase to its ADRs and lists what has only been tested against fakes.
