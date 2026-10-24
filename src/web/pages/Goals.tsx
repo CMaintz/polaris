@@ -1,50 +1,15 @@
+import type { GoalDto } from "../../shared/api-types";
 import { del, post } from "../lib/api";
 import { formatDate, formatPercent } from "../lib/format";
 import { inDays, today, useForm } from "../lib/forms";
 import { useResource } from "../lib/hooks";
-import {
-  type MetricKey,
-  formatMetric,
-  metricInputLabel,
-  metricLabel,
-  metricOptions,
-  parseMetricInput,
-} from "../lib/metrics";
+import { GOAL_METRICS, formatMetric, goalMetricLabel, parseMetricInput } from "../lib/metrics";
 import { useMutation } from "../lib/mutation";
+import { MetricValueFields } from "../components/metric-fields";
 import { ResourceView } from "../components/resource";
 import { DateRangeFields, Empty, ErrorBox, Field, Meter, PageHead } from "../components/ui";
 
-interface GoalView {
-  id: string;
-  name: string;
-  metric: MetricKey;
-  target: number;
-  startDate: string;
-  endDate: string;
-  notes: string;
-  progress: {
-    current: number | null;
-    baseline: number | null;
-    progress: number | null;
-    expected: number;
-    status: string;
-    measuredUntil: string;
-  };
-}
-
-const MEASURED_AS: Partial<Record<MetricKey, string>> = {
-  followers: "reach a total",
-  impressions: "total over the period",
-  engagements: "total over the period",
-};
-const goalLabel = (key: MetricKey) =>
-  MEASURED_AS[key] ? `${metricLabel(key)} (${MEASURED_AS[key]})` : metricLabel(key);
-const METRICS = metricOptions(
-  ["followers", "impressions", "engagements", "posts", "engagement_rate"],
-  goalLabel,
-);
-
-const STATUS: Record<string, string> = {
+const STATUS: Record<GoalDto["progress"]["status"], string> = {
   not_started: "Not started",
   no_data: "No data for this period yet",
   on_track: "On track",
@@ -53,14 +18,14 @@ const STATUS: Record<string, string> = {
   missed: "Missed",
 };
 
-const isRate = (metric: MetricKey) => metric === "engagement_rate";
+const isRate = (metric: GoalDto["metric"]) => metric === "engagement_rate";
 
 export function GoalsPage() {
-  const goals = useResource<{ items: GoalView[] }>("/goals");
+  const goals = useResource<{ items: GoalDto[] }>("/goals");
   const form = useForm(
     {
       name: "",
-      metric: "impressions" as MetricKey,
+      metric: "impressions" as GoalDto["metric"],
       target: "",
       startDate: today(),
       endDate: inDays(90),
@@ -88,18 +53,13 @@ export function GoalsPage() {
               placeholder="Grow reach this quarter"
             />
           </Field>
-          <Field label="Metric">
-            <select {...form.field("metric")}>
-              {METRICS.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={metricInputLabel(form.values.metric, "Target")}>
-            <input required type="number" min="0" step="any" {...form.field("target")} />
-          </Field>
+          <MetricValueFields
+            options={GOAL_METRICS}
+            metric={form.field("metric")}
+            metricLabel="Metric"
+            valueLabel="Target"
+            value={{ ...form.field("target"), required: true, min: "0" }}
+          />
           <DateRangeFields start={form.field("startDate")} end={form.field("endDate")} />
         </div>
         <Field label="Notes">
@@ -125,17 +85,17 @@ export function GoalsPage() {
   );
 }
 
-function GoalCard({ goal, onDeleted }: { goal: GoalView; onDeleted: () => void }) {
+function GoalCard({ goal, onDeleted }: { goal: GoalDto; onDeleted: () => void }) {
   const p = goal.progress;
   const remove = useMutation(() => del(`/goals/${goal.id}`), onDeleted);
   return (
     <article className="card stack">
       <header>
         <h2>{goal.name}</h2>
-        <span className="badge">{STATUS[p.status] ?? p.status}</span>
+        <span className="badge">{STATUS[p.status]}</span>
       </header>
       <div className="secondary small">
-        {goalLabel(goal.metric)}: target {formatMetric(goal.metric, goal.target)},{" "}
+        {goalMetricLabel(goal.metric)}: target {formatMetric(goal.metric, goal.target)},{" "}
         {formatDate(goal.startDate)} to {formatDate(goal.endDate)}
       </div>
       <Meter value={p.progress} behind={p.status === "behind"} />

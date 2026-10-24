@@ -46,7 +46,7 @@ const FINISHED = new Set<JobDto["status"]>(["completed", "failed"]);
 const isFinished = (job: JobDto | null) => job !== null && FINISHED.has(job.status);
 
 /** Polls a background job until it finishes, then calls `onDone` once. */
-export function useJob(jobId: string | null, onDone?: (job: JobDto) => void): JobDto | null {
+function useJob(jobId: string | null, onDone?: (job: JobDto) => void): JobDto | null {
   // Keyed by job id, so a new job never shows the previous job's result before its first poll.
   const [polled, setPolled] = useState<JobDto | null>(null);
   const job = polled?.id === jobId ? polled : null;

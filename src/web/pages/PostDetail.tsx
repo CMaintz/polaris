@@ -53,34 +53,7 @@ export function PostDetailPage() {
             </p>
           )}
         </div>
-        <div className="card">
-          <h2>Performance</h2>
-          <table>
-            <tbody>
-              <MetricRow
-                label="Impressions"
-                value={formatNumber(p.metrics.impressions)}
-                baseline={formatNumber(baseline.medianImpressions)}
-              />
-              <MetricRow
-                label="Engagements"
-                value={formatNumber(p.metrics.engagements)}
-                baseline={formatNumber(baseline.medianEngagements)}
-              />
-              <MetricRow
-                label="Engagement rate"
-                value={formatPercent(p.metrics.engagementRate)}
-                baseline={formatPercent(baseline.medianEngagementRate)}
-              />
-              <MetricRow label="Reactions" value={formatNumber(p.metrics.reactions)} />
-              <MetricRow label="Comments" value={formatNumber(p.metrics.comments)} />
-              <MetricRow label="Reposts" value={formatNumber(p.metrics.reposts)} />
-            </tbody>
-          </table>
-          <p className="muted small">
-            Typical is the median of your other {baseline.withMetrics} posts with metrics.
-          </p>
-        </div>
+        <PerformanceCard post={p} baseline={baseline} />
       </div>
       <ErrorBox error={insights.error} />
       <PostReview postId={p.id} insights={insights.data?.insights ?? []} onDone={insights.reload} />
@@ -89,41 +62,76 @@ export function PostDetailPage() {
         <p className="small secondary">
           Sources: {p.providers.join(", ") || "None"}. LinkedIn id: {p.externalId}
         </p>
-        {observations.length === 0 ? (
-          <p className="muted">No metrics have been imported for this post.</p>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Observed</th>
-                  <th>Covers</th>
-                  <th>Source</th>
-                  <th className="num">Impressions</th>
-                  <th className="num">Engagements</th>
-                </tr>
-              </thead>
-              <tbody>
-                {observations.map((o) => (
-                  <tr key={`${o.observedOn}-${o.source}`}>
-                    <td>{formatDate(o.observedOn)}</td>
-                    <td className="small">
-                      {o.period ? formatPeriod(o.period) : "Lifetime to date"}
-                    </td>
-                    <td className="small">{o.source}</td>
-                    <td className="num">{formatNumber(o.metrics.impressions)}</td>
-                    <td className="num">{formatNumber(o.metrics.engagements)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ObservationTable observations={observations} />
       </div>
       <div className="card">
         <h2>Comparable posts</h2>
         <PostTable posts={comparable} />
       </div>
+    </div>
+  );
+}
+
+function PerformanceCard({ post: p, baseline }: Pick<PostDetailDto, "post" | "baseline">) {
+  return (
+    <div className="card">
+      <h2>Performance</h2>
+      <table>
+        <tbody>
+          <MetricRow
+            label="Impressions"
+            value={formatNumber(p.metrics.impressions)}
+            baseline={formatNumber(baseline.medianImpressions)}
+          />
+          <MetricRow
+            label="Engagements"
+            value={formatNumber(p.metrics.engagements)}
+            baseline={formatNumber(baseline.medianEngagements)}
+          />
+          <MetricRow
+            label="Engagement rate"
+            value={formatPercent(p.metrics.engagementRate)}
+            baseline={formatPercent(baseline.medianEngagementRate)}
+          />
+          <MetricRow label="Reactions" value={formatNumber(p.metrics.reactions)} />
+          <MetricRow label="Comments" value={formatNumber(p.metrics.comments)} />
+          <MetricRow label="Reposts" value={formatNumber(p.metrics.reposts)} />
+        </tbody>
+      </table>
+      <p className="muted small">
+        Typical is the median of your other {baseline.withMetrics} posts with metrics.
+      </p>
+    </div>
+  );
+}
+
+function ObservationTable({ observations }: Pick<PostDetailDto, "observations">) {
+  if (observations.length === 0)
+    return <p className="muted">No metrics have been imported for this post.</p>;
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Observed</th>
+            <th>Covers</th>
+            <th>Source</th>
+            <th className="num">Impressions</th>
+            <th className="num">Engagements</th>
+          </tr>
+        </thead>
+        <tbody>
+          {observations.map((o) => (
+            <tr key={`${o.observedOn}-${o.source}`}>
+              <td>{formatDate(o.observedOn)}</td>
+              <td className="small">{o.period ? formatPeriod(o.period) : "Lifetime to date"}</td>
+              <td className="small">{o.source}</td>
+              <td className="num">{formatNumber(o.metrics.impressions)}</td>
+              <td className="num">{formatNumber(o.metrics.engagements)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

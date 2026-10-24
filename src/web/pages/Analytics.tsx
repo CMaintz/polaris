@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { BreakdownsDto, SeriesPointDto } from "../../shared/api-types";
+import type { BreakdownsDto, SeriesDto, SeriesMetricDto } from "../../shared/api-types";
 import { tzOffset } from "../lib/api";
 import { WEEKDAYS, contentTypeLabel, formatPeriod } from "../lib/format";
 import { useResource } from "../lib/hooks";
-import { type MetricKey, metricLabel, metricOptions } from "../lib/metrics";
+import { metricLabel, metricOptions } from "../lib/metrics";
 import { SegmentBars, TrendChart } from "../components/charts";
 import { ResourceView } from "../components/resource";
 import { Field, PageHead } from "../components/ui";
@@ -16,19 +16,12 @@ const METRICS = metricOptions([
   "posts",
 ]);
 
-interface Series {
-  from: string;
-  to: string;
-  source: string;
-  points: SeriesPointDto[];
-}
-
 export function AnalyticsPage() {
-  const [metric, setMetric] = useState<MetricKey>("impressions");
+  const [metric, setMetric] = useState<SeriesMetricDto>("impressions");
   const [granularity, setGranularity] = useState("week");
   const [days, setDays] = useState("365");
   const label = metricLabel(metric);
-  const series = useResource<Series>(
+  const series = useResource<SeriesDto>(
     `/analytics/timeseries?metric=${metric}&granularity=${granularity}&rolling=${granularity === "day" ? 7 : 4}&days=${days}`,
   );
   const breakdowns = useResource<BreakdownsDto>(`/analytics/breakdowns?tz=${tzOffset()}`);
@@ -41,7 +34,7 @@ export function AnalyticsPage() {
       />
       <div className="card form-grid">
         <Field label="Metric">
-          <select value={metric} onChange={(e) => setMetric(e.target.value as MetricKey)}>
+          <select value={metric} onChange={(e) => setMetric(e.target.value as SeriesMetricDto)}>
             {METRICS.map(([value, text]) => (
               <option key={value} value={value}>
                 {text}
