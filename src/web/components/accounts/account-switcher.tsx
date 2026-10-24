@@ -1,5 +1,5 @@
 import { post } from "../../lib/api";
-import { PLATFORM_NAMES } from "../../lib/accounts";
+import { accountName } from "../../lib/accounts";
 import { useMutation } from "../../lib/hooks/mutation";
 import { useSession } from "../../lib/session";
 import { ErrorBox } from "../common/feedback";
@@ -23,7 +23,7 @@ export function AccountSwitcher() {
       >
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>
-            {a.label} ({PLATFORM_NAMES[a.platform]})
+            {accountName(a)}
           </option>
         ))}
       </select>
