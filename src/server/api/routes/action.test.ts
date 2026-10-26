@@ -88,6 +88,7 @@ async function setup() {
     }),
     connections: new ConnectionService({
       ...deps,
+      findAccount: (userId) => container.content.findAccount(userId),
       providers,
       states: new SqliteOAuthStateStore(container.db),
     }),
