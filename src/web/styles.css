@@ -1,73 +1,38 @@
-/* Tokens follow the dataviz reference palette (light and dark are separately selected steps,
-   not an automatic inversion). Components use roles, never raw hex. */
+/* Tokens follow the dataviz reference palette: light and dark are separately chosen steps, not
+   an automatic inversion. light-dark() picks one per token from color-scheme, which follows the
+   OS setting unless data-theme pins it. Components use these roles, never raw hex. */
 :root {
-  color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --surface-2: #f3f2ee;
-  --text: #0b0b0b;
-  --text-2: #52514e;
+  color-scheme: light dark;
+  --page: light-dark(#f9f9f7, #0d0d0d);
+  --surface: light-dark(#fcfcfb, #1a1a19);
+  --surface-2: light-dark(#f3f2ee, #232321);
+  --text: light-dark(#0b0b0b, #f0efec);
+  --text-2: light-dark(#52514e, #c3c2b7);
   --muted: #898781;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.1);
-  --accent: #2a78d6;
-  --accent-soft: #cde2fb;
+  --grid: light-dark(#e1e0d9, #2c2c2a);
+  --axis: light-dark(#c3c2b7, #383835);
+  --border: light-dark(rgba(11, 11, 11, 0.1), rgba(255, 255, 255, 0.1));
+  --accent: light-dark(#2a78d6, #3987e5);
+  --accent-soft: light-dark(#cde2fb, #184f95);
   --accent-ink: #ffffff;
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --good: #006300;
-  --bad: #d03b3b;
+  --series-1: light-dark(#2a78d6, #3987e5);
+  --series-2: light-dark(#eb6834, #d95926);
+  --good: light-dark(#006300, #0ca30c);
+  --bad: light-dark(#d03b3b, #e66767);
   --warning: #fab219;
-  --demo: #fff4d6;
-  --demo-ink: #5c4400;
+  --demo: light-dark(#fff4d6, #3a2f12);
+  --demo-ink: light-dark(#5c4400, #f5d68a);
   --radius: 10px;
   --shadow: 0 1px 2px rgba(11, 11, 11, 0.06);
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #232321;
-    --text: #f0efec;
-    --text-2: #c3c2b7;
-    --muted: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --accent: #3987e5;
-    --accent-soft: #184f95;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --good: #0ca30c;
-    --bad: #e66767;
-    --demo: #3a2f12;
-    --demo-ink: #f5d68a;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --surface-2: #232321;
-  --text: #f0efec;
-  --text-2: #c3c2b7;
-  --muted: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgba(255, 255, 255, 0.1);
-  --accent: #3987e5;
-  --accent-soft: #184f95;
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --good: #0ca30c;
-  --bad: #e66767;
-  --demo: #3a2f12;
-  --demo-ink: #f5d68a;
 }
 
 * {

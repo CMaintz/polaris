@@ -1,9 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
-import type { EvidenceDto, InsightDto, JobDto } from "../../shared/api-types";
-import { patch, post, tzOffset } from "../lib/api";
+import type { EvidenceDto, InsightDto } from "../../shared/api-types";
+import { patch } from "../lib/api";
 import { formatDate, formatPeriod, formatValue } from "../lib/format";
-import { useJob, useResource } from "../lib/hooks";
+import { useResource, useStartJob } from "../lib/hooks";
 import { InsightCard } from "../components/content";
 import { ErrorBox, JobLine, PageHead } from "../components/ui";
 
@@ -22,21 +22,6 @@ interface Answer {
   caveats: string[];
   evidence: EvidenceDto[];
   basedOnDemoData: boolean;
-}
-
-function useStartJob(onDone: (job: JobDto) => void) {
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const job = useJob(jobId, onDone);
-  const start = (path: string, body: object) => {
-    setError(null);
-    setJobId(null);
-    post<{ job: JobDto }>(path, { ...body, tz: tzOffset() })
-      .then((r) => setJobId(r.job.id))
-      .catch(setError);
-  };
-  const running = job !== null && !["completed", "failed"].includes(job.status);
-  return { job, error, start, running: running || (jobId !== null && job === null) };
 }
 
 export function InsightsPage() {

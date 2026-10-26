@@ -3,7 +3,7 @@ import type { Db } from "./database";
 // Append-only: each entry runs once, in order, tracked by PRAGMA user_version.
 // Editing an applied migration does nothing on existing databases, so change schema
 // by adding a new entry.
-export const MIGRATIONS: readonly string[] = [
+const MIGRATIONS: readonly string[] = [
   `
   CREATE TABLE users (
     id TEXT PRIMARY KEY,

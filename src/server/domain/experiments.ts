@@ -11,7 +11,7 @@ export interface ExperimentSpec {
   baseline: number | null;
 }
 
-export type Verdict = "insufficient_data" | "higher" | "lower" | "no_clear_change";
+type Verdict = "insufficient_data" | "higher" | "lower" | "no_clear_change";
 
 export interface ExperimentEvaluation {
   baseline: number | null;

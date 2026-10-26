@@ -2,28 +2,16 @@ import { strToU8 } from "fflate";
 import { describe, expect, it } from "vitest";
 import { ANALYTICS_SHEETS, POST_1, SHARES_CSV } from "../testing/linkedin-fixtures";
 import { buildXlsx } from "../testing/xlsx";
-import { type TestContainer, signedInClient, testContainer } from "../test-support";
+import { type TestContainer, signedInClient, testContainer, uploadFiles } from "../test-support";
 
 type Client = Awaited<ReturnType<typeof signedInClient>>;
-
-async function upload(container: TestContainer, client: Client, files: Record<string, Uint8Array>) {
-  const form = new FormData();
-  for (const [name, bytes] of Object.entries(files))
-    form.append("files", new File([new Uint8Array(bytes)], name));
-  return container.api.request("/imports", {
-    method: "POST",
-    // Browsers always send Origin on a POST; the CSRF guard rejects multipart without it.
-    headers: { cookie: client.cookie, origin: "http://localhost" },
-    body: form,
-  });
-}
 
 async function importAndWait(
   container: TestContainer,
   client: Client,
   files: Record<string, Uint8Array>,
 ) {
-  const response = await upload(container, client, files);
+  const response = await uploadFiles(container, client, files);
   expect(response.status).toBe(202);
   const { job } = (await response.json()) as { job: { id: string } };
   await container.worker.drain();
@@ -92,7 +80,7 @@ describe("import pipeline", () => {
   it("rejects unsupported files before queueing anything", async () => {
     const container = testContainer();
     const client = await signedInClient(container);
-    const response = await upload(container, client, { "notes.txt": strToU8("hello") });
+    const response = await uploadFiles(container, client, { "notes.txt": strToU8("hello") });
     expect(response.status).toBe(400);
     expect(count(container, "SELECT COUNT(*) n FROM jobs")).toBe(0);
   });
@@ -100,7 +88,7 @@ describe("import pipeline", () => {
   it("rejects an oversized upload before reading it into memory", async () => {
     const container = testContainer({ maxUploadBytes: 1024 });
     const client = await signedInClient(container);
-    const response = await upload(container, client, { "Shares.csv": new Uint8Array(4096) });
+    const response = await uploadFiles(container, client, { "Shares.csv": new Uint8Array(4096) });
     expect(response.status).toBe(413);
     expect(count(container, "SELECT COUNT(*) n FROM import_files")).toBe(0);
   });

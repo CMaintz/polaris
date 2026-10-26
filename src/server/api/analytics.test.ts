@@ -3,17 +3,13 @@ import { describe, expect, it } from "vitest";
 import type { DashboardDto, PostDetailDto, PostPageDto } from "../../shared/api-types";
 import { ANALYTICS_SHEETS, POST_1, POST_2, POST_3, SHARES_CSV } from "../testing/linkedin-fixtures";
 import { buildXlsx } from "../testing/xlsx";
-import { type TestContainer, signedInClient, testContainer } from "../test-support";
+import { type TestContainer, signedInClient, testContainer, uploadFiles } from "../test-support";
 
 async function withFixtureData(container: TestContainer, email = "ada@example.com") {
   const client = await signedInClient(container, email);
-  const form = new FormData();
-  form.append("files", new File([new Uint8Array(strToU8(SHARES_CSV))], "Shares.csv"));
-  form.append("files", new File([new Uint8Array(buildXlsx(ANALYTICS_SHEETS))], "Content.xlsx"));
-  await container.api.request("/imports", {
-    method: "POST",
-    headers: { cookie: client.cookie, origin: "http://localhost" },
-    body: form,
+  await uploadFiles(container, client, {
+    "Shares.csv": strToU8(SHARES_CSV),
+    "Content.xlsx": buildXlsx(ANALYTICS_SHEETS),
   });
   await container.worker.drain();
   return client;
@@ -66,13 +62,7 @@ describe("metrics across imports", () => {
         [`https://www.linkedin.com/feed/update/${POST_1}/`, "3/2/2026", 55],
       ],
     };
-    const form = new FormData();
-    form.append("files", new File([new Uint8Array(buildXlsx(later))], "Later.xlsx"));
-    await container.api.request("/imports", {
-      method: "POST",
-      headers: { cookie: client.cookie, origin: "http://localhost" },
-      body: form,
-    });
+    await uploadFiles(container, client, { "Later.xlsx": buildXlsx(later) });
     await container.worker.drain();
     const detail = (await (
       await client.request(`/posts/${idOf(container, POST_1)}`)
@@ -84,13 +74,7 @@ describe("metrics across imports", () => {
   it("reports posts published as unknown when only the analytics export was imported", async () => {
     const container = testContainer();
     const client = await signedInClient(container);
-    const form = new FormData();
-    form.append("files", new File([new Uint8Array(buildXlsx(ANALYTICS_SHEETS))], "Content.xlsx"));
-    await container.api.request("/imports", {
-      method: "POST",
-      headers: { cookie: client.cookie, origin: "http://localhost" },
-      body: form,
-    });
+    await uploadFiles(container, client, { "Content.xlsx": buildXlsx(ANALYTICS_SHEETS) });
     await container.worker.drain();
     const dashboard = (await (await client.request("/dashboard?days=7")).json()) as DashboardDto;
     expect(dashboard.kpis.find((k) => k.key === "posts")?.value).toBeNull();
