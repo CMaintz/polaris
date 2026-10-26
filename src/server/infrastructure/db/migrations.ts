@@ -49,6 +49,101 @@ export const MIGRATIONS: readonly string[] = [
     created_at TEXT NOT NULL
   );
   `,
+  `
+  CREATE TABLE accounts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    display_name TEXT,
+    headline TEXT,
+    profile_url TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE posts (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    dataset TEXT NOT NULL CHECK (dataset IN ('linkedin', 'demo')),
+    external_id TEXT NOT NULL,
+    url TEXT,
+    text TEXT,
+    published_at TEXT,
+    time_known INTEGER NOT NULL DEFAULT 0,
+    content_type TEXT NOT NULL,
+    providers TEXT NOT NULL DEFAULT '[]',
+    source_metadata TEXT NOT NULL DEFAULT '{}',
+    first_imported_at TEXT NOT NULL,
+    last_imported_at TEXT NOT NULL,
+    UNIQUE (account_id, external_id)
+  );
+  CREATE INDEX posts_published ON posts(account_id, published_at);
+
+  CREATE TABLE post_metric_snapshots (
+    post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    observed_on TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    impressions INTEGER,
+    reactions INTEGER,
+    comments INTEGER,
+    reposts INTEGER,
+    clicks INTEGER,
+    engagements INTEGER,
+    period_from TEXT,
+    period_to TEXT,
+    import_job_id TEXT,
+    PRIMARY KEY (post_id, observed_on, provider)
+  );
+
+  CREATE TABLE account_metric_days (
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    day TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    dataset TEXT NOT NULL,
+    followers INTEGER,
+    new_followers INTEGER,
+    impressions INTEGER,
+    engagements INTEGER,
+    import_job_id TEXT,
+    PRIMARY KEY (account_id, day, provider)
+  );
+
+  CREATE TABLE audience_segments (
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    observed_on TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    dataset TEXT NOT NULL,
+    dimension TEXT NOT NULL,
+    value TEXT NOT NULL,
+    share REAL,
+    import_job_id TEXT,
+    PRIMARY KEY (account_id, observed_on, provider, dimension, value)
+  );
+
+  CREATE TABLE topics (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    UNIQUE (account_id, name)
+  );
+
+  CREATE TABLE post_topics (
+    post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    topic_id TEXT NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    PRIMARY KEY (post_id, topic_id, source)
+  );
+
+  CREATE TABLE import_files (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    content BLOB NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ];
 
 export function migrate(db: Db): void {

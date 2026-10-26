@@ -4,6 +4,9 @@ import { csrf } from "hono/csrf";
 import { secureHeaders } from "hono/secure-headers";
 import type { AuthService } from "../application/auth/auth-service";
 import type { JobRepository } from "../application/jobs/ports";
+import type { ContentStore } from "../application/content/ports";
+import type { ImportService } from "../application/imports/import-service";
+import { importRoutes } from "./routes/imports";
 import { type AppEnv, errorResponse } from "./http";
 import { SESSION_COOKIE, authRoutes } from "./routes/auth";
 import { jobRoutes } from "./routes/jobs";
@@ -11,7 +14,10 @@ import { jobRoutes } from "./routes/jobs";
 export interface AppDeps {
   auth: AuthService;
   jobs: JobRepository;
+  imports: ImportService;
+  content: ContentStore;
   secureCookies: boolean;
+  maxUploadBytes: number;
 }
 
 export function createApi(deps: AppDeps) {
@@ -28,5 +34,6 @@ export function createApi(deps: AppDeps) {
   api.get("/health", (c) => c.json({ status: "ok" }));
   api.route("/auth", authRoutes(deps.auth, deps.secureCookies));
   api.route("/jobs", jobRoutes(deps.jobs));
+  api.route("/imports", importRoutes(deps.imports, deps.content, deps.maxUploadBytes));
   return api;
 }

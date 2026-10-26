@@ -14,6 +14,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     allowSignup: true,
     masterKey: Buffer.alloc(32, 7).toString("base64"),
     webDistDir: "./dist/web",
+    maxUploadBytes: 10 * 1024 * 1024,
     ...overrides,
   };
 }
