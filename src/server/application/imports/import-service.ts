@@ -38,7 +38,7 @@ export interface ImportDeps {
 export class ImportService {
   constructor(private readonly deps: ImportDeps) {}
 
-  /** Validates and stores the uploads, then queues the import so the request returns at once. */
+  /** The import itself runs as a job, so a large upload never holds the request open. */
   async startImport(userId: string, uploads: SourceFile[]): Promise<Job> {
     if (uploads.length === 0) throw new ValidationError("Choose at least one file to import");
     for (const upload of uploads) this.assertReadable(upload);

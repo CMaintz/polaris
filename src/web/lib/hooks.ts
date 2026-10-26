@@ -105,7 +105,7 @@ export function useCssVars(names: string): Record<string, string> {
   return vars;
 }
 
-/** Starts a background job with a POST (sending the browser's timezone) and follows it to the end. */
+/** Every job start sends the browser's timezone, which posting-time buckets need. */
 export function useStartJob(onDone: (job: JobDto) => void) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);

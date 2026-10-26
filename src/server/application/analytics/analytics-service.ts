@@ -183,7 +183,6 @@ export class AnalyticsService {
     };
   }
 
-  /** Raw daily measurements and posts, for goals and experiments to evaluate against. */
   async measurements(userId: string) {
     const data = await this.load(userId);
     return {
