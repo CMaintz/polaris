@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import type { UserDto } from "../shared/api-types";
-import { ApiError, api, del, post } from "./lib/api";
+import { api, del, isUnauthorized, post } from "./lib/api";
 import { useResource } from "./lib/hooks";
+import { useMutation } from "./lib/mutation";
+import { ErrorBox } from "./components/ui";
 import { AnalyticsPage } from "./pages/Analytics";
 import { AudiencePage } from "./pages/Audience";
 import { ContentPage } from "./pages/Content";
@@ -49,14 +51,36 @@ const NAV = [
 
 export function App() {
   const [user, setUser] = useState<UserDto | null | undefined>(undefined);
+  const [error, setError] = useState<Error | null>(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     api<{ user: UserDto }>("/auth/me")
       .then((r) => setUser(r.user))
-      .catch((e: unknown) => setUser(e instanceof ApiError && e.status === 401 ? null : null));
-  }, []);
+      // Only a 401 means signed out; an outage must not send a signed-in user to the login page.
+      .catch((e: Error) => (isUnauthorized(e) ? setUser(null) : setError(e)));
+  }, [attempt]);
+  const retry = () => {
+    setError(null);
+    setAttempt((a) => a + 1);
+  };
+  if (error) return <SessionError error={error} onRetry={retry} />;
   if (user === undefined) return <div className="auth-shell muted">Loading...</div>;
   if (user === null) return <LoginPage onSignedIn={setUser} />;
   return <SignedIn user={user} onSignedOut={() => setUser(null)} />;
+}
+
+function SessionError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  return (
+    <div className="auth-shell stack">
+      <ErrorBox error={error} />
+      <p className="muted">Polaris could not check your session. This is not a sign-out.</p>
+      <div>
+        <button className="btn primary" onClick={onRetry}>
+          Try again
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function SignedIn({ user, onSignedOut }: { user: UserDto; onSignedOut: () => void }) {
@@ -75,6 +99,7 @@ function SignedIn({ user, onSignedOut }: { user: UserDto; onSignedOut: () => voi
 
 function DemoBanner() {
   const { status, refreshStatus } = useSession();
+  const remove = useMutation(() => del("/imports/demo"), refreshStatus);
   if (!status?.hasDemoData) return null;
   return (
     <div className="banner demo" role="note">
@@ -82,15 +107,17 @@ function DemoBanner() {
         <strong>Demo data.</strong> Everything here is synthetic, not your LinkedIn account.
         Importing your own data replaces it.
       </span>
-      <button className="btn small" onClick={() => del("/imports/demo").then(refreshStatus)}>
+      <button className="btn small" disabled={remove.busy} onClick={() => remove.run()}>
         Remove demo data
       </button>
+      <ErrorBox error={remove.error} />
     </div>
   );
 }
 
 function Shell() {
   const { user, signOut } = useSession();
+  const signingOut = useMutation(signOut);
   const [open, setOpen] = useState(false);
   return (
     <div className="app">
@@ -120,9 +147,15 @@ function Shell() {
         ))}
         <div className="sidebar-footer">
           <div>{user.email}</div>
-          <button className="btn small" style={{ marginTop: 8 }} onClick={() => void signOut()}>
+          <button
+            className="btn small"
+            style={{ marginTop: 8 }}
+            disabled={signingOut.busy}
+            onClick={() => signingOut.run()}
+          >
             Sign out
           </button>
+          <ErrorBox error={signingOut.error} />
         </div>
       </nav>
       <main className="main">

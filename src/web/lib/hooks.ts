@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { JobDto } from "../../shared/api-types";
-import { api, post, tzOffset } from "./api";
+import { api, post, tzOffset, withTimezone } from "./api";
 
 export interface Resource<T> {
   data: T | null;
@@ -42,11 +42,14 @@ export function useResource<T>(path: string | null): Resource<T> {
   };
 }
 
-const FINISHED = new Set(["completed", "failed"]);
+const FINISHED = new Set<JobDto["status"]>(["completed", "failed"]);
+const isFinished = (job: JobDto | null) => job !== null && FINISHED.has(job.status);
 
 /** Polls a background job until it finishes, then calls `onDone` once. */
 export function useJob(jobId: string | null, onDone?: (job: JobDto) => void): JobDto | null {
-  const [job, setJob] = useState<JobDto | null>(null);
+  // Keyed by job id, so a new job never shows the previous job's result before its first poll.
+  const [polled, setPolled] = useState<JobDto | null>(null);
+  const job = polled?.id === jobId ? polled : null;
   const done = useRef(onDone);
   useEffect(() => {
     done.current = onDone;
@@ -66,8 +69,8 @@ export function useJob(jobId: string | null, onDone?: (job: JobDto) => void): Jo
         return;
       }
       if (stopped) return;
-      setJob(next);
-      if (FINISHED.has(next.status)) done.current?.(next);
+      setPolled(next);
+      if (isFinished(next)) done.current?.(next);
       else timer = setTimeout(poll, 1000);
     };
     void poll();
@@ -105,18 +108,24 @@ export function useCssVars(names: string): Record<string, string> {
   return vars;
 }
 
-/** Every job start sends the browser's timezone, which posting-time buckets need. */
+/**
+ * Every job start sends the browser's timezone, which posting-time buckets need. `running`
+ * covers the start request too, so a slow upload cannot be started twice.
+ */
 export function useStartJob(onDone: (job: JobDto) => void) {
   const [jobId, setJobId] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const job = useJob(jobId, onDone);
-  const start = (path: string, body: object) => {
+  const start = (path: string, body: object | FormData = {}) => {
     setError(null);
     setJobId(null);
-    post<{ job: JobDto }>(path, { ...body, tz: tzOffset() })
+    setStarting(true);
+    post<{ job: JobDto }>(path, withTimezone(body, tzOffset()))
       .then((r) => setJobId(r.job.id))
-      .catch(setError);
+      .catch(setError)
+      .finally(() => setStarting(false));
   };
-  const running = job !== null && !["completed", "failed"].includes(job.status);
-  return { job, error, start, running: running || (jobId !== null && job === null) };
+  const polling = jobId !== null && !isFinished(job);
+  return { job, error, start, running: starting || polling };
 }
