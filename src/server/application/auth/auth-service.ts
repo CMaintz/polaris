@@ -74,7 +74,6 @@ export class AuthService {
     return this.deps.users.findById(session.userId);
   }
 
-  /** Re-checks the password of a signed-in user before a destructive action. */
   async confirmPassword(userId: string, password: string): Promise<void> {
     const user = await this.deps.users.findById(userId);
     const stored = user ? await this.deps.users.findByEmail(user.email) : null;

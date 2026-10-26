@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from "react";
 
-/** Form state for a create form: values, a field setter, and a submit that reports errors. */
 export function useForm<T extends Record<string, string>>(
   initial: T,
   onSubmit: (values: T) => Promise<unknown>,

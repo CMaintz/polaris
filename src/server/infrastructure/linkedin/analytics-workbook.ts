@@ -60,7 +60,6 @@ function findPeriod(sheets: Sheet[]): Period | null {
   return null;
 }
 
-/** Index of the first row containing every header, with each header's column(s). */
 function findHeader(rows: Cell[][], required: string[]) {
   const wanted = required.map(normaliseHeader);
   for (let index = 0; index < rows.length; index += 1) {
@@ -183,7 +182,6 @@ function readTopPostsTable(
   }
 }
 
-/** Link and publish day of a post, from whichever side-by-side table lists it. */
 function findPostRow(
   externalId: string,
   rows: Cell[][],
@@ -239,7 +237,7 @@ function emptyDay(day: string): ImportedAccountDay {
   return { day, followers: null, newFollowers: null, impressions: null, engagements: null };
 }
 
-/** Folds rows for the same day from different sheets into one, keeping every known value. */
+/** A value one sheet lacks never blanks the value another sheet gave for that day. */
 function mergeDays(into: ImportedAccountDay[], days: ImportedAccountDay[]): void {
   for (const day of days) {
     const existing = into.find((d) => d.day === day.day);

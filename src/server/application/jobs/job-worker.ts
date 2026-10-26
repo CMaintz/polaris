@@ -38,7 +38,7 @@ export class JobWorker {
     this.timer = null;
   }
 
-  /** Runs due jobs until none are left. Overlapping calls are ignored. */
+  /** Overlapping calls are ignored, so a slow drain never hands the same job out twice. */
   async drain(): Promise<void> {
     if (this.busy) return;
     this.busy = true;
@@ -49,7 +49,6 @@ export class JobWorker {
     }
   }
 
-  /** Runs at most one due job; returns whether one was found. */
   async runOnce(): Promise<boolean> {
     const job = await this.jobs.claimNext(nowIso(this.clock));
     if (!job) return false;
