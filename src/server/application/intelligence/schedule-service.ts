@@ -3,6 +3,7 @@ import { NotFoundError, ValidationError } from "../errors";
 import type {
   Cadence,
   ScheduleDto,
+  ScheduleKind,
   ScheduleInput,
   ScheduleParams,
 } from "../../../shared/intelligence-types";
@@ -12,11 +13,15 @@ import type { ScheduleStore } from "./schedule-ports";
 const MAX_SCHEDULES = 20;
 const MAX_QUESTION = 500;
 
+/** Checks a kind needs before it may be scheduled; each throws to refuse. */
+export type ScheduleGuards = Partial<Record<ScheduleKind, (accountId: string) => Promise<void>>>;
+
 export class ScheduleService {
   constructor(
     private readonly schedules: ScheduleStore,
     private readonly peers: PeerStore,
     private readonly clock: Clock,
+    private readonly guards: ScheduleGuards = {},
   ) {}
 
   list(accountId: string): Promise<ScheduleDto[]> {
@@ -27,6 +32,7 @@ export class ScheduleService {
     if ((await this.schedules.list(accountId)).length >= MAX_SCHEDULES) {
       throw new ValidationError(`You can have up to ${MAX_SCHEDULES} schedules`);
     }
+    await this.guards[input.kind]?.(accountId);
     const params = await this.params(accountId, input);
     const now = nowIso(this.clock);
     // The first run happens on the next tick: enabling a schedule is asking for it to run.
@@ -51,7 +57,7 @@ export class ScheduleService {
     const { kind, params } = input;
     if (kind === "account_review") return { tz: params.tz ?? 0 };
     if (kind === "trend_digest") return { withAi: params.withAi ?? true };
-    if (kind === "feed_refresh") return {};
+    if (kind === "feed_refresh" || kind === "metric_refresh") return {};
     const question = params.question?.trim() ?? "";
     if (!question || question.length > MAX_QUESTION) {
       throw new ValidationError(

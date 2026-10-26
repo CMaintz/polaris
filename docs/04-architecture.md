@@ -132,7 +132,7 @@ The architecture should not make any one deployment model impossible.
   port). The web client in `src/web` talks to the API only, through types in `src/shared`.
 - **Jobs**: one SQLite-backed queue (ADR 0012) runs imports, AI reviews and questions, search
   indexing, theme classification, research, feed refreshes, trend digests, AI drafting,
-  agentic planning and publishing. Every job is idempotent and parses its payload before use.
+  agentic planning, publishing and the LinkedIn metric refresh (ADR 0030). Every job is idempotent and parses its payload before use.
 - **Scheduled intelligence**: the worker runs a tick before each drain that enqueues due
   schedules and due publications (ADR 0021), so there is no second timer.
 - **Telemetry** (ADR 0029): request, job and AI call counts and durations in memory, served in

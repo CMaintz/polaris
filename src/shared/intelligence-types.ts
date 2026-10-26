@@ -121,6 +121,7 @@ export const SCHEDULE_KINDS = [
   "trend_digest",
   "account_review",
   "research_rerun",
+  "metric_refresh",
 ] as const;
 export type ScheduleKind = (typeof SCHEDULE_KINDS)[number];
 

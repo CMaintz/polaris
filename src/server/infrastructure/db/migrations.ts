@@ -5,6 +5,7 @@ import { INTELLIGENCE_SCHEMA } from "./intelligence-schema";
 import { KNOWLEDGE_SCHEMA } from "./knowledge-schema";
 import { STRATEGY_MIGRATIONS } from "./strategy-schema";
 import { MULTI_ACCOUNT_SCHEMA } from "./accounts-schema";
+import { METRIC_REFRESH_SCHEMA } from "./refresh-schema";
 
 /** A table rebuild must run with foreign keys off, or dropping the old table cascades. */
 type Migration = string | { sql: string; foreignKeysOff: true };
@@ -21,9 +22,11 @@ const MIGRATIONS: readonly Migration[] = [
   INTELLIGENCE_SCHEMA.join(";\n"),
   ACTION_SCHEMA.join(";\n"),
   MULTI_ACCOUNT,
+  METRIC_REFRESH_SCHEMA,
 ];
 
 export const MULTI_ACCOUNT_VERSION = MIGRATIONS.indexOf(MULTI_ACCOUNT) + 1;
+export const METRIC_REFRESH_VERSION = MIGRATIONS.indexOf(METRIC_REFRESH_SCHEMA) + 1;
 
 export function migrate(db: Db, upTo = MIGRATIONS.length): void {
   const current = db.pragma("user_version", { simple: true }) as number;

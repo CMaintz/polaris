@@ -65,6 +65,9 @@ Polaris never posts on its own. To post an approved, scheduled draft through Lin
 API, create a LinkedIn app with "Share on LinkedIn" and "Sign In with LinkedIn using OpenID
 Connect", set the `POLARIS_LINKEDIN_*` variables from `.env.example`, and connect it in
 Settings. Without an app, Studio prepares the text and a share link for you to post by hand.
+If LinkedIn has approved your app for its Community Management API, also set
+`POLARIS_LINKEDIN_ANALYTICS=true` and reconnect: Polaris can then refresh your figures from
+LinkedIn on demand or on a schedule ([ADR 0030](./adr/0030-linkedin-metric-refresh.md)).
 The export formats are assumed rather than documented by LinkedIn; see
 [ADR 0010](./adr/0010-linkedin-data-acquisition.md).
 
@@ -78,5 +81,5 @@ plus secret scanning and SAST.
 
 Product and architecture documentation lives in [`PROJECT.md`](./PROJECT.md),
 [`docs/`](./docs/MANIFEST.md) and [`adr/`](./adr/). Decisions taken while building, which are
-still awaiting product review, are the ADRs marked **Proposed** (0006 to 0027). ADR 0027 maps
+still awaiting product review, are the ADRs marked **Proposed** (0006 to 0030). ADR 0027 maps
 every roadmap phase to its ADRs and lists what has only been tested against fakes.

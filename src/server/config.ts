@@ -50,5 +50,7 @@ function linkedInApp(env: NodeJS.ProcessEnv): LinkedInAppConfig | null {
     clientSecret,
     redirectUri,
     apiVersion: env.POLARIS_LINKEDIN_API_VERSION ?? "202610",
+    analytics: env.POLARIS_LINKEDIN_ANALYTICS === "true",
+    refreshPostDays: Number(env.POLARIS_LINKEDIN_REFRESH_POST_DAYS ?? 30),
   };
 }

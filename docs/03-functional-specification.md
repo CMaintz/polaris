@@ -217,7 +217,8 @@ See ADR 0019, ADR 0020 and ADR 0021.
 - **Trend feeds**: the user adds RSS or Atom feeds, fetched by the server behind an SSRF guard.
   Items are matched to the account's hashtag topics by keywords, counted over 7, 30 and 90
   days. A digest can add an AI summary of how recent items relate to the user's content.
-- **Schedules** run feed refreshes, trend digests, a weekly account review or a research rerun,
+- **Schedules** run feed refreshes, trend digests, a weekly account review, a research rerun or
+  a LinkedIn metric refresh,
   daily or weekly. The job worker checks for due schedules on every poll, and a missed period
   costs one catch-up run, not one per period.
 

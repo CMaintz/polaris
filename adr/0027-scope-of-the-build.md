@@ -35,9 +35,9 @@ shapes:
 
 ## Not built
 
-- **A metric-refresh job and incremental refresh** (docs/04, docs/07): LinkedIn offers no
-  API that Polaris may pull from, so refreshing means uploading a newer export, which merges
-  idempotently. There is no background job that fetches anything from LinkedIn.
+Nothing from the roadmap. Telemetry (ADR 0029), incremental imports (ADR 0028) and the metric
+refresh job (ADR 0030) were added later; ADR 0030 corrects this ADR's earlier claim that
+LinkedIn offers no API Polaris may pull from.
 
 ## Consequences
 

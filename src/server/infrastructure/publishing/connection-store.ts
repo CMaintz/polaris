@@ -7,7 +7,11 @@ export interface StoredConnection {
   memberUrn: string;
   displayName: string | null;
   expiresAt: string | null;
+  /** What the member granted; empty for connections made before scopes were recorded. */
+  scopes: string[];
 }
+
+type ConnectionRow = Omit<StoredConnection, "scopes"> & { scopes: string | null };
 
 export interface ConnectionStore {
   get(accountId: string, provider: string): Promise<StoredConnection | null>;
@@ -22,22 +26,33 @@ export class SqliteConnectionStore implements ConnectionStore {
     const row = this.db
       .prepare(
         `SELECT sealed_token AS sealedToken, member_urn AS memberUrn, display_name AS displayName,
-           expires_at AS expiresAt FROM publishing_connections WHERE account_id = ? AND provider = ?`,
+           expires_at AS expiresAt, granted_scopes AS scopes FROM publishing_connections
+         WHERE account_id = ? AND provider = ?`,
       )
-      .get(accountId, provider) as StoredConnection | undefined;
-    return row ?? null;
+      .get(accountId, provider) as ConnectionRow | undefined;
+    return row ? { ...row, scopes: row.scopes?.split(" ").filter(Boolean) ?? [] } : null;
   }
 
   async save(accountId: string, provider: string, c: StoredConnection, now: string) {
     this.db
       .prepare(
         `INSERT INTO publishing_connections (account_id, provider, sealed_token, member_urn,
-           display_name, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+           display_name, expires_at, created_at, granted_scopes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (account_id, provider) DO UPDATE SET sealed_token = excluded.sealed_token,
            member_urn = excluded.member_urn, display_name = excluded.display_name,
-           expires_at = excluded.expires_at, created_at = excluded.created_at`,
+           expires_at = excluded.expires_at, created_at = excluded.created_at,
+           granted_scopes = excluded.granted_scopes`,
       )
-      .run(accountId, provider, c.sealedToken, c.memberUrn, c.displayName, c.expiresAt, now);
+      .run(
+        accountId,
+        provider,
+        c.sealedToken,
+        c.memberUrn,
+        c.displayName,
+        c.expiresAt,
+        now,
+        c.scopes.join(" "),
+      );
   }
 
   async delete(accountId: string, provider: string) {

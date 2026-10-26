@@ -27,6 +27,8 @@ import type { ComparisonService } from "../application/analytics/comparison-serv
 import { type AppEnv, errorResponse } from "./http";
 import { SESSION_COOKIE, authRoutes } from "./routes/auth";
 import { jobRoutes } from "./routes/jobs";
+import { refreshRoutes } from "./routes/refresh";
+import type { MetricRefreshService } from "../application/refresh/refresh-service";
 import { type MetricsRouteDeps, metricsRoutes } from "./routes/metrics";
 import { requestTelemetry } from "./request-telemetry";
 import type { Telemetry } from "../application/telemetry/ports";
@@ -48,6 +50,7 @@ export interface AppDeps {
   resolveAccount: ResolveAccount;
   intelligence: { routes: IntelligenceDeps };
   action: ActionRouteDeps;
+  refresh: MetricRefreshService;
   secureCookies: boolean;
   maxUploadBytes: number;
   telemetry: Telemetry;
@@ -81,6 +84,7 @@ export function createApi(deps: AppDeps) {
   api.route("/strategy", strategyRoutes(deps.strategy));
   api.route("/intelligence", intelligenceRoutes(deps.intelligence.routes));
   api.route("/action", actionRoutes(deps.action));
+  api.route("/refresh", refreshRoutes(deps.refresh));
   api.route(
     "/knowledge",
     knowledgeRoutes({ ...deps.knowledge, resolveAccount: deps.resolveAccount }),

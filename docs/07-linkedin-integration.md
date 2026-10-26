@@ -69,6 +69,7 @@ See ADR 0010 for the decision and the assumed file layouts.
 | `linkedin-data-export`      | the member data archive ZIP, or `Shares.csv` / `Profile.csv` | posts (text, date and time, link, media type), profile name and headline                                                                                             |
 | `linkedin-analytics-export` | the creator analytics `.xlsx`                                | per-post engagements and impressions for the export window, daily impressions, engagements, new followers and back-calculated follower totals, audience demographics |
 | `demo`                      | nothing (generated)                                          | a labelled synthetic dataset (ADR 0015)                                                                                                                              |
+| `linkedin-api`              | LinkedIn's member post and follower statistics APIs (opt-in) | lifetime impressions, reactions, comments and reposts for share and ugcPost posts, daily account impressions, new followers and back-calculated follower totals      |
 | `generic-csv`               | a platform-neutral posts `.csv` (accounts of platform Other) | posts (text, date or date and time, link, type, hashtags) and per-post impressions, reactions, comments, reposts and engagements as of the import day                |
 
 Both LinkedIn adapters identify a post by the URN in its URL, decoded first, so the URL-encoded
@@ -92,6 +93,15 @@ The generic CSV needs a header row with `date` and `text`; `url`, `type`, `impre
 matched case-insensitively and by aliases (ADR 0026 lists them). A post is identified by its
 URL, or by a hash of its date and text when it has none, so re-imports never duplicate. The file
 counts as the complete list of posts for the days it covers.
+
+## Metric refresh
+
+With `POLARIS_LINKEDIN_ANALYTICS=true` and an app LinkedIn approved for the Community Management
+API, the LinkedIn connection also grants read access to the member's post and follower
+statistics, and a `metric-refresh` job pulls them on demand or on a schedule (ADR 0030). It is
+incremental: account days from the last refreshed day, and posts from a recent window plus any
+never refreshed. Only posts with a share or ugcPost URN can be refreshed, which in practice means
+posts Polaris published itself.
 
 ## Publishing
 

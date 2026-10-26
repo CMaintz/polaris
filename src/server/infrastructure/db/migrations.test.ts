@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
-import { MULTI_ACCOUNT_VERSION, migrate } from "./migrations";
+import { METRIC_REFRESH_VERSION, MULTI_ACCOUNT_VERSION, migrate } from "./migrations";
 
 const NOW = "2026-03-15T12:00:00Z";
 
@@ -53,5 +53,29 @@ describe("multi-account migration", () => {
     });
     db.prepare("DELETE FROM accounts WHERE id = 'a1'").run();
     expect(db.prepare("SELECT COUNT(*) AS n FROM posts").get()).toEqual({ n: 0 });
+  });
+});
+
+describe("metric refresh migration", () => {
+  // SQLite cannot widen a CHECK in place, so the schedules table is rebuilt; a rebuild that
+  // forgets to copy would silently drop every schedule the user had.
+  it("keeps existing schedules and accepts metric refresh schedules", () => {
+    const db = databaseBeforeMultiAccount();
+    migrate(db, METRIC_REFRESH_VERSION - 1);
+    db.prepare(
+      `INSERT INTO schedules (id, account_id, kind, cadence, next_run_at, created_at, updated_at)
+       VALUES ('s1', 'a1', 'feed_refresh', 'daily', ?, ?, ?)`,
+    ).run(NOW, NOW, NOW);
+    migrate(db);
+    db.prepare(
+      `INSERT INTO schedules (id, account_id, kind, cadence, next_run_at, created_at, updated_at)
+       VALUES ('s2', 'a1', 'metric_refresh', 'daily', ?, ?, ?)`,
+    ).run(NOW, NOW, NOW);
+    expect(db.prepare("SELECT id, kind FROM schedules ORDER BY id").all()).toEqual([
+      { id: "s1", kind: "feed_refresh" },
+      { id: "s2", kind: "metric_refresh" },
+    ]);
+    db.prepare("DELETE FROM accounts WHERE id = 'a1'").run();
+    expect(db.prepare("SELECT COUNT(*) AS n FROM schedules").get()).toEqual({ n: 0 });
   });
 });

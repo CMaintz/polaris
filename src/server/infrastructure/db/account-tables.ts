@@ -52,7 +52,7 @@ const ACCOUNT_TABLES: readonly AccountTable[] = [
     name: "publishing_connections",
     imported: false,
     dataset: "none",
-    exported: "provider, member_urn, display_name, expires_at, created_at",
+    exported: "provider, member_urn, display_name, expires_at, created_at, granted_scopes",
   },
   { name: "publishing_oauth_states", imported: false, dataset: "none", exported: false },
   { name: "campaigns", imported: false, dataset: "none" },

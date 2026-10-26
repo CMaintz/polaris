@@ -9,6 +9,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   [LINKEDIN_DATA_EXPORT]: "LinkedIn data archive",
   "linkedin-analytics-export": "LinkedIn analytics export",
   [GENERIC_CSV]: "Posts CSV",
+  "linkedin-api": "LinkedIn API",
   demo: "Demo data (synthetic)",
 };
 
