@@ -1,6 +1,5 @@
 import { createApi } from "../api/app";
 import { AI_JOB } from "../application/ai/ai-service";
-import { AnalyticsService } from "../application/analytics/analytics-service";
 import { AnalyticsEvidenceFacts } from "../application/analytics/evidence-facts";
 import { ComparisonService } from "../application/analytics/comparison-service";
 import { IMPORT_JOB, type ImportResult } from "../application/imports/import-service";
@@ -54,7 +53,7 @@ function buildWorker(
 export function buildContainer(config: Config, overrides: Overrides = {}) {
   const core = buildCore(config, overrides);
   const imports = buildImports(core);
-  const analytics = new AnalyticsService(core.content, core.queries, core.clock);
+  const { analytics } = core;
   const facts = new AnalyticsEvidenceFacts(core.content, core.queries, core.clock);
   const keys = buildAiKeys(core, config, overrides.aiFactory ?? new SdkProviderFactory());
   const knowledge = buildKnowledge(core, keys, facts);

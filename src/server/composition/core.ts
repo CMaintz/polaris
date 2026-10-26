@@ -14,10 +14,9 @@ import {
   SqliteUserRepository,
 } from "../infrastructure/db/auth-repositories";
 import { SqliteAccountStore } from "../infrastructure/db/account-store";
-import { SqliteContentQueries } from "../infrastructure/db/content-queries";
-import { SqliteContentStore } from "../infrastructure/db/content-store";
 import { openDatabase } from "../infrastructure/db/database";
 import { SqliteJobRepository } from "../infrastructure/db/job-repository";
+import { buildAnalyticsReads } from "./analytics";
 
 export interface Overrides {
   clock?: Clock;
@@ -41,7 +40,7 @@ export function buildCore(config: Config, overrides: Overrides) {
     clock,
     allowSignup: config.allowSignup,
   });
-  const content = new SqliteContentStore(db);
+  const { content, queries, analytics } = buildAnalyticsReads(db, clock);
   const resolveAccount: ResolveAccount = async (userId) =>
     (await content.findAccount(userId))?.id ?? null;
   return {
@@ -53,7 +52,8 @@ export function buildCore(config: Config, overrides: Overrides) {
     jobs: new SqliteJobRepository(db),
     content,
     accountStore: new SqliteAccountStore(db),
-    queries: new SqliteContentQueries(db),
+    queries,
+    analytics,
     resolveAccount,
   };
 }

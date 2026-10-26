@@ -69,7 +69,7 @@ export function currentUser(c: Context<AppEnv>): User {
   return user;
 }
 
-export const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
+export { day } from "../application/analytics/query-options";
 
 /**
  * zod fills defaults even inside a partial schema, so a PATCH that omits a field would reset
