@@ -19,7 +19,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/server/**/*.ts", "src/shared/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/server/main.ts", "src/server/mcp/main.ts"],
+      exclude: ["src/**/*.test.ts", "src/server/main.ts"],
       thresholds: { lines: 75, branches: 70, functions: 75, statements: 75 },
     },
   },
