@@ -58,6 +58,7 @@ export function OverviewPage() {
             AI review and questions
           </Link>
         </div>
+        <ErrorBox error={ai.error} />
         {insights.length === 0 ? (
           <p className="muted">
             No clear patterns yet. Rule insights appear once there is enough data to support them.

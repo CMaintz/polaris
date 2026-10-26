@@ -3,16 +3,18 @@ import type { BreakdownsDto, SeriesPointDto } from "../../shared/api-types";
 import { tzOffset } from "../lib/api";
 import { WEEKDAYS, contentTypeLabel, formatPeriod } from "../lib/format";
 import { useResource } from "../lib/hooks";
+import { type MetricKey, metricLabel, metricOptions } from "../lib/metrics";
 import { SegmentBars, TrendChart } from "../components/charts";
-import { ErrorBox, Field, Loading, PageHead } from "../components/ui";
+import { ResourceView } from "../components/resource";
+import { Field, PageHead } from "../components/ui";
 
-const METRICS: [string, string][] = [
-  ["impressions", "Impressions"],
-  ["engagements", "Engagements"],
-  ["followers", "Followers"],
-  ["new_followers", "New followers"],
-  ["posts", "Posts published"],
-];
+const METRICS = metricOptions([
+  "impressions",
+  "engagements",
+  "followers",
+  "new_followers",
+  "posts",
+]);
 
 interface Series {
   from: string;
@@ -22,10 +24,10 @@ interface Series {
 }
 
 export function AnalyticsPage() {
-  const [metric, setMetric] = useState("impressions");
+  const [metric, setMetric] = useState<MetricKey>("impressions");
   const [granularity, setGranularity] = useState("week");
   const [days, setDays] = useState("365");
-  const label = METRICS.find(([m]) => m === metric)?.[1] ?? metric;
+  const label = metricLabel(metric);
   const series = useResource<Series>(
     `/analytics/timeseries?metric=${metric}&granularity=${granularity}&rolling=${granularity === "day" ? 7 : 4}&days=${days}`,
   );
@@ -39,7 +41,7 @@ export function AnalyticsPage() {
       />
       <div className="card form-grid">
         <Field label="Metric">
-          <select value={metric} onChange={(e) => setMetric(e.target.value)}>
+          <select value={metric} onChange={(e) => setMetric(e.target.value as MetricKey)}>
             {METRICS.map(([value, text]) => (
               <option key={value} value={value}>
                 {text}
@@ -72,18 +74,17 @@ export function AnalyticsPage() {
             </span>
           )}
         </header>
-        <ErrorBox error={series.error} />
-        {series.data ? (
-          <TrendChart
-            points={series.data.points}
-            label={label}
-            rollingLabel={granularity === "day" ? "7-day average" : "4-period average"}
-          />
-        ) : (
-          <Loading />
-        )}
+        <ResourceView resource={series}>
+          {(data) => (
+            <TrendChart
+              points={data.points}
+              label={label}
+              rollingLabel={granularity === "day" ? "7-day average" : "4-period average"}
+            />
+          )}
+        </ResourceView>
       </div>
-      {breakdowns.data && <Breakdowns data={breakdowns.data} />}
+      <ResourceView resource={breakdowns}>{(data) => <Breakdowns data={data} />}</ResourceView>
     </div>
   );
 }
