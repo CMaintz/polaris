@@ -12,11 +12,13 @@
     "dev": "concurrently -n api,web \"tsx watch src/server/main.ts\" \"vite\"",
     "build": "vite build",
     "start": "tsx src/server/main.ts",
+    "mcp": "tsx src/server/mcp/main.ts",
     "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.2.0",
     "@hono/node-server": "^2.1.5",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "better-sqlite3": "^13.0.3",
     "fflate": "^0.8.3",
     "hono": "^4.13.13",

@@ -10,6 +10,8 @@ export interface UserWithSecret extends User {
 
 export interface UserRepository {
   count(): Promise<number>;
+  /** Every user id, oldest first. */
+  ids(): Promise<string[]>;
   create(user: UserWithSecret): Promise<void>;
   findByEmail(email: string): Promise<UserWithSecret | null>;
   findById(id: string): Promise<User | null>;

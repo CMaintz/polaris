@@ -37,6 +37,8 @@ export const GRANULARITIES = ["day", "week", "month"] as const;
 
 export const DIRECTIONS = ["asc", "desc"] as const;
 
+export const BREAKDOWN_DIMENSIONS = ["content_type", "topic", "weekday", "hour"] as const;
+
 export const LIMITS = {
   periodDays: { min: 7, max: 365 },
   seriesDays: { min: 7, max: 1095 },

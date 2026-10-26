@@ -66,6 +66,35 @@ Settings. Without an app, Studio prepares the text and a share link for you to p
 The export formats are assumed rather than documented by LinkedIn; see
 [ADR 0010](./adr/0010-linkedin-data-acquisition.md).
 
+## Ask Claude about your data (MCP)
+
+`npm run mcp` starts a local, read-only [MCP](https://modelcontextprotocol.io) server over stdio,
+so an MCP client such as Claude Desktop can answer questions like "which of my posts did best
+this quarter?" from your imported data. It offers `dashboard`, `list_posts`, `get_post`,
+`timeseries`, `breakdowns`, `rule_insights` and `audience`, opens the database read-only (the web
+app can keep running) and returns data, not analysis. Whatever a tool returns, post text
+included, goes to the model your client uses. See [ADR 0028](./adr/0028-mcp-server.md).
+
+With a single user it serves that user; with several, set `POLARIS_USER_ID` (the `id` from
+`/api/auth/me` while signed in). Start the web app once after updating Polaris so the database
+is migrated; the MCP server refuses an outdated one. In Claude Desktop's
+`claude_desktop_config.json`, with absolute paths:
+
+```json
+{
+  "mcpServers": {
+    "polaris": {
+      "command": "mise",
+      "args": ["exec", "-C", "/path/to/polaris", "--", "npm", "run", "-s", "mcp"],
+      "env": { "POLARIS_DB_PATH": "/path/to/polaris/data/polaris.db" }
+    }
+  }
+}
+```
+
+`mise exec` provides the pinned Node, which Claude Desktop would not otherwise find. Keep `-s`:
+without it npm prints a banner on stdout, which corrupts the MCP stream.
+
 ## Quality gate
 
 The repo follows the [Foundry](https://github.com/CMaintz/foundry) verbs: `mise run gate` runs
@@ -76,5 +105,5 @@ plus secret scanning and SAST.
 
 Product and architecture documentation lives in [`PROJECT.md`](./PROJECT.md),
 [`docs/`](./docs/MANIFEST.md) and [`adr/`](./adr/). Decisions taken while building, which are
-still awaiting product review, are the ADRs marked **Proposed** (0006 to 0027). ADR 0027 maps
+still awaiting product review, are the ADRs marked **Proposed** (0006 to 0028). ADR 0027 maps
 every roadmap phase to its ADRs and lists what has only been tested against fakes.
