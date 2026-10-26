@@ -11,10 +11,16 @@ export interface Account {
   profileUrl: string | null;
 }
 
+/** How the rows a bundle carried compare with what the account already held. */
+export interface ChangeCounts {
+  added: number;
+  changed: number;
+  unchanged: number;
+}
+
 export interface ApplyStats {
-  postsCreated: number;
-  postsUpdated: number;
-  metricSnapshots: number;
+  posts: ChangeCounts;
+  metricSnapshots: ChangeCounts;
   accountDays: number;
   audienceSegments: number;
 }

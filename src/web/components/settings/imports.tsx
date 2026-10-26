@@ -1,6 +1,6 @@
 import { type FormEvent, useRef } from "react";
 import type { JobDto } from "../../../shared/core-types";
-import type { ImportFileReportDto } from "../../../shared/import-types";
+import type { ChangeCountsDto, ImportFileReportDto } from "../../../shared/import-types";
 import { accountName } from "../../lib/accounts";
 import { useStartJob } from "../../lib/hooks/job";
 import { useResource } from "../../lib/hooks/resource";
@@ -126,9 +126,7 @@ function ImportReport({ files }: { files: ImportFileReportDto[] }) {
     <ul className="small">
       {files.map((f) => (
         <li key={f.file}>
-          <strong>{f.file}</strong>: {f.postsCreated} new posts, {f.postsUpdated} updated,{" "}
-          {f.metricSnapshots} metric snapshots, {f.accountDays} days of account metrics,{" "}
-          {f.audienceSegments} audience segments.
+          <strong>{f.file}</strong>: <FileOutcome report={f} />
           {f.warnings.length > 0 && (
             <ul className="muted">
               {f.warnings.map((w) => (
@@ -139,6 +137,23 @@ function ImportReport({ files }: { files: ImportFileReportDto[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+const changes = (noun: string, c: ChangeCountsDto) =>
+  `${noun} ${c.added} new, ${c.changed} changed, ${c.unchanged} unchanged`;
+
+function FileOutcome({ report }: { report: ImportFileReportDto }) {
+  if (report.alreadyImportedOn) {
+    return (
+      <>already imported on {formatDate(report.alreadyImportedOn, true)}, so it was skipped.</>
+    );
+  }
+  return (
+    <>
+      {changes("posts", report.posts)}; {changes("metric snapshots", report.metricSnapshots)};{" "}
+      {report.accountDays} days of account metrics, {report.audienceSegments} audience segments.
+    </>
   );
 }
 

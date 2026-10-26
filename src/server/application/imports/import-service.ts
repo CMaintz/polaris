@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { type Clock, nowIso } from "../clock";
 import type { AccountDirectory } from "../accounts/ports";
-import type { ApplyStats, ContentStore } from "../content/ports";
+import type { Account, ApplyStats, ChangeCounts, ContentStore } from "../content/ports";
 import { ConflictError, PermanentJobError, ValidationError } from "../errors";
 import { parsePayload } from "../jobs/payload";
 import type { Job, JobContext, JobRepository } from "../jobs/ports";
@@ -9,7 +9,7 @@ import type { AuditLog } from "../auth/ports";
 import type { Dataset, ImportBundle } from "../../domain/content";
 import { todayUtc } from "../../domain/dates";
 import { FIRST_ACCOUNT } from "../../domain/accounts";
-import type { ImportFileStore, SocialDataProvider, SourceFile } from "./ports";
+import type { ImportFileStore, ImportedBefore, SocialDataProvider, SourceFile } from "./ports";
 import { type AccountKind, acceptedFiles, assertFits, providerFor } from "./provider-choice";
 
 export const IMPORT_JOB = "import";
@@ -17,8 +17,26 @@ const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 interface FileReport extends ApplyStats {
   file: string;
-  provider: string;
+  /** Null for a file that was skipped unread. */
+  provider: string | null;
   warnings: string[];
+  /** Set when the same bytes were already imported into the account, so nothing was read. */
+  alreadyImportedOn: string | null;
+}
+
+const NOTHING: ChangeCounts = { added: 0, changed: 0, unchanged: 0 };
+
+function skippedReport({ name, importedOn }: ImportedBefore): FileReport {
+  return {
+    file: name,
+    provider: null,
+    warnings: [],
+    alreadyImportedOn: importedOn,
+    posts: NOTHING,
+    metricSnapshots: NOTHING,
+    accountDays: 0,
+    audienceSegments: 0,
+  };
 }
 
 export interface ImportResult {
@@ -34,6 +52,11 @@ const importPayload = z.union([
   z.object({ fileIds: z.array(z.string()).min(1), ...target }),
 ]);
 type ImportPayload = z.infer<typeof importPayload>;
+
+interface Source {
+  file: string;
+  bundle: ImportBundle;
+}
 
 export interface ImportDeps {
   providers: SocialDataProvider[];
@@ -118,18 +141,39 @@ export class ImportService {
       // Re-checked here because real data may have been imported while this job waited.
       throw new PermanentJobError("Demo data was not loaded because real data now exists");
     }
-    const sources = await this.readSources(job.userId, payload, context);
+    const skipped = await this.importedBefore(job.userId, payload, account.id);
+    const sources = await this.readSources(job.userId, payload, skipped, context);
     if (sources.some(({ bundle }) => bundle.dataset === "linkedin")) {
       // Real data replaces the demo rather than mixing with it (ADR 0015).
       await this.deps.content.deleteDataset(account.id, "demo");
     }
+    const applied = await this.applyAll(account, sources, job.id, now);
+    await this.deps.audit.record(job.userId, "import.completed", { jobId: job.id });
+    return { accountId: account.id, files: [...skipped.map(skippedReport), ...applied] };
+  }
+
+  private async applyAll(account: Account, sources: Source[], jobId: string, now: string) {
     const files: FileReport[] = [];
     for (const { file, bundle } of sources) {
-      const stats = await this.deps.content.applyBundle(account, bundle, job.id, now);
-      files.push({ file, provider: bundle.provider, warnings: bundle.warnings, ...stats });
+      const stats = await this.deps.content.applyBundle(account, bundle, jobId, now);
+      files.push({
+        file,
+        provider: bundle.provider,
+        warnings: bundle.warnings,
+        alreadyImportedOn: null,
+        ...stats,
+      });
     }
-    await this.deps.audit.record(job.userId, "import.completed", { jobId: job.id });
-    return { accountId: account.id, files };
+    return files;
+  }
+
+  /**
+   * Re-reading identical bytes would only repeat what the account holds, except that a file
+   * dated by the import day would record its figures again as a new day's observation.
+   */
+  private async importedBefore(userId: string, payload: ImportPayload, accountId: string) {
+    if ("demo" in payload) return [];
+    return this.deps.files.importedBefore(userId, payload.fileIds, accountId);
   }
 
   private async targetAccount(userId: string, accountId: string | undefined, now: string) {
@@ -139,13 +183,26 @@ export class ImportService {
     return account;
   }
 
-  private async readSources(userId: string, payload: ImportPayload, context: JobContext) {
+  private async readSources(
+    userId: string,
+    payload: ImportPayload,
+    skipped: ImportedBefore[],
+    context: JobContext,
+  ): Promise<Source[]> {
+    if ("demo" in payload) {
+      return [{ file: "Demo data", bundle: this.deps.demo(todayUtc(this.deps.clock())) }];
+    }
+    const skip = new Set(skipped.map((s) => s.fileId));
+    const ids = payload.fileIds.filter((id) => !skip.has(id));
+    return ids.length === 0 ? [] : this.readFiles(userId, ids, context);
+  }
+
+  private async readFiles(userId: string, ids: string[], context: JobContext) {
     const today = todayUtc(this.deps.clock());
-    if ("demo" in payload) return [{ file: "Demo data", bundle: this.deps.demo(today) }];
-    const stored = await this.deps.files.load(userId, payload.fileIds);
+    const stored = await this.deps.files.load(userId, ids);
     if (stored.length === 0)
       throw new PermanentJobError("The uploaded files are no longer available");
-    const sources: { file: string; bundle: ImportBundle }[] = [];
+    const sources: Source[] = [];
     for (const [index, file] of stored.entries()) {
       const bundles = await providerFor(this.deps.providers, file).read(file, {
         importedOn: today,
