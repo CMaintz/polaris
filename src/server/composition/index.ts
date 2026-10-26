@@ -46,6 +46,7 @@ function buildWorker(
       await due.intelligence.scheduler.tick(now);
       await due.action.publishing.enqueueDue(now.toISOString());
     },
+    telemetry: core.telemetry,
     ...overrides.worker,
   });
 }
@@ -101,6 +102,7 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     ...services,
     secureCookies: config.secureCookies,
     maxUploadBytes: config.maxUploadBytes,
+    metrics: { token: config.metricsToken, source: core.telemetry },
   });
   return { ...services, worker, api };
 }

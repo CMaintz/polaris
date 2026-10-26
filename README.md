@@ -45,6 +45,8 @@ Configuration is through environment variables; see [`.env.example`](./.env.exam
 from other devices, keep Polaris bound to `127.0.0.1` behind a TLS reverse proxy and set
 `POLARIS_SECURE_COOKIES=true`. Back up the data directory (database and `master.key`, if you have
 not set `POLARIS_MASTER_KEY`): stored AI keys cannot be decrypted without the master key.
+To scrape metrics with Prometheus, set `POLARIS_METRICS_TOKEN` and send it as a Bearer token to
+`/api/metrics`.
 
 ## Getting your LinkedIn data
 

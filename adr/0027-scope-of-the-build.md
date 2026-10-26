@@ -35,8 +35,6 @@ shapes:
 
 ## Not built
 
-- **Telemetry** (docs/04 infrastructure list): there is no metrics or tracing pipeline; the
-  server logs to stdout, and AI calls and security events are recorded in the database.
 - **A metric-refresh job and incremental refresh** (docs/04, docs/07): LinkedIn offers no
   API that Polaris may pull from, so refreshing means uploading a newer export, which merges
   idempotently. There is no background job that fetches anything from LinkedIn.

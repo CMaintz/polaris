@@ -18,6 +18,8 @@ export interface Config {
   feedsAllowHttp: boolean;
   /** The LinkedIn app for posting through the official API; null unless fully configured. */
   linkedin: LinkedInAppConfig | null;
+  /** Bearer token for GET /api/metrics; the endpoint does not exist while this is unset. */
+  metricsToken?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -34,6 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     maxUploadBytes: Number(env.POLARIS_MAX_UPLOAD_MB ?? 100) * 1024 * 1024,
     feedsAllowHttp: env.POLARIS_FEEDS_ALLOW_HTTP === "true",
     linkedin: linkedInApp(env),
+    metricsToken: env.POLARIS_METRICS_TOKEN || undefined,
   };
 }
 

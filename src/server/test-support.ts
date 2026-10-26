@@ -28,6 +28,8 @@ export function testContainer(config: Partial<Config> = {}, overrides: Overrides
     clock: () => now,
     hasher: new ScryptHasher({ N: 2 ** 10, r: 8, p: 1, maxmem: 32 * 1024 * 1024 }),
     worker: { baseBackoffMs: 1000 },
+    // Job and request log lines would otherwise flood the test output.
+    telemetrySink: () => {},
     ...overrides,
   });
   return {
