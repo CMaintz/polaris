@@ -176,5 +176,3 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
   });
   return { ...core, ...ai, ...planning, imports, analytics, worker, api };
 }
-
-export type Container = ReturnType<typeof buildContainer>;

@@ -12,20 +12,17 @@ import {
 import { buildXlsx } from "../../testing/xlsx";
 import { LinkedInAnalyticsExportProvider } from "./analytics-export-provider";
 import { parseAnalyticsWorkbook } from "./analytics-workbook";
-import { parseCsv } from "./csv";
+import { csvRecords } from "./csv";
 import { LinkedInDataExportProvider } from "./data-export-provider";
 import { externalIdFromUrl, parseNumber, parseTimestamp } from "./values";
 
 const context = { importedOn: "2026-03-10" };
 
-describe("parseCsv", () => {
+describe("csvRecords", () => {
   it("keeps commas, doubled quotes and line breaks inside quoted fields", () => {
     const bom = String.fromCharCode(0xfeff);
-    const rows = parseCsv(`${bom}a,b\r\n"x, ""y""\nz",2\r\n`);
-    expect(rows).toEqual([
-      ["a", "b"],
-      ['x, "y"\nz', "2"],
-    ]);
+    const records = csvRecords(`${bom}a,b\r\n"x, ""y""\nz",2\r\n`);
+    expect(records).toEqual([{ a: 'x, "y"\nz', b: "2" }]);
   });
 });
 

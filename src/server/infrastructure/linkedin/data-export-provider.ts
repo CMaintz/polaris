@@ -10,7 +10,7 @@ import {
 import { csvRecords, pick } from "./csv";
 import { externalIdFromUrl, parseTimestamp } from "./values";
 
-export const DATA_EXPORT_PROVIDER = "linkedin-data-export";
+const DATA_EXPORT_PROVIDER = "linkedin-data-export";
 
 const KNOWN_FILES = ["shares.csv", "profile.csv"];
 

@@ -5,7 +5,7 @@ export type ContentType = "text" | "image" | "video" | "document" | "article" | 
 /** Which dataset a post belongs to. Demo posts are synthetic and must never pass as real. */
 export type Dataset = "linkedin" | "demo";
 
-export interface ProfileFacts {
+interface ProfileFacts {
   displayName: string | null;
   headline: string | null;
   profileUrl: string | null;
@@ -40,7 +40,7 @@ export interface ImportedAccountDay {
   engagements: number | null;
 }
 
-export interface ImportedAudienceSegment {
+interface ImportedAudienceSegment {
   dimension: string;
   value: string;
   /** Fraction of the audience, 0 to 1; null when the source gives no share. */

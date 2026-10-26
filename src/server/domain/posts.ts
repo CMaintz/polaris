@@ -4,7 +4,7 @@ import type { DatedValue } from "./timeseries";
 import { type PostMetricKey, type PostMetrics, postMetricValue } from "./metrics";
 import { median, percentile } from "./stats";
 
-/** A stored post with its most recent metric observation. */
+/** A stored post with metrics folded over all its observations, oldest first. */
 export interface PostRecord {
   id: string;
   externalId: string;
@@ -88,7 +88,7 @@ export function segmentPerformance(
 }
 
 /** Local weekday (0 = Monday) and hour, or null hour when only the date is known. */
-export function localSlot(post: PostRecord, tzOffsetMinutes: number) {
+function localSlot(post: PostRecord, tzOffsetMinutes: number) {
   if (!post.publishedAt) return null;
   const instant = new Date(post.publishedAt);
   const local = post.timeKnown ? new Date(instant.getTime() + tzOffsetMinutes * 60_000) : instant;

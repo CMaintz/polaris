@@ -1,16 +1,11 @@
 /** Drops unavailable values. Unavailable is not zero, so it must never be averaged in. */
-export function present(values: readonly (number | null)[]): number[] {
+function present(values: readonly (number | null)[]): number[] {
   return values.filter((value): value is number => value !== null);
 }
 
 export function sumOrNull(values: readonly (number | null)[]): number | null {
   const known = present(values);
   return known.length === 0 ? null : known.reduce((total, value) => total + value, 0);
-}
-
-export function meanOrNull(values: readonly (number | null)[]): number | null {
-  const known = present(values);
-  return known.length === 0 ? null : known.reduce((a, b) => a + b, 0) / known.length;
 }
 
 /** Linear-interpolated percentile, `p` in [0, 1]. */

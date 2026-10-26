@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it } from "vitest";
-import { translateAnthropicError } from "./anthropic-provider";
+import { translateAnthropicError } from "./anthropic-errors";
 
 describe("translateAnthropicError", () => {
   it("treats the SDK's own parse failure as bad output, not as an outage worth retrying", () => {

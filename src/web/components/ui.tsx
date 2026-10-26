@@ -125,3 +125,21 @@ export function Field({ label, children }: { label: string; children: ReactNode 
     </label>
   );
 }
+
+interface FieldBinding {
+  value: string;
+  onChange: (event: { target: { value: string } }) => void;
+}
+
+export function DateRangeFields({ start, end }: { start: FieldBinding; end: FieldBinding }) {
+  return (
+    <>
+      <Field label="Start">
+        <input required type="date" {...start} />
+      </Field>
+      <Field label="End">
+        <input required type="date" {...end} />
+      </Field>
+    </>
+  );
+}

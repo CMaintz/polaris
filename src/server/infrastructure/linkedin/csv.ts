@@ -2,7 +2,7 @@
  * RFC 4180 CSV: quoted fields may hold commas, doubled quotes and line breaks, which
  * LinkedIn post text routinely does. Returns rows of raw strings; a BOM is stripped.
  */
-export function parseCsv(text: string): string[][] {
+function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";

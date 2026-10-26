@@ -10,7 +10,7 @@ import type { ImportFileStore, SocialDataProvider, SourceFile } from "./ports";
 export const IMPORT_JOB = "import";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
-export interface FileReport extends ApplyStats {
+interface FileReport extends ApplyStats {
   file: string;
   provider: string;
   warnings: string[];

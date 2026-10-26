@@ -4,7 +4,7 @@ import { ScryptHasher } from "./infrastructure/crypto/password";
 
 export const TEST_PASSWORD = "correct horse battery";
 
-export function testConfig(overrides: Partial<Config> = {}): Config {
+function testConfig(overrides: Partial<Config> = {}): Config {
   return {
     dbPath: ":memory:",
     dataDir: ":memory:",
@@ -54,4 +54,21 @@ export async function signedInClient(container: TestContainer, email = "ada@exam
       headers: { cookie, "content-type": "application/json", ...init.headers },
     });
   return { userId: user.id, cookie, request };
+}
+
+/** Uploads files to /imports as a browser would (multipart, with an Origin header). */
+export function uploadFiles(
+  container: TestContainer,
+  client: { cookie: string },
+  files: Record<string, Uint8Array>,
+) {
+  const form = new FormData();
+  for (const [name, bytes] of Object.entries(files)) {
+    form.append("files", new File([new Uint8Array(bytes)], name));
+  }
+  return container.api.request("/imports", {
+    method: "POST",
+    headers: { cookie: client.cookie, origin: "http://localhost" },
+    body: form,
+  });
 }
