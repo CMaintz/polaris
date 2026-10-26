@@ -1,6 +1,11 @@
-import { dayOf } from "../../domain/dates";
+import { addDays, dayOf } from "../../domain/dates";
 import { type PostMetricKey, postMetricValue } from "../../domain/metrics";
-import type { Band, PostRecord } from "../../domain/posts";
+import {
+  type Band,
+  type PostRecord,
+  type SegmentPerformance,
+  summarisePosts,
+} from "../../domain/posts";
 
 export interface PostQuery {
   q?: string;
@@ -56,4 +61,21 @@ export function comparablePosts(post: PostRecord, posts: PostRecord[]): PostReco
     )
     .sort((a, b) => Math.abs(time(a) - time(post)) - Math.abs(time(b) - time(post)))
     .slice(0, 5);
+}
+
+/** Posts of the last 90 days with an engagement figure: the best, and the weakest when enough. */
+export function rankedRecentPosts(posts: readonly PostRecord[], asOf: string) {
+  const ranked = posts
+    .filter((p) => p.publishedAt && dayOf(p.publishedAt) >= addDays(asOf, -89))
+    .filter((p) => postMetricValue(p.metrics, "engagements") !== null)
+    .sort(byMetric("engagements", "desc"));
+  return { top: ranked.slice(0, 5), bottom: ranked.length >= 8 ? ranked.slice(-3).reverse() : [] };
+}
+
+/** The yardstick one post is judged against: every other post of the account. */
+export function baselineFor(post: PostRecord, posts: readonly PostRecord[]): SegmentPerformance {
+  return summarisePosts(
+    "all",
+    posts.filter((p) => p.id !== post.id),
+  );
 }

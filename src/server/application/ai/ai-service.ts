@@ -1,4 +1,4 @@
-import type { AnalyticsService } from "../analytics/analytics-service";
+import type { EvidenceFacts } from "../analytics/evidence-facts";
 import type { AuditLog } from "../auth/ports";
 import { type Clock, nowIso } from "../clock";
 import type { ContentStore } from "../content/ports";
@@ -19,16 +19,11 @@ import {
   type PromptTemplate,
   renderPrompt,
 } from "./prompts";
-import type { AiStore } from "./store";
+import type { AiStore, RecommendationStatus } from "./store";
+import { type AiPayload as Payload, parseAiPayload } from "./job-payload";
 
 export const AI_JOB = "ai";
 const MAX_QUESTION = 500;
-
-type Task =
-  | { task: "account_review" }
-  | { task: "post_review"; postId: string }
-  | { task: "ask"; question: string };
-type Payload = Task & { tz: number; label: string };
 
 export interface AnswerResult {
   answer: string;
@@ -43,11 +38,12 @@ interface Prepared {
   template: PromptTemplate<Analysis> | PromptTemplate<Answer>;
   pack: EvidencePack;
   extra: Record<string, unknown>;
+  demo: boolean;
 }
 
 export interface AiDeps {
   credentials: CredentialService;
-  analytics: AnalyticsService;
+  facts: EvidenceFacts;
   content: ContentStore;
   store: AiStore;
   jobs: JobRepository;
@@ -63,7 +59,7 @@ export class AiService {
   }
 
   async startPostReview(userId: string, postId: string, tz: number): Promise<Job> {
-    await this.deps.analytics.post(userId, postId); // 404s for posts the user does not own
+    await this.deps.facts.post(userId, postId); // 404s for posts the user does not own
     return this.enqueue(userId, { task: "post_review", postId, tz, label: "Post review" });
   }
 
@@ -75,13 +71,25 @@ export class AiService {
     return this.enqueue(userId, { task: "ask", question: trimmed, tz, label: "Question" });
   }
 
+  async setRecommendationStatus(
+    userId: string,
+    id: string,
+    status: RecommendationStatus,
+  ): Promise<void> {
+    const account = await this.deps.content.findAccount(userId);
+    const now = nowIso(this.deps.clock);
+    const updated = account
+      ? await this.deps.store.setRecommendationStatus(account.id, id, status, now)
+      : false;
+    if (!updated) throw new NotFoundError("Recommendation");
+  }
+
   async run(job: Job): Promise<unknown> {
-    const payload = job.payload as Payload;
+    const payload = parseAiPayload(job.payload);
     const provider = await this.deps.credentials.activeProvider(job.userId);
     if (!provider) throw new PermanentJobError("No AI key is configured");
-    const status = (await this.deps.analytics.dashboard(job.userId, 28, payload.tz)).status;
     const prepared = await this.prepare(job.userId, payload);
-    const demo = status.hasDemoData;
+    const { demo } = prepared;
     const question = payload.task === "ask" ? payload.question : undefined;
     const data = await this.call(job, provider, prepared, demo, question);
     return this.persist(job, payload, prepared, data, demo);
@@ -109,24 +117,27 @@ export class AiService {
   }
 
   private async prepare(userId: string, payload: Payload): Promise<Prepared> {
-    const { analytics } = this.deps;
+    const { facts } = this.deps;
     if (payload.task === "post_review") {
+      const post = await facts.post(userId, payload.postId);
       return {
         template: POST_REVIEW,
-        pack: postEvidence(await analytics.post(userId, payload.postId)),
+        pack: postEvidence(post),
         extra: { postId: payload.postId },
+        demo: post.basedOnDemo,
       };
     }
-    const dashboard = await analytics.dashboard(userId, 28, payload.tz);
-    const breakdowns = await analytics.breakdowns(userId, payload.tz);
+    const account = await facts.account(userId, 28, payload.tz);
+    const demo = account.basedOnDemo;
     if (payload.task === "account_review") {
-      return { template: ACCOUNT_REVIEW, pack: accountEvidence(dashboard, breakdowns), extra: {} };
+      return { template: ACCOUNT_REVIEW, pack: accountEvidence(account), extra: {}, demo };
     }
     const intent = classifyQuestion(payload.question);
     return {
       template: ASK_DATA,
-      pack: accountEvidence(dashboard, breakdowns, SECTIONS[intent]),
+      pack: accountEvidence(account, SECTIONS[intent]),
       extra: { intent },
+      demo,
     };
   }
 

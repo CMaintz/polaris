@@ -6,6 +6,7 @@ import {
   type ImportedPost,
   extractHashtags,
 } from "../../domain/content";
+import { datasetDeletes } from "./account-tables";
 import { type Db, toJson } from "./database";
 
 interface AccountRow {
@@ -137,10 +138,8 @@ export class SqliteContentStore implements ContentStore {
 
   async deleteDataset(accountId: string, dataset: Dataset): Promise<void> {
     this.db.transaction(() => {
-      for (const table of ["posts", "account_metric_days", "audience_segments"]) {
-        this.db
-          .prepare(`DELETE FROM ${table} WHERE account_id = ? AND dataset = ?`)
-          .run(accountId, dataset);
+      for (const { sql, value } of datasetDeletes(dataset)) {
+        this.db.prepare(sql).run(accountId, value);
       }
       this.db
         .prepare(
