@@ -7,6 +7,7 @@ import { useMutation } from "../../lib/hooks/mutation";
 import { useResource } from "../../lib/hooks/resource";
 import { ErrorBox } from "../common/feedback";
 import { ResourceView } from "../common/resource-view";
+import { MetricRefresh } from "./metric-refresh";
 
 const STATE_LABEL: Record<ConnectionDto["state"], string> = {
   connected: "Connected",
@@ -52,6 +53,8 @@ export function Connections() {
           </div>
         )}
       </ResourceView>
+      {/* Remounted when the LinkedIn connection changes, so its status is read again. */}
+      <MetricRefresh key={list.data?.connections.find((c) => c.id === "linkedin-api")?.state} />
     </section>
   );
 }

@@ -19,7 +19,7 @@ import type {
 import type { JobRepository } from "../application/jobs/ports";
 import type { Db } from "../infrastructure/db/database";
 import { ResearchService } from "../application/intelligence/research-service";
-import { ScheduleService } from "../application/intelligence/schedule-service";
+import { type ScheduleGuards, ScheduleService } from "../application/intelligence/schedule-service";
 import { Scheduler } from "../application/intelligence/scheduler";
 import { TrendService } from "../application/intelligence/trend-service";
 import { SqliteFeedStore } from "../infrastructure/db/intelligence-store";
@@ -38,6 +38,7 @@ export interface IntelligenceOptions {
   allowHttpFeeds: boolean;
   webResearch?: WebResearchFactory;
   fetcher?: FeedFetcher;
+  scheduleGuards?: ScheduleGuards;
 }
 
 /** What the area needs, narrower than Core, so route tests can assemble it with fakes. */
@@ -123,7 +124,7 @@ export function assembleIntelligence(w: IntelligenceWiring) {
       feeds,
       trends,
       peers: new PeerService(peerStore, w.clock),
-      schedules: new ScheduleService(scheduleStore, peerStore, w.clock),
+      schedules: new ScheduleService(scheduleStore, peerStore, w.clock, w.scheduleGuards),
     },
     handlers,
     scheduler: new Scheduler(scheduleStore, w.jobs),

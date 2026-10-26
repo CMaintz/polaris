@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AI_JOB } from "../ai/ai-service";
+import { metricRefreshJob } from "../refresh/jobs";
 import type { NewJob } from "../jobs/ports";
 import type { DueSchedule } from "./schedule-ports";
 
@@ -41,6 +42,8 @@ export function scheduledJob(schedule: DueSchedule): NewJob {
   switch (schedule.kind) {
     case "feed_refresh":
       return feedRefreshJob(userId, { accountId });
+    case "metric_refresh":
+      return metricRefreshJob(userId, accountId);
     case "trend_digest":
       return digestJob(userId, { accountId, withAi: params.withAi ?? true });
     case "research_rerun":

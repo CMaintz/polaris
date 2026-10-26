@@ -51,7 +51,7 @@ function findTotalFollowers(rows: Cell[][]): { day: string; followers: number } 
   return null;
 }
 
-function backfillFollowers(
+export function backfillFollowers(
   days: ImportedAccountDay[],
   total: { day: string; followers: number },
 ): ImportedAccountDay[] {
@@ -72,7 +72,7 @@ function backfillFollowers(
   return result;
 }
 
-function emptyDay(day: string): ImportedAccountDay {
+export function emptyDay(day: string): ImportedAccountDay {
   return { day, followers: null, newFollowers: null, impressions: null, engagements: null };
 }
 

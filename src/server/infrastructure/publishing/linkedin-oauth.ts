@@ -9,6 +9,13 @@ export const TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken";
 export const USERINFO_URL = "https://api.linkedin.com/v2/userinfo";
 /** Posting as the member needs w_member_social; openid and profile give the member id. */
 const SCOPES = ["openid", "profile", "w_member_social"];
+/**
+ * Post and follower statistics. They belong to the Community Management API product, which
+ * LinkedIn approves per app, and asking for a scope the app lacks fails the whole sign-in.
+ * https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics
+ * https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/follower-statistics
+ */
+export const ANALYTICS_SCOPES = ["r_member_postAnalytics", "r_member_profileAnalytics"];
 
 export interface LinkedInAppConfig {
   clientId: string;
@@ -16,6 +23,10 @@ export interface LinkedInAppConfig {
   redirectUri: string;
   /** The Posts API version header, YYYYMM; LinkedIn retires each version after about a year. */
   apiVersion: string;
+  /** Ask for ANALYTICS_SCOPES too; only for apps LinkedIn approved for them. */
+  analytics?: boolean;
+  /** Days after publishing that a post's figures keep being refreshed. */
+  refreshPostDays?: number;
 }
 
 export interface MemberGrant {
@@ -24,6 +35,8 @@ export interface MemberGrant {
   expiresIn: number;
   memberId: string;
   name: string | null;
+  /** What the member granted, which can be less than what was asked for. */
+  scopes: string[];
 }
 
 /** Safe to show: it never carries LinkedIn's response body. */
@@ -35,7 +48,7 @@ export function authorizationUrl(config: LinkedInAppConfig, state: string): stri
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
     state,
-    scope: SCOPES.join(" "),
+    scope: [...SCOPES, ...(config.analytics ? ANALYTICS_SCOPES : [])].join(" "),
   });
   return `${AUTHORIZE_URL}?${params.toString()}`;
 }
@@ -65,7 +78,18 @@ export async function exchangeCode(
     await fetchFn(USERINFO_URL, { headers: { authorization: `Bearer ${accessToken}` } }),
   );
   const name = typeof info["name"] === "string" ? info["name"] : null;
-  return { accessToken, expiresIn, memberId: stringField(info, "sub"), name };
+  return {
+    accessToken,
+    expiresIn,
+    memberId: stringField(info, "sub"),
+    name,
+    scopes: grantedScopes(token["scope"]),
+  };
+}
+
+// LinkedIn's samples separate granted scopes with commas, where OAuth 2.0 uses spaces.
+function grantedScopes(scope: unknown): string[] {
+  return typeof scope === "string" ? scope.split(/[\s,]+/).filter(Boolean) : [];
 }
 
 async function json(response: Response): Promise<Record<string, unknown>> {

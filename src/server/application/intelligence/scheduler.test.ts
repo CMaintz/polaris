@@ -3,6 +3,7 @@ import { SqliteJobRepository } from "../../infrastructure/db/job-repository";
 import type { Db } from "../../infrastructure/db/database";
 import { SqliteScheduleStore } from "../../infrastructure/intelligence/sqlite-schedules";
 import { AI_JOB } from "../ai/ai-service";
+import { METRIC_REFRESH_JOB } from "../refresh/jobs";
 import { RESEARCH_JOB, TREND_DIGEST_JOB } from "./jobs";
 import { Scheduler } from "./scheduler";
 import { addAccount, intelligenceDb } from "../../testing/intelligence";
@@ -93,6 +94,16 @@ describe("Scheduler.tick", () => {
     expect(job).toMatchObject({
       type: RESEARCH_JOB,
       payload: { accountId: account.accountId, question: "What changed?", peerId: null },
+    });
+  });
+
+  it("refreshes LinkedIn figures for the schedule's own account", async () => {
+    await create({ kind: "metric_refresh", cadence: "daily", params: {} });
+    await scheduler.tick(at(START));
+    const [job] = await queued();
+    expect(job).toMatchObject({
+      type: METRIC_REFRESH_JOB,
+      payload: { accountId: account.accountId },
     });
   });
 });

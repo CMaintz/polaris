@@ -15,6 +15,7 @@ import { buildImports } from "./imports";
 import { buildIntelligence } from "./intelligence";
 import { buildKnowledge } from "./knowledge";
 import { buildAccount, buildAccounts, buildPlanning } from "./planning";
+import { buildRefresh } from "./refresh";
 import { buildStrategy } from "./strategy";
 
 export type { Overrides } from "./core";
@@ -67,10 +68,12 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     facts,
     linkedin: config.linkedin,
   });
+  const refresh = buildRefresh(core, keys, config.linkedin);
   const intelligence = buildIntelligence(core, keys, {
     allowHttpFeeds: config.feedsAllowHttp,
     webResearch: overrides.webResearch,
     fetcher: overrides.feedFetcher,
+    scheduleGuards: { metric_refresh: (id) => refresh.service.assertRefreshable(id) },
   });
   const handlers = {
     [IMPORT_JOB]: reindexAfter(imports.run.bind(imports), knowledge.indexer),
@@ -78,6 +81,7 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     ...knowledge.handlers,
     ...intelligence.handlers,
     ...action.handlers,
+    ...refresh.handlers,
   };
   const worker = buildWorker(core, handlers, { intelligence, action }, overrides);
   const account = buildAccount(core);
@@ -96,6 +100,7 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     intelligence,
     imports,
     analytics,
+    refresh: refresh.service,
     comparison: new ComparisonService(core.accountStore, core.queries, core.clock),
   };
   const api = createApi({

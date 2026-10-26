@@ -13,7 +13,7 @@ import { toLittleText } from "./little-text";
 
 // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
 export const POSTS_URL = "https://api.linkedin.com/rest/posts";
-const PROVIDER = "linkedin-api";
+export const LINKEDIN_CONNECTION = "linkedin-api";
 const TIMEOUT_MS = 30_000;
 
 /**
@@ -21,7 +21,7 @@ const TIMEOUT_MS = 30_000;
  * Null config means the server has no LinkedIn app, and the provider reports "not_configured".
  */
 export class LinkedInApiProvider implements ConnectableProvider {
-  readonly id = PROVIDER;
+  readonly id = LINKEDIN_CONNECTION;
   readonly label = "LinkedIn";
   readonly mode = "api" as const;
   readonly platform = "linkedin" as const;
@@ -36,7 +36,7 @@ export class LinkedInApiProvider implements ConnectableProvider {
 
   async connectionStatus(accountId: string): Promise<ConnectionStatus> {
     if (!this.config) return { state: "not_configured", displayName: null, expiresAt: null };
-    const c = await this.connections.get(accountId, PROVIDER);
+    const c = await this.connections.get(accountId, LINKEDIN_CONNECTION);
     if (!c) return { state: "not_connected", displayName: null, expiresAt: null };
     const expired = c.expiresAt !== null && c.expiresAt <= this.clock().toISOString();
     return {
@@ -62,16 +62,17 @@ export class LinkedInApiProvider implements ConnectableProvider {
       memberUrn: `urn:li:person:${grant.memberId}`,
       displayName: grant.name,
       expiresAt,
+      scopes: grant.scopes,
     };
-    await this.connections.save(accountId, PROVIDER, connection, now.toISOString());
+    await this.connections.save(accountId, LINKEDIN_CONNECTION, connection, now.toISOString());
   }
 
   async disconnect(accountId: string): Promise<void> {
-    await this.connections.delete(accountId, PROVIDER);
+    await this.connections.delete(accountId, LINKEDIN_CONNECTION);
   }
 
   async publish(accountId: string, text: string): Promise<PublishResult> {
-    const c = await this.connections.get(accountId, PROVIDER);
+    const c = await this.connections.get(accountId, LINKEDIN_CONNECTION);
     if (!c) throw new PublishError("LinkedIn is not connected", "not_published");
     const token = this.box.open(c.sealedToken, sealContext(accountId));
     const response = await this.send(token, postBody(c.memberUrn, text));
@@ -108,7 +109,7 @@ export class LinkedInApiProvider implements ConnectableProvider {
 }
 
 /** Binds a sealed token to its account, so a token copied to another row fails to open. */
-const sealContext = (accountId: string) => `publishing:${PROVIDER}:${accountId}`;
+export const sealContext = (accountId: string) => `publishing:${LINKEDIN_CONNECTION}:${accountId}`;
 
 function postBody(author: string, text: string) {
   return {
