@@ -24,6 +24,7 @@ export class LinkedInApiProvider implements ConnectableProvider {
   readonly id = PROVIDER;
   readonly label = "LinkedIn";
   readonly mode = "api" as const;
+  readonly platform = "linkedin" as const;
 
   constructor(
     private readonly config: LinkedInAppConfig | null,

@@ -38,8 +38,6 @@ shapes:
 - **A metric-refresh job and incremental refresh** (docs/04, docs/07): LinkedIn offers no
   API that Polaris may pull from, so refreshing means uploading a newer export, which merges
   idempotently. There is no background job that fetches anything from LinkedIn.
-- A LinkedIn publishing connection is not refused on an account of platform "other" (nothing
-  posts there unless the user schedules a draft).
 
 ## Consequences
 

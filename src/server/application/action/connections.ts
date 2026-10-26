@@ -1,4 +1,5 @@
-import type { ResolveAccount } from "../content/ports";
+import { PLATFORM_NAMES } from "../../domain/accounts";
+import type { Account } from "../content/ports";
 import { createHash, randomBytes } from "node:crypto";
 import type { AuditLog } from "../auth/ports";
 import { type Clock, nowIso } from "../clock";
@@ -22,7 +23,8 @@ export interface ConnectionView extends ConnectionStatus {
 export interface ConnectionDeps {
   providers: PublishingProvider[];
   states: OAuthStateStore;
-  resolveAccount: ResolveAccount;
+  /** The active account, or null before the user has any. */
+  findAccount: (userId: string) => Promise<Account | null>;
   audit: AuditLog;
   clock: Clock;
 }
@@ -37,7 +39,7 @@ export class ConnectionService {
   constructor(private readonly deps: ConnectionDeps) {}
 
   async list(userId: string): Promise<ConnectionView[]> {
-    const accountId = await this.deps.resolveAccount(userId);
+    const accountId = (await this.deps.findAccount(userId))?.id;
     return Promise.all(
       this.deps.providers.map(async (p) => ({
         id: p.id,
@@ -54,7 +56,7 @@ export class ConnectionService {
   /** The URL to send the browser to. The state is single-use and bound to this user. */
   async start(userId: string, providerId: string): Promise<string> {
     const provider = this.connectable(providerId);
-    const accountId = await this.account(userId);
+    const accountId = (await this.connectableAccount(userId, provider)).id;
     const state = randomBytes(32).toString("base64url");
     const expiresAt = new Date(this.deps.clock().getTime() + STATE_TTL_MS).toISOString();
     const url = provider.authorizationUrl(state);
@@ -87,7 +89,7 @@ export class ConnectionService {
 
   async disconnect(userId: string, providerId: string): Promise<void> {
     const provider = this.connectable(providerId);
-    await provider.disconnect(await this.account(userId));
+    await provider.disconnect((await this.account(userId)).id);
     await this.deps.audit.record(userId, "publishing.disconnected", { provider: providerId });
   }
 
@@ -97,10 +99,19 @@ export class ConnectionService {
     return provider;
   }
 
-  private async account(userId: string): Promise<string> {
-    const accountId = await this.deps.resolveAccount(userId);
-    if (!accountId) throw new ConflictError("Import your LinkedIn data or load the demo first");
-    return accountId;
+  private async account(userId: string): Promise<Account> {
+    const account = await this.deps.findAccount(userId);
+    if (!account) throw new ConflictError("Import your LinkedIn data or load the demo first");
+    return account;
+  }
+
+  private async connectableAccount(userId: string, provider: ConnectableProvider) {
+    const account = await this.account(userId);
+    if (account.platform !== provider.platform) {
+      const name = PLATFORM_NAMES[provider.platform];
+      throw new ValidationError(`${provider.label} can only be connected to a ${name} account`);
+    }
+    return account;
   }
 
   private now() {

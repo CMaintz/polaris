@@ -1,3 +1,5 @@
+import type { Platform } from "../../domain/accounts";
+
 export type ConnectionState = "connected" | "not_connected" | "expired" | "not_configured";
 
 export interface ConnectionStatus {
@@ -25,6 +27,8 @@ export interface PublishingProvider {
 }
 
 export interface ConnectableProvider extends PublishingProvider {
+  /** The only account platform this connection may be attached to. */
+  readonly platform: Platform;
   authorizationUrl(state: string): string;
   completeAuthorization(accountId: string, code: string): Promise<void>;
   disconnect(accountId: string): Promise<void>;

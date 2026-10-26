@@ -29,7 +29,7 @@ export interface ActionInputs {
 }
 
 export function buildAction(core: Core, ai: AiKeyParts, inputs: ActionInputs) {
-  const { db, jobs, resolveAccount, audit, clock } = core;
+  const { db, jobs, resolveAccount, audit, clock, content } = core;
   const common = { resolveAccount, audit, clock };
   const planItems = inputs.stores.plan;
   const publications = new SqlitePublicationStore(db);
@@ -63,7 +63,13 @@ export function buildAction(core: Core, ai: AiKeyParts, inputs: ActionInputs) {
     proposals,
     planner: new PlanningAgent({ ...models, ...common, proposals, planItems }),
     publishing,
-    connections: new ConnectionService({ ...common, providers, states }),
+    connections: new ConnectionService({
+      findAccount: (userId) => content.findAccount(userId),
+      audit,
+      clock,
+      providers,
+      states,
+    }),
   };
   const handlers = {
     [DRAFT_JOB]: services.drafting.run.bind(services.drafting),
