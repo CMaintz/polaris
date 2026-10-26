@@ -42,8 +42,6 @@ shapes:
   idempotently. There is no background job that fetches anything from LinkedIn.
 - A LinkedIn publishing connection is not refused on an account of platform "other" (nothing
   posts there unless the user schedules a draft).
-- A first import into a brand-new user creates a LinkedIn account even when the file is then
-  rejected.
 
 ## Consequences
 

@@ -69,12 +69,13 @@ describe("import pipeline", () => {
     expect(post["content_type"]).toBe("text");
   });
 
-  it("rejects unsupported files before queueing anything", async () => {
+  it("rejects unsupported files before queueing anything or creating an account", async () => {
     const container = testContainer();
     const client = await signedInClient(container);
     const response = await uploadFiles(container, client, { "notes.txt": strToU8("hello") });
     expect(response.status).toBe(400);
     expect(count(container, "SELECT COUNT(*) n FROM jobs")).toBe(0);
+    expect(count(container, "SELECT COUNT(*) n FROM accounts")).toBe(0);
   });
 
   it("rejects an oversized upload before reading it into memory", async () => {

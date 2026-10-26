@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { type Clock, nowIso } from "../clock";
 import type { AccountDirectory } from "../accounts/ports";
-import type { Account, ApplyStats, ContentStore } from "../content/ports";
+import type { ApplyStats, ContentStore } from "../content/ports";
 import { ConflictError, PermanentJobError, ValidationError } from "../errors";
 import { parsePayload } from "../jobs/payload";
 import type { Job, JobContext, JobRepository } from "../jobs/ports";
@@ -10,7 +10,7 @@ import type { Dataset, ImportBundle } from "../../domain/content";
 import { todayUtc } from "../../domain/dates";
 import { FIRST_ACCOUNT } from "../../domain/accounts";
 import type { ImportFileStore, SocialDataProvider, SourceFile } from "./ports";
-import { acceptedFiles, assertFits, providerFor } from "./provider-choice";
+import { type AccountKind, acceptedFiles, assertFits, providerFor } from "./provider-choice";
 
 export const IMPORT_JOB = "import";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -53,8 +53,10 @@ export class ImportService {
   async startImport(userId: string, uploads: SourceFile[]): Promise<Job> {
     if (uploads.length === 0) throw new ValidationError("Choose at least one file to import");
     const now = nowIso(this.deps.clock);
+    const target = (await this.deps.content.findAccount(userId)) ?? FIRST_ACCOUNT;
+    for (const upload of uploads) this.assertReadable(upload, target);
+    // Created only once every file passed, so a rejected first upload leaves no account.
     const account = await this.deps.content.ensureAccount(userId, now);
-    for (const upload of uploads) this.assertReadable(upload, account);
     const stored = await Promise.all(uploads.map((u) => this.deps.files.save(userId, u, now)));
     await this.deps.audit.record(userId, "import.started", { files: uploads.map((u) => u.name) });
     return this.deps.jobs.enqueue(
@@ -154,7 +156,7 @@ export class ImportService {
     return sources;
   }
 
-  private assertReadable(upload: SourceFile, account: Account): void {
+  private assertReadable(upload: SourceFile, account: AccountKind): void {
     if (upload.bytes.byteLength > MAX_FILE_BYTES) {
       throw new ValidationError(`${upload.name} is larger than 50 MB`);
     }

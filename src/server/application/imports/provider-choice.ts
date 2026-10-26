@@ -16,11 +16,14 @@ export function acceptedFiles(providers: readonly SocialDataProvider[], platform
     .map(({ id, label, files }) => ({ provider: id, label, files }));
 }
 
+/** What a file is checked against; the account need not exist yet before the first import. */
+export type AccountKind = Pick<Account, "platform" | "label">;
+
 /** A file must suit the target account's platform, or its data would be mislabelled. */
 export function assertFits(
   providers: readonly SocialDataProvider[],
   file: SourceFile,
-  account: Account,
+  account: AccountKind,
 ): void {
   const provider = providers.find((p) => p.canRead(file));
   if (!provider) {
