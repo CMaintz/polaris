@@ -25,6 +25,8 @@ const MIGRATIONS: readonly Migration[] = [
 
 export const MULTI_ACCOUNT_VERSION = MIGRATIONS.indexOf(MULTI_ACCOUNT) + 1;
 
+export const SCHEMA_VERSION = MIGRATIONS.length;
+
 export function migrate(db: Db, upTo = MIGRATIONS.length): void {
   const current = db.pragma("user_version", { simple: true }) as number;
   MIGRATIONS.slice(current, upTo).forEach((migration, offset) => {

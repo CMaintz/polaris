@@ -2,48 +2,58 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { AnalyticsService } from "../../application/analytics/analytics-service";
 import type { ComparisonService } from "../../application/analytics/comparison-service";
+import {
+  BANDS,
+  CONTENT_TYPES,
+  DIRECTIONS,
+  GRANULARITIES,
+  LIMITS,
+  POST_SORTS,
+  SERIES_METRICS,
+  day,
+} from "../../application/analytics/query-options";
 import { PERIOD_DAYS } from "../../domain/dates";
-import { type AppEnv, currentUser, day, readQuery, requireUser } from "../http";
+import { type AppEnv, currentUser, readQuery, requireUser } from "../http";
 
-// The browser's UTC offset in minutes (east positive), for posting-time buckets.
-const tz = z.coerce.number().int().min(-840).max(840).default(0);
+// The browser's UTC offset, for posting-time buckets.
+const tz = z.coerce.number().int().min(LIMITS.tzOffset.min).max(LIMITS.tzOffset.max).default(0);
 
 const dashboardQuery = z.object({
-  days: z.coerce.number().int().min(7).max(365).default(PERIOD_DAYS),
+  days: z.coerce
+    .number()
+    .int()
+    .min(LIMITS.periodDays.min)
+    .max(LIMITS.periodDays.max)
+    .default(PERIOD_DAYS),
   tz,
 });
 
 const postQuery = z.object({
-  q: z.string().max(200).optional(),
-  type: z.enum(["text", "image", "video", "document", "article", "link", "unknown"]).optional(),
-  topic: z.string().max(100).optional(),
-  band: z.enum(["top", "middle", "bottom", "unrated"]).optional(),
+  q: z.string().max(LIMITS.searchText).optional(),
+  type: z.enum(CONTENT_TYPES).optional(),
+  topic: z.string().max(LIMITS.topic).optional(),
+  band: z.enum(BANDS).optional(),
   from: day.optional(),
   to: day.optional(),
-  sort: z
-    .enum([
-      "published",
-      "impressions",
-      "engagements",
-      "engagement_rate",
-      "reactions",
-      "comments",
-      "reposts",
-    ])
-    .default("published"),
-  dir: z.enum(["asc", "desc"]).default("desc"),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
+  sort: z.enum(POST_SORTS).default("published"),
+  dir: z.enum(DIRECTIONS).default("desc"),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(LIMITS.posts.min)
+    .max(LIMITS.posts.max)
+    .default(LIMITS.posts.default),
   offset: z.coerce.number().int().min(0).default(0),
 });
 
 const seriesQuery = z.object({
-  metric: z.enum(["impressions", "engagements", "followers", "new_followers", "posts"]),
-  granularity: z.enum(["day", "week", "month"]).default("day"),
+  metric: z.enum(SERIES_METRICS),
+  granularity: z.enum(GRANULARITIES).default("day"),
   from: day.optional(),
   to: day.optional(),
-  rolling: z.coerce.number().int().min(0).max(90).default(0),
+  rolling: z.coerce.number().int().min(LIMITS.rolling.min).max(LIMITS.rolling.max).default(0),
   // Days back from the latest imported day, used when `from` is not given.
-  days: z.coerce.number().int().min(7).max(1095).optional(),
+  days: z.coerce.number().int().min(LIMITS.seriesDays.min).max(LIMITS.seriesDays.max).optional(),
 });
 
 // Mounted at the API root, so the session check is per route: a router-wide use() would

@@ -33,6 +33,12 @@ export class SqliteUserRepository implements UserRepository {
     return (this.db.prepare("SELECT COUNT(*) AS n FROM users").get() as { n: number }).n;
   }
 
+  async ids(): Promise<string[]> {
+    return (
+      this.db.prepare("SELECT id FROM users ORDER BY created_at").all() as { id: string }[]
+    ).map((row) => row.id);
+  }
+
   async create(user: UserWithSecret): Promise<void> {
     this.db
       .prepare(
