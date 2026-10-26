@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { aggregate, comparePeriods, fillPeriods, rollingAverage } from "./timeseries";
+import {
+  aggregate,
+  comparePeriods,
+  dropPartialEdges,
+  fillPeriods,
+  rollingAverage,
+} from "./timeseries";
 
 describe("aggregate", () => {
   const values = [
@@ -93,5 +99,27 @@ describe("comparePeriods", () => {
     const result = comparePeriods(values, "2026-03-12", 3, "sum");
     expect(result.current.value).toBeNull();
     expect(result.change.percent).toBeNull();
+  });
+});
+
+describe("dropPartialEdges", () => {
+  it("blanks a first or last week that is not fully observed, so it is not read as a drop", () => {
+    const points = [
+      { period: "2026-03-02", value: 300, observedDays: 3 },
+      { period: "2026-03-09", value: 700, observedDays: 7 },
+      { period: "2026-03-16", value: 200, observedDays: 2 },
+    ];
+    expect(dropPartialEdges(points, "week").map((p) => p.value)).toEqual([null, 700, null]);
+  });
+
+  it("keeps a gap inside the range, and leaves daily series alone", () => {
+    const points = [
+      { period: "2026-03-01", value: 31, observedDays: 31 },
+      { period: "2026-04-01", value: 10, observedDays: 10 },
+      { period: "2026-05-01", value: 31, observedDays: 31 },
+    ];
+    expect(dropPartialEdges(points, "month").map((p) => p.value)).toEqual([31, 10, 31]);
+    const day = [{ period: "2026-03-01", value: 5, observedDays: 1 }];
+    expect(dropPartialEdges(day, "day")).toEqual(day);
   });
 });

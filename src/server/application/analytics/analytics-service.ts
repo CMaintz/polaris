@@ -16,6 +16,7 @@ import {
   type Granularity,
   aggregate,
   comparePeriods,
+  dropPartialEdges,
   fillPeriods,
   rollingAverage,
 } from "../../domain/timeseries";
@@ -152,12 +153,12 @@ export class AnalyticsService {
     userId: string,
     metric: SeriesMetric,
     granularity: Granularity,
-    range: { from?: string; to?: string },
+    range: { from?: string; to?: string; days?: number },
     rollingWindow: number,
   ) {
     const data = await this.load(userId);
     const to = range.to ?? data.asOf ?? todayUtc(this.clock());
-    const from = range.from ?? addDays(to, -89);
+    const from = range.from ?? addDays(to, -((range.days ?? 90) - 1));
     return {
       metric,
       granularity,
@@ -293,12 +294,9 @@ export class AnalyticsService {
     rollingWindow: number,
   ): SeriesPointDto[] {
     const inRange = dailyValues(data, metric).filter((v) => v.day >= from && v.day <= to);
-    const points = fillPeriods(
-      aggregate(inRange, granularity, SERIES[metric].aggregation),
-      from,
-      to,
-      granularity,
-    );
+    const { aggregation } = SERIES[metric];
+    const filled = fillPeriods(aggregate(inRange, granularity, aggregation), from, to, granularity);
+    const points = aggregation === "sum" ? dropPartialEdges(filled, granularity) : filled;
     const rolling = rollingWindow > 1 ? rollingAverage(points, rollingWindow) : null;
     return points.map((p, i) => ({
       period: p.period,

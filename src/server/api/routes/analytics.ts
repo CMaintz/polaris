@@ -38,6 +38,8 @@ const seriesQuery = z.object({
   from: day.optional(),
   to: day.optional(),
   rolling: z.coerce.number().int().min(0).max(90).default(0),
+  // Days back from the latest imported day, used when `from` is not given.
+  days: z.coerce.number().int().min(7).max(1095).optional(),
 });
 
 // Mounted at the API root, so the session check is per route: a router-wide use() would
@@ -56,7 +58,7 @@ export function analyticsRoutes(analytics: AnalyticsService) {
     )
     .get("/analytics/timeseries", requireUser, async (c) => {
       const q = readQuery(c, seriesQuery);
-      const range = { from: q.from, to: q.to };
+      const range = { from: q.from, to: q.to, days: q.days };
       return c.json(
         await analytics.timeseries(currentUser(c).id, q.metric, q.granularity, range, q.rolling),
       );

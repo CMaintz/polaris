@@ -16,7 +16,12 @@ These fill gaps that the product documents leave open. Each one is cheap to chan
    - impressions, engagements or posts published: sums over the goal window;
    - average engagement rate.
 
-   "On track" means progress is at least the share of the window that has elapsed.
+   "On track" means progress is at least the share of the window that has elapsed. Two
+   exceptions:
+   - an engagement-rate goal is "achieved" once the rate in the window reaches the target and
+     "behind" otherwise, because a rate does not accumulate over time;
+   - a follower target at or below the starting count is "achieved" as soon as the count is at
+     or above the target.
 
 6. **Experiments** compare the median of a per-post metric for posts published inside the
    experiment window against the equally long window before it, or against a manual baseline.
