@@ -31,5 +31,6 @@ export interface ContentStore {
     now: string,
   ): Promise<ApplyStats>;
   hasDataset(accountId: string, dataset: Dataset): Promise<boolean>;
+  hasPost(accountId: string, postId: string): Promise<boolean>;
   deleteDataset(accountId: string, dataset: Dataset): Promise<void>;
 }
