@@ -14,6 +14,11 @@ import { SdkProviderFactory } from "./infrastructure/ai/provider-factory";
 import { ScryptHasher } from "./infrastructure/crypto/password";
 import { AesGcmSecretBox, resolveMasterKey } from "./infrastructure/crypto/secret-box";
 import { SqliteAiStore } from "./infrastructure/db/ai-store";
+import { AccountService } from "./application/account/account-service";
+import { PlanningService } from "./application/planning/planning-service";
+import type { Experiment, Goal, PlanItem } from "./application/planning/ports";
+import { SqliteDataLifecycle } from "./infrastructure/db/data-lifecycle";
+import { SqliteRecordTable } from "./infrastructure/db/record-table";
 import {
   SqliteAuditLog,
   SqliteSessionRepository,
@@ -90,6 +95,54 @@ function buildAi(
   return { aiStore, credentials, ai };
 }
 
+function buildPlanning(core: Core, analytics: AnalyticsService) {
+  const { db } = core;
+  const goals = new SqliteRecordTable<Goal>(
+    db,
+    "goals",
+    ["name", "metric", "target", "startDate", "endDate", "status", "notes"],
+    "end_date, created_at",
+  );
+  const experiments = new SqliteRecordTable<Experiment>(
+    db,
+    "experiments",
+    [
+      "goalId",
+      "name",
+      "hypothesis",
+      "variable",
+      "metric",
+      "baseline",
+      "startDate",
+      "endDate",
+      "status",
+      "result",
+      "conclusion",
+      "followUp",
+    ],
+    "start_date DESC, created_at",
+  );
+  const plan = new SqliteRecordTable<PlanItem>(
+    db,
+    "plan_items",
+    ["title", "concept", "targetTopic", "plannedDate", "status", "draft", "postId"],
+    "planned_date IS NULL, planned_date, created_at",
+  );
+  const planning = new PlanningService(
+    { goals, experiments, plan },
+    core.content,
+    analytics,
+    core.clock,
+  );
+  const account = new AccountService(
+    new SqliteDataLifecycle(db),
+    core.auth,
+    core.audit,
+    core.clock,
+  );
+  return { planning, account };
+}
+
 /** The composition root: the only place that knows which adapter backs which port. */
 export function buildContainer(config: Config, overrides: Overrides = {}) {
   const core = buildCore(config, overrides);
@@ -111,15 +164,17 @@ export function buildContainer(config: Config, overrides: Overrides = {}) {
     [AI_JOB]: ai.ai.run.bind(ai.ai),
   };
   const worker = new JobWorker(core.jobs, handlers, core.clock, overrides.worker);
+  const planning = buildPlanning(core, analytics);
   const api = createApi({
     ...core,
     ...ai,
+    ...planning,
     imports,
     analytics,
     secureCookies: config.secureCookies,
     maxUploadBytes: config.maxUploadBytes,
   });
-  return { ...core, ...ai, imports, analytics, worker, api };
+  return { ...core, ...ai, ...planning, imports, analytics, worker, api };
 }
 
 export type Container = ReturnType<typeof buildContainer>;

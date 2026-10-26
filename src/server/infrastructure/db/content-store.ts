@@ -127,6 +127,14 @@ export class SqliteContentStore implements ContentStore {
     return row.found === 1;
   }
 
+  async hasPost(accountId: string, postId: string): Promise<boolean> {
+    return (
+      this.db
+        .prepare("SELECT 1 FROM posts WHERE account_id = ? AND id = ?")
+        .get(accountId, postId) !== undefined
+    );
+  }
+
   async deleteDataset(accountId: string, dataset: Dataset): Promise<void> {
     this.db.transaction(() => {
       for (const table of ["posts", "account_metric_days", "audience_segments"]) {
