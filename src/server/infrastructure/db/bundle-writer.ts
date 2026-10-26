@@ -15,14 +15,6 @@ const UPSERT_ACCOUNT_DAY = `
     engagements = COALESCE(excluded.engagements, engagements),
     import_job_id = excluded.import_job_id`;
 
-const emptyStats = (): ApplyStats => ({
-  postsCreated: 0,
-  postsUpdated: 0,
-  metricSnapshots: 0,
-  accountDays: 0,
-  audienceSegments: 0,
-});
-
 /** Merges one import bundle into an account's content tables, in a single transaction. */
 export class BundleWriter {
   private readonly posts: PostWriter;
@@ -33,16 +25,15 @@ export class BundleWriter {
 
   apply(accountId: string, bundle: ImportBundle, jobId: string, now: string): ApplyStats {
     return this.db.transaction(() => {
-      const stats = emptyStats();
       if (bundle.profile) this.updateProfile(accountId, bundle.profile, now);
-      for (const post of bundle.posts) {
-        if (this.posts.upsert(accountId, bundle, post, now)) stats.postsCreated += 1;
-        else stats.postsUpdated += 1;
-      }
-      stats.metricSnapshots = this.posts.upsertMetrics(accountId, bundle, jobId);
-      stats.accountDays = this.upsertAccountDays(accountId, bundle, jobId);
-      stats.audienceSegments = this.replaceAudience(accountId, bundle, jobId);
-      return stats;
+      // Posts go first because the snapshots find their post by external id.
+      const posts = this.posts.upsertPosts(accountId, bundle, now);
+      return {
+        posts,
+        metricSnapshots: this.posts.upsertMetrics(accountId, bundle, jobId),
+        accountDays: this.upsertAccountDays(accountId, bundle, jobId),
+        audienceSegments: this.replaceAudience(accountId, bundle, jobId),
+      };
     })();
   }
 

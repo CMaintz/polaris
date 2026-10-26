@@ -31,7 +31,17 @@ export interface StoredFile extends SourceFile {
   sha256: string;
 }
 
+/** A stored upload whose identical bytes an earlier import already brought in. */
+export interface ImportedBefore {
+  fileId: string;
+  name: string;
+  /** When the earliest completed import of those bytes into the account finished. */
+  importedOn: string;
+}
+
 export interface ImportFileStore {
   save(userId: string, file: SourceFile, now: string): Promise<StoredFile>;
   load(userId: string, ids: string[]): Promise<StoredFile[]>;
+  /** Those of the files whose sha256 a completed import into the account already read. */
+  importedBefore(userId: string, ids: string[], accountId: string): Promise<ImportedBefore[]>;
 }

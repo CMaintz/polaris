@@ -42,7 +42,9 @@ describe("import pipeline", () => {
   it("is idempotent: importing the same files twice changes nothing", async () => {
     const container = testContainer();
     const client = await signedInClient(container);
-    await importAndWait(container, client, files());
+    // The workbook zip embeds the current time, so it is built once to upload identical bytes.
+    const upload = files();
+    await importAndWait(container, client, upload);
     const snapshot = () => ({
       posts: count(container, "SELECT COUNT(*) n FROM posts"),
       metrics: count(container, "SELECT COUNT(*) n FROM post_metric_snapshots"),
@@ -51,9 +53,10 @@ describe("import pipeline", () => {
       topics: count(container, "SELECT COUNT(*) n FROM post_topics"),
     });
     const first = snapshot();
-    const job = await importAndWait(container, client, files());
+    const job = await importAndWait(container, client, upload);
     expect(snapshot()).toEqual(first);
-    expect(job.result).toMatchObject({ files: [{ postsCreated: 0 }, { postsCreated: 0 }] });
+    const skipped = { alreadyImportedOn: expect.any(String) };
+    expect(job.result).toMatchObject({ files: [skipped, skipped] });
   });
 
   it("does not let a later date-only source overwrite a known publish time or text", async () => {

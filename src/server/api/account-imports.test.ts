@@ -138,7 +138,9 @@ describe("generic posts CSV", () => {
     await importAndWait(container, client, generic());
     const crlfFree = GENERIC_CSV.replace(/\r\n/g, "\n");
     const job = await importAndWait(container, client, { "posts.csv": strToU8(crlfFree) });
-    expect(job.result).toMatchObject({ files: [{ postsCreated: 0, postsUpdated: 2 }] });
+    expect(job.result).toMatchObject({
+      files: [{ posts: { added: 0, changed: 0, unchanged: 2 } }],
+    });
     expect(await postsPerAccount(container, client)).toEqual([{ label: "Blog", n: 2 }]);
   });
 

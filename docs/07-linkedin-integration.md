@@ -76,6 +76,10 @@ form in `Shares.csv` and the plain form in the analytics export match. Every sto
 the providers that contributed to it, and every metric snapshot records its provider, observed
 day, covered period and import job.
 
+Re-imports are incremental (ADR 0028): each file reports posts and metric snapshots as added,
+changed or unchanged, unchanged rows are left as they are, and a byte-identical file already
+imported into the same account is skipped.
+
 ## As implemented: multiple accounts and platforms
 
 See ADR 0026. Each provider declares the one platform it serves, and an import goes into the
