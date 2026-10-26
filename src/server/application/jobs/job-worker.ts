@@ -1,5 +1,6 @@
 import { type Clock, nowIso } from "../clock";
 import { PermanentJobError } from "../errors";
+import { type Telemetry, noopTelemetry, startTimer } from "../telemetry/ports";
 import type { Job, JobHandler, JobRepository } from "./ports";
 
 export interface WorkerOptions {
@@ -9,9 +10,15 @@ export interface WorkerOptions {
   /** Runs before each drain, for work that is due by the clock (scheduled intelligence). */
   tick?: (now: Date) => Promise<unknown>;
   onTickError?: (error: unknown) => void;
+  telemetry: Telemetry;
 }
 
-const DEFAULTS: WorkerOptions = { pollMs: 1000, baseBackoffMs: 5000 };
+const DEFAULTS: WorkerOptions = { pollMs: 1000, baseBackoffMs: 5000, telemetry: noopTelemetry };
+
+type Outcome = "completed" | "retrying" | "failed";
+
+// A type without a handler comes straight from a stored row, so it is not a bounded label.
+const UNKNOWN_TYPE = "unknown";
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -67,21 +74,36 @@ export class JobWorker {
   async runOnce(): Promise<boolean> {
     const job = await this.jobs.claimNext(nowIso(this.clock));
     if (!job) return false;
+    const elapsed = startTimer();
     const handler = this.handlers[job.type];
     if (!handler) {
       await this.jobs.fail(job.id, `No handler for job type "${job.type}"`, nowIso(this.clock));
+      this.report(UNKNOWN_TYPE, "failed", elapsed());
       return true;
     }
+    this.report(job.type, await this.execute(job, handler), elapsed());
+    return true;
+  }
+
+  private async execute(job: Job, handler: JobHandler): Promise<Outcome> {
     try {
       const result = await handler(job, {
         reportProgress: (progress) => this.jobs.setProgress(job.id, progress),
       });
       await this.jobs.complete(job.id, result, nowIso(this.clock));
+      return "completed";
     } catch (error) {
       this.options.onError?.(job, error);
-      await this.handleFailure(job, error);
+      return this.handleFailure(job, error);
     }
-    return true;
+  }
+
+  private report(type: string, outcome: Outcome, seconds: number): void {
+    const { telemetry } = this.options;
+    const labels = { job_type: type, outcome };
+    telemetry.count("jobs_total", labels);
+    telemetry.observe("job_duration_seconds", labels, seconds);
+    telemetry.log("job_finished", labels, seconds);
   }
 
   /**
@@ -96,15 +118,16 @@ export class JobWorker {
     }
   }
 
-  private async handleFailure(job: Job, error: unknown): Promise<void> {
+  private async handleFailure(job: Job, error: unknown): Promise<Outcome> {
     const message = messageOf(error);
     const retryable = !(error instanceof PermanentJobError) && canRetry(job);
     if (!retryable) {
       await this.jobs.fail(job.id, message, nowIso(this.clock));
-      return;
+      return "failed";
     }
     const delay = this.options.baseBackoffMs * 2 ** job.retryCount;
     const runAfter = new Date(this.clock().getTime() + delay).toISOString();
     await this.jobs.scheduleRetry(job.id, message, runAfter);
+    return "retrying";
   }
 }

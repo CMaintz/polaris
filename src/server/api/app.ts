@@ -27,6 +27,9 @@ import type { ComparisonService } from "../application/analytics/comparison-serv
 import { type AppEnv, errorResponse } from "./http";
 import { SESSION_COOKIE, authRoutes } from "./routes/auth";
 import { jobRoutes } from "./routes/jobs";
+import { type MetricsRouteDeps, metricsRoutes } from "./routes/metrics";
+import { requestTelemetry } from "./request-telemetry";
+import type { Telemetry } from "../application/telemetry/ports";
 
 export interface AppDeps {
   auth: AuthService;
@@ -47,11 +50,14 @@ export interface AppDeps {
   action: ActionRouteDeps;
   secureCookies: boolean;
   maxUploadBytes: number;
+  telemetry: Telemetry;
+  metrics: MetricsRouteDeps;
 }
 
 export function createApi(deps: AppDeps) {
   const api = new Hono<AppEnv>();
   api.onError((error, c) => errorResponse(c, error));
+  api.use(requestTelemetry(deps.telemetry));
   api.use(secureHeaders());
   // Rejects cross-origin form and multipart posts (the content types a browser sends
   // without a CORS preflight). JSON requests already require a preflight.
@@ -61,6 +67,7 @@ export function createApi(deps: AppDeps) {
     await next();
   });
   api.get("/health", (c) => c.json({ status: "ok" }));
+  api.route("/metrics", metricsRoutes(deps.metrics));
   api.route("/auth", authRoutes(deps.auth, deps.secureCookies));
   api.route("/jobs", jobRoutes(deps.jobs));
   api.route("/imports", importRoutes(deps.imports, deps.maxUploadBytes));

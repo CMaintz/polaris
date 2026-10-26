@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import { PermanentJobError } from "../errors";
 import { JobWorker } from "./job-worker";
 import { signedInClient, testContainer } from "../../test-support";
+import { InProcessTelemetry } from "../../infrastructure/telemetry/in-process-telemetry";
 import type { JobHandler } from "./ports";
 
 async function setup(handler: JobHandler, maxRetries = 2) {
   const container = testContainer();
   const { userId } = await signedInClient(container);
+  const logLines: string[] = [];
+  const telemetry = new InProcessTelemetry((line) => logLines.push(line));
   const worker = new JobWorker(container.jobs, { work: handler }, container.clock, {
     baseBackoffMs: 1000,
+    telemetry,
   });
   const job = await container.jobs.enqueue(
     { userId, type: "work", payload: {}, maxRetries },
@@ -19,7 +23,7 @@ async function setup(handler: JobHandler, maxRetries = 2) {
     if (!found) throw new Error("job vanished");
     return found;
   };
-  return { container, worker, reload };
+  return { container, worker, reload, telemetry, logLines, userId };
 }
 
 describe("JobWorker", () => {
@@ -101,6 +105,56 @@ describe("JobWorker", () => {
     await worker.start();
     worker.stop();
     expect((await reload()).status).toBe("queued");
+  });
+});
+
+describe("JobWorker telemetry", () => {
+  it("counts a failure with retries left as retrying, not completed or failed", async () => {
+    const { worker, telemetry } = await setup(async () => {
+      throw new Error("provider timeout");
+    });
+    await worker.runOnce();
+    const text = telemetry.render();
+    expect(text).toContain('polaris_jobs_total{job_type="work",outcome="retrying"} 1');
+    expect(text).not.toMatch(/outcome="(completed|failed)"/);
+  });
+
+  it("counts a job as failed once its retries are used up", async () => {
+    const { worker, telemetry } = await setup(async () => {
+      throw new Error("still down");
+    }, 0);
+    await worker.runOnce();
+    expect(telemetry.render()).toContain('polaris_jobs_total{job_type="work",outcome="failed"} 1');
+  });
+
+  it("logs a finished job without its error text or owner", async () => {
+    const { worker, logLines, userId } = await setup(async () => {
+      throw new PermanentJobError("Could not read my-salary-review.csv");
+    });
+    await worker.runOnce();
+    expect(logLines).toHaveLength(1);
+    expect(JSON.parse(logLines[0] ?? "")).toMatchObject({
+      event: "job_finished",
+      job_type: "work",
+      outcome: "failed",
+    });
+    expect(logLines[0]).not.toContain("salary");
+    expect(logLines[0]).not.toContain(userId);
+  });
+
+  it("labels a job with no handler as unknown, so stored type strings cannot grow the series", async () => {
+    const container = testContainer();
+    const { userId } = await signedInClient(container);
+    const telemetry = new InProcessTelemetry(() => {});
+    const worker = new JobWorker(container.jobs, {}, container.clock, { telemetry });
+    await container.jobs.enqueue(
+      { userId, type: "legacy-type-from-an-old-release", payload: {} },
+      container.clock().toISOString(),
+    );
+    await worker.drain();
+    const text = telemetry.render();
+    expect(text).toContain('polaris_jobs_total{job_type="unknown",outcome="failed"} 1');
+    expect(text).not.toContain("legacy-type");
   });
 });
 

@@ -135,5 +135,8 @@ The architecture should not make any one deployment model impossible.
   agentic planning and publishing. Every job is idempotent and parses its payload before use.
 - **Scheduled intelligence**: the worker runs a tick before each drain that enqueues due
   schedules and due publications (ADR 0021), so there is no second timer.
+- **Telemetry** (ADR 0029): request, job and AI call counts and durations in memory, served in
+  Prometheus format at `/api/metrics` when `POLARIS_METRICS_TOKEN` is set, plus a JSON log line
+  per job attempt and per server error. No personal data reaches either.
 - **Browser automation** is not used. LinkedIn data comes from the user's own exports, and
   posting uses the official API (ADR 0010, ADR 0025).

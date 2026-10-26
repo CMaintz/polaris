@@ -3,6 +3,7 @@ import { PermanentJobError } from "../errors";
 import { type AiProvider, AiProviderError, type AiProviderId } from "./ports";
 import type { PromptTemplate } from "./prompts";
 import type { InteractionLog, InteractionRecord } from "./store";
+import type { Labels } from "../telemetry/ports";
 
 export type InteractionRecorder = Pick<InteractionLog, "recordInteraction">;
 
@@ -34,6 +35,11 @@ type Recorded = Pick<
   InteractionRecord,
   "model" | "status" | "output" | "error" | "inputTokens" | "outputTokens"
 >;
+
+/** Metric labels for a recorded call: the provider id and status are both closed sets. */
+export function aiCallLabels(record: Pick<InteractionRecord, "provider" | "status">): Labels {
+  return { provider: record.provider, outcome: record.status };
+}
 
 /**
  * Every model call is recorded in ai_interactions, failed or not (ADR 0014). The error is

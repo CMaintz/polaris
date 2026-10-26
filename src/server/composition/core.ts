@@ -18,6 +18,7 @@ import { SqliteContentQueries } from "../infrastructure/db/content-queries";
 import { SqliteContentStore } from "../infrastructure/db/content-store";
 import { openDatabase } from "../infrastructure/db/database";
 import { SqliteJobRepository } from "../infrastructure/db/job-repository";
+import { InProcessTelemetry } from "../infrastructure/telemetry/in-process-telemetry";
 
 export interface Overrides {
   clock?: Clock;
@@ -26,6 +27,8 @@ export interface Overrides {
   aiFactory?: AiProviderFactory;
   webResearch?: WebResearchFactory;
   feedFetcher?: FeedFetcher;
+  /** Where structured telemetry lines go instead of stdout. */
+  telemetrySink?: (line: string) => void;
 }
 
 export function buildCore(config: Config, overrides: Overrides) {
@@ -55,6 +58,7 @@ export function buildCore(config: Config, overrides: Overrides) {
     accountStore: new SqliteAccountStore(db),
     queries: new SqliteContentQueries(db),
     resolveAccount,
+    telemetry: new InProcessTelemetry(overrides.telemetrySink),
   };
 }
 
