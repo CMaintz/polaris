@@ -4,6 +4,7 @@ import { AI_JOB, AiService } from "./application/ai/ai-service";
 import { CredentialService } from "./application/ai/credentials";
 import type { AiProviderFactory } from "./application/ai/ports";
 import { AnalyticsService } from "./application/analytics/analytics-service";
+import { AnalyticsEvidenceFacts, type EvidenceFacts } from "./application/analytics/evidence-facts";
 import { AuthService } from "./application/auth/auth-service";
 import type { PasswordHasher } from "./application/auth/ports";
 import { type Clock, systemClock } from "./application/clock";
@@ -82,7 +83,7 @@ function buildAi(
   core: Core,
   db: Db,
   config: Config,
-  analytics: AnalyticsService,
+  facts: EvidenceFacts,
   factory: AiProviderFactory,
 ) {
   const { content, jobs, audit, clock } = core;
@@ -91,7 +92,7 @@ function buildAi(
     resolveMasterKey(config.masterKey, join(config.dataDir, "master.key")),
   );
   const credentials = new CredentialService(aiStore, box, factory, audit, clock);
-  const ai = new AiService({ credentials, analytics, content, store: aiStore, jobs, audit, clock });
+  const ai = new AiService({ credentials, facts, content, store: aiStore, jobs, audit, clock });
   return { aiStore, credentials, ai };
 }
 
@@ -147,18 +148,10 @@ function buildPlanning(core: Core, analytics: AnalyticsService) {
 export function buildContainer(config: Config, overrides: Overrides = {}) {
   const core = buildCore(config, overrides);
   const imports = buildImports(core);
-  const analytics = new AnalyticsService(
-    core.content,
-    new SqliteContentQueries(core.db),
-    core.clock,
-  );
-  const ai = buildAi(
-    core,
-    core.db,
-    config,
-    analytics,
-    overrides.aiFactory ?? new SdkProviderFactory(),
-  );
+  const queries = new SqliteContentQueries(core.db);
+  const analytics = new AnalyticsService(core.content, queries, core.clock);
+  const facts = new AnalyticsEvidenceFacts(core.content, queries, core.clock);
+  const ai = buildAi(core, core.db, config, facts, overrides.aiFactory ?? new SdkProviderFactory());
   const handlers = {
     [IMPORT_JOB]: imports.run.bind(imports),
     [AI_JOB]: ai.ai.run.bind(ai.ai),

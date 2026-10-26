@@ -4,7 +4,6 @@ import type { AiService } from "../../application/ai/ai-service";
 import type { CredentialService } from "../../application/ai/credentials";
 import type { AiInsight, AiStore } from "../../application/ai/store";
 import type { ContentStore } from "../../application/content/ports";
-import { NotFoundError } from "../../application/errors";
 import type { InsightDto } from "../../../shared/api-types";
 import { type AppEnv, currentUser, readJson, readQuery, requireUser } from "../http";
 import { toJobDto } from "./jobs";
@@ -91,16 +90,7 @@ export function aiRoutes(
         c,
         z.object({ status: z.enum(["open", "accepted", "dismissed", "done"]) }),
       );
-      const id = await accountId(currentUser(c).id);
-      const updated = id
-        ? await store.setRecommendationStatus(
-            id,
-            c.req.param("id"),
-            status,
-            new Date().toISOString(),
-          )
-        : false;
-      if (!updated) throw new NotFoundError("Recommendation");
+      await ai.setRecommendationStatus(currentUser(c).id, c.req.param("id"), status);
       return c.body(null, 204);
     })
     .get("/interactions", async (c) => {

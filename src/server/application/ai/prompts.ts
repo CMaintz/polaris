@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { EvidencePack } from "./evidence";
+import { fenced, inlineText } from "./untrusted";
 
 // Prompts are versioned (docs/06): a wording change gets a new version, so every stored
 // AI interaction can be traced to the exact template that produced it.
@@ -55,7 +56,7 @@ Rules:
 
 export const ACCOUNT_REVIEW: PromptTemplate<Analysis> = {
   name: "account-review",
-  version: "v1",
+  version: "v2",
   schema: analysisSchema,
   schemaName: "account_review",
   maxTokens: 16000,
@@ -66,7 +67,7 @@ Task: review the account as a whole. Give a two or three sentence summary, up to
 
 export const POST_REVIEW: PromptTemplate<Analysis> = {
   name: "post-review",
-  version: "v1",
+  version: "v2",
   schema: analysisSchema,
   schemaName: "post_review",
   maxTokens: 16000,
@@ -77,7 +78,7 @@ Task: review the single post marked "This post" against the owner's other posts.
 
 export const ASK_DATA: PromptTemplate<Answer> = {
   name: "ask-data",
-  version: "v1",
+  version: "v2",
   schema: answerSchema,
   schemaName: "data_answer",
   maxTokens: 8000,
@@ -86,27 +87,19 @@ export const ASK_DATA: PromptTemplate<Answer> = {
 Task: answer the owner's question from the evidence. If the evidence cannot answer it, say so plainly and list what data would be needed under caveats.`,
 };
 
-/** Escapes text so it cannot close or open the tags that fence it. */
-function fence(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 function formatValue(value: number | null, unit: "count" | "ratio"): string {
   if (value === null) return "not available";
   return unit === "ratio" ? `${(value * 100).toFixed(2)}%` : String(Math.round(value * 100) / 100);
 }
 
-/** Labels can carry imported text (topic names come from hashtags), so they are fenced too. */
-const inline = (text: string) => fence(text).replace(/\s+/g, " ");
-
 function renderEvidence(pack: EvidencePack): string {
   const lines = pack.items.map((item) => {
     const period = item.period ? `, ${item.period.from} to ${item.period.to}` : "";
     const value = formatValue(item.value, item.unit);
-    return `${item.id} | ${inline(item.label)}${period} | ${value} | source: ${inline(item.source)}`;
+    return `${item.id} | ${inlineText(item.label)}${period} | ${value} | source: ${inlineText(item.source)}`;
   });
-  const texts = pack.postTexts.map(
-    (p) => `<post_text evidence="${p.evidenceId}">\n${fence(p.text)}\n</post_text>`,
+  const texts = pack.postTexts.map((p) =>
+    fenced("post_text", p.text, `evidence="${p.evidenceId}"`),
   );
   return [`<evidence>\n${lines.join("\n")}\n</evidence>`, ...texts].join("\n\n");
 }
@@ -121,6 +114,6 @@ export function renderPrompt(
       "Note: this is a synthetic demo dataset, not a real account. Say so in the summary.",
     );
   }
-  if (options.question) parts.push(`<question>\n${fence(options.question)}\n</question>`);
+  if (options.question) parts.push(fenced("question", options.question));
   return parts.join("\n\n");
 }
