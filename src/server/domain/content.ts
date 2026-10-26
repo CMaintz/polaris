@@ -73,7 +73,8 @@ export function emptyBundle(provider: string, dataset: Dataset = "linkedin"): Im
 }
 
 // Old LinkedIn exports encode hashtags as {hashtag|\#|AI}; newer ones as plain #AI.
-const ENCODED_HASHTAG = /\{hashtag\|\\?#\|([^}]+)\}/g;
+// Word characters only: topic names end up in AI prompts, so they must not carry markup.
+const ENCODED_HASHTAG = /\{hashtag\|\\?#\|([\p{L}\p{N}_]+)\}/gu;
 // The excluded leading characters keep HTML entities (&#39;) and URL fragments (/#top) out.
 const PLAIN_HASHTAG = /(?:^|[^\p{L}\p{N}_&/])#([\p{L}\p{N}_]+)/gu;
 
